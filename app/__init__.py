@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 import sys
+import re
 
 load_dotenv()
 
@@ -38,11 +39,28 @@ def create_app():
     csrf.init_app(app)
     migrate.init_app(app, db)
 
+    # --- Jinja filters ---
+    @app.template_filter("imgurl")
+    def imgurl_filter(value):
+        """Return a usable URL for an image field.
+        - /static/uploads/... (uploaded) passes through
+        - bare filename maps to /static/images/<name>
+        - empty falls back to placeholder.jpg
+        """
+        if not value:
+            return "/static/images/placeholder.jpg"
+        v = str(value)
+        if v.startswith("/") or v.startswith("http"):
+            return v
+        return f"/static/images/{v}"
+
+    # --- Blueprints ---
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
+    # --- Language selection ---
     @app.route("/set-language/<code>")
     def set_language(code):
         if code in LANGUAGES:
@@ -56,6 +74,7 @@ def create_app():
             "current_lang": session.get("lang", "en"),
         }
 
+    # --- Seed only when the server actually starts ---
     if _is_server_run():
         with app.app_context():
             db.create_all()
@@ -65,6 +84,7 @@ def create_app():
 
 
 def _is_server_run():
+    """True only for `python run.py` or `flask run` — skip on `flask db ...`."""
     argv = sys.argv
     if "db" in argv:
         return False
@@ -80,14 +100,16 @@ def _is_server_run():
 def _seed_products():
     from app.models import Product
     from app.seed_data import PRODUCTS
+
     if Product.query.count() > 0:
         return
-    import re
+
     def slugify(s):
         return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
+    inserted = 0
     for p in PRODUCTS:
-        Product(
+        product = Product(
             name=p["name"],
             slug=slugify(p["name"]),
             category=p["category"],
@@ -101,5 +123,8 @@ def _seed_products():
             image=p["image"],
             featured=p.get("featured", False),
         )
+        db.session.add(product)   # <-- THIS was missing
+        inserted += 1
+
     db.session.commit()
-    print(f"✅ Seeded {len(PRODUCTS)} products")
+    print(f"✅ Seeded {inserted} products")
