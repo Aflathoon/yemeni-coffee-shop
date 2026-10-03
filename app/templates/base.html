@@ -1,29 +1,196 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yemeni Coffee & Spice Co.</title>
+    <title>{% block title %}The Spice & Roast Co.{% endblock %}</title>
+    <!-- Tailwind (dev). For production, compile locally. -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cream: "#faf5ec",
+              parchment: "#f2e9d8",
+              coffee: { DEFAULT: "#4a2c17", dark: "#2d1b0e", light: "#6b4423" },
+              spice:  { DEFAULT: "#b8621b", warm: "#d97e2c" },
+              sage:   "#7a8b6f",
+            }
+          }
+        }
+      }
+    </script>
     <style>
-        .hero-gradient { background: linear-gradient(135deg, #2d1b0e 0%, #4a2c17 50%, #6b4423 100%); }
-        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
-        .card-hover { transition: all 0.3s ease; }
+      /* Inline critical CSS — prevents flash before Tailwind loads */
+      body { background: #faf5ec; color: #2d1b0e; font-family: system-ui, -apple-system, sans-serif; margin: 0; }
+      .product-img { background: #f2e9d8; width: 100%; height: 200px; object-fit: cover; display: block; }
+      .card { background: #fff; border-radius: 0.75rem; overflow: hidden; }
+      /* Prevent layout shift while images load */
+      img { max-width: 100%; display: block; }
+      a { text-decoration: none; color: inherit; }
     </style>
+    {% block head %}{% endblock %}
 </head>
-<body class="bg-amber-50 text-stone-800">
-    <nav class="bg-stone-900 text-amber-100 px-6 py-4 flex justify-between items-center">
-        <a href="/" class="text-2xl font-bold tracking-tight">☕ Yemeni Coffee & Spice Co.</a>
-        <div class="space-x-6">
-            <a href="/" class="hover:text-amber-300">Shop</a>
-            <a href="/admin/login" class="hover:text-amber-300">Admin</a>
+<body class="bg-cream text-coffee-dark">
+
+<!-- ===== TOP NAVBAR ===== -->
+<header class="bg-coffee-dark text-amber-50 sticky top-0 z-50 shadow-lg">
+    <div class="px-4 py-3 flex items-center justify-between gap-4">
+        <!-- Left: logo + burger -->
+        <div class="flex items-center gap-4">
+            <button id="sidebar-toggle" class="lg:hidden text-2xl" aria-label="Menu">☰</button>
+            <a href="/" class="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">
+                🌿 The Spice & Roast Co.
+            </a>
         </div>
-    </nav>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="bg-amber-200 text-amber-900 px-6 py-2 text-center">{{ messages[0] }}</div>
-        {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
+
+        <!-- Center: search -->
+        <form action="/" method="get" class="hidden md:flex flex-1 max-w-md mx-4">
+            <input type="search" name="q" placeholder="Search spices, coffee, honey…"
+                   class="w-full px-4 py-2 rounded-l-lg text-coffee-dark focus:outline-none">
+            <button class="bg-spice text-white px-4 rounded-r-lg hover:bg-spice-warm">🔍</button>
+        </form>
+
+        <!-- Right: menu + language -->
+        <div class="flex items-center gap-3">
+            <a href="/admin/login" class="hidden md:inline text-sm hover:text-amber-300">Admin</a>
+
+            <!-- Language selector -->
+            <div class="relative group">
+                <button class="flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-coffee-light">
+                    🌐 {{ languages[current_lang] }}
+                </button>
+                <div class="absolute right-0 top-full mt-1 bg-white text-coffee-dark rounded-lg shadow-lg py-1 min-w-[140px] hidden group-hover:block z-50">
+                    {% for code, label in languages.items() %}
+                    <a href="{{ url_for('set_language', code=code) }}"
+                       class="block px-4 py-2 text-sm hover:bg-parchment {% if code == current_lang %}font-bold{% endif %}">
+                        {{ label }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <a href="#" class="relative">🛒 <span class="absolute -top-1 -right-1 bg-spice text-xs rounded-full px-1">0</span></a>
+        </div>
+    </div>
+</header>
+
+<div class="flex min-h-screen">
+
+    <!-- ===== LEFT SIDEBAR ===== -->
+    <aside id="sidebar"
+           class="w-64 bg-parchment border-r border-coffee-light/20 p-4 hidden lg:block shrink-0">
+        <nav class="space-y-6 sticky top-20">
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">Categories</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="/" class="block px-3 py-1.5 rounded hover:bg-cream {% if not active_category %}bg-cream font-semibold{% endif %}">
+                            All Products
+                        </a>
+                    </li>
+                    {% for c in categories %}
+                    <li>
+                        <a href="/?category={{ c.name }}"
+                           class="block px-3 py-1.5 rounded hover:bg-cream flex justify-between {% if active_category == c.name %}bg-cream font-semibold{% endif %}">
+                            <span>{{ c.name|capitalize }}</span>
+                            <span class="text-xs text-coffee-light">{{ c.count }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">Origin</h3>
+                <ul class="space-y-1 max-h-64 overflow-auto">
+                    {% for c in countries %}
+                    <li>
+                        <a href="/?country={{ c.name }}"
+                           class="block px-3 py-1.5 rounded hover:bg-cream flex justify-between text-sm {% if active_country == c.name %}bg-cream font-semibold{% endif %}">
+                            <span>{{ c.name }}</span>
+                            <span class="text-xs text-coffee-light">{{ c.count }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="bg-cream rounded-lg p-3 text-sm">
+                <p class="font-bold mb-1">🌍 Worldwide Shipping</p>
+                <p class="text-coffee-light text-xs">Free over $75. Flat $8 otherwise.</p>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="flex-1 min-w-0 p-4 md:p-6">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="mb-4 bg-spice/20 border border-spice text-coffee-dark px-4 py-2 rounded">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- ===== RIGHT SIDEBAR ===== -->
+    <aside class="w-64 hidden xl:block shrink-0 p-4 border-l border-coffee-light/20 bg-parchment/50">
+        <div class="space-y-6 sticky top-20">
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">⭐ Featured</h3>
+                <div class="space-y-3">
+                    {% for p in featured %}
+                    <a href="/product/{{ p.slug }}" class="flex gap-3 items-center group">
+                        <img src="/static/images/{{ p.image }}"
+                             onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                             alt="{{ p.name }}"
+                             class="w-12 h-12 rounded object-cover bg-parchment shrink-0">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold truncate group-hover:text-spice">{{ p.name }}</p>
+                            <p class="text-xs text-coffee-light">{{ p.origin_country }}</p>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bg-coffee-dark text-amber-50 rounded-lg p-4">
+                <p class="font-bold mb-1">🤖 AI Concierge</p>
+                <p class="text-xs mb-3">Ask about any spice or origin.</p>
+                <a href="#" class="block text-center bg-spice hover:bg-spice-warm py-2 rounded text-sm font-semibold">Open Chat</a>
+            </div>
+
+            <div>
+                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">🍯 Yemeni Flagship</h3>
+                <p class="text-xs text-coffee-light mb-2">Our most treasured lots.</p>
+                <a href="/?country=Yemen" class="text-sm text-spice hover:underline">View all Yemeni →</a>
+            </div>
+        </div>
+    </aside>
+
+</div>
+
+<footer class="bg-coffee-dark text-amber-100/70 py-6 px-6 text-sm text-center">
+    © 2026 The Spice & Roast Co. · Sourced worldwide · Roasted with intent
+</footer>
+
+<script>
+  // Mobile sidebar toggle
+  document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('hidden');
+    document.getElementById('sidebar').classList.toggle('absolute');
+    document.getElementById('sidebar').classList.toggle('z-40');
+  });
+
+  // Prevent image flicker: only set fallback once per image
+  document.querySelectorAll('img').forEach(img => {
+    img.addEventListener('error', function handler() {
+      this.removeEventListener('error', handler);
+      this.src = '/static/images/placeholder.jpg';
+    });
+  });
+</script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

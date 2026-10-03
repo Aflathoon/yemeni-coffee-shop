@@ -6,3 +6,4 @@ instance/
 *.sqlite3
 app/static/images/
 .DS_Store
+.envrc.local
