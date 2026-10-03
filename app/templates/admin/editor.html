@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-6 py-12">
+    <h1 class="text-3xl font-bold mb-8">Create Marketing Post</h1>
+    <form method="POST" class="bg-white rounded-xl shadow p-8 space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label class="block text-sm font-semibold mb-2">Post Title</label>
+            <input type="text" name="title" required class="w-full border border-stone-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+            <label class="block text-sm font-semibold mb-2">Content (HTML allowed)</label>
+            <textarea name="body" rows="12" class="w-full border border-stone-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="<p>Your post content here...</p>"></textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold mb-2">Featured Image (filename from /static/images/)</label>
+            <input type="text" name="image" class="w-full border border-stone-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="yemeni_coffee_1.jpg">
+        </div>
+        <button type="submit" class="bg-stone-900 text-amber-50 px-8 py-3 rounded-lg font-bold hover:bg-stone-700">Save Post</button>
+    </form>
+</div>
+{% endblock %}

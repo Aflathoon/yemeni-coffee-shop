@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-6 py-12">
+    <h1 class="text-3xl font-bold mb-8">Admin Dashboard</h1>
+    
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
+        {% for label, value in [("Products", stats.products), ("Orders", stats.orders), ("Users", stats.users), ("Posts", stats.posts), ("Revenue", "$%.2f"|format(stats.revenue))] %}
+        <div class="bg-white rounded-xl p-6 shadow">
+            <p class="text-sm text-stone-500">{{ label }}</p>
+            <p class="text-2xl font-bold">{{ value }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold">Content Editor</h2>
+        <a href="/admin/post/new" class="bg-amber-700 text-white px-4 py-2 rounded-lg hover:bg-amber-800">+ New Post</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-stone-100">
+                <tr>
+                    <th class="text-left px-6 py-3 text-sm font-semibold">Product</th>
+                    <th class="text-left px-6 py-3 text-sm font-semibold">Category</th>
+                    <th class="text-left px-6 py-3 text-sm font-semibold">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr class="border-t border-stone-100">
+                    <td class="px-6 py-3">{{ p.name }}</td>
+                    <td class="px-6 py-3">{{ p.category }}</td>
+                    <td class="px-6 py-3">${{ "%.2f"|format(p.price) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
