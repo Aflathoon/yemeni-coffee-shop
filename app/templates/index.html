@@ -27,7 +27,7 @@
     {% for p in products %}
     <a href="/product/{{ p.slug }}" class="card shadow-sm hover:shadow-lg transition-shadow duration-200">
         <div class="relative">
-            <img src="/static/images/{{ p.image }}"
+            <img src="{{ p.image|imgurl }}"
                  onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
                  alt="{{ p.name }}"
                  class="product-img"

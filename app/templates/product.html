@@ -59,7 +59,7 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         {% for p in related %}
         <a href="/product/{{ p.slug }}" class="card shadow-sm hover:shadow-lg transition">
-            <img src="/static/images/{{ p.image }}"
+            <img src="{{ p.image|imgurl }}"
                  onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
                  alt="{{ p.name }}" class="product-img" loading="lazy">
             <div class="p-3">

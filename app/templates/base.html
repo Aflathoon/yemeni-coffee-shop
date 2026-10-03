@@ -142,7 +142,7 @@
                 <div class="space-y-3">
                     {% for p in featured %}
                     <a href="/product/{{ p.slug }}" class="flex gap-3 items-center group">
-                        <img src="/static/images/{{ p.image }}"
+                        <img src="{{ p.image|imgurl }}"
                              onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
                              alt="{{ p.name }}"
                              class="w-12 h-12 rounded object-cover bg-parchment shrink-0">
