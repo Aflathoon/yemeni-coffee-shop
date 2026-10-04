@@ -84,31 +84,6 @@
             </div>
             {% endif %}
 
-        {% if price_info.campaign_labels %}
-        <div class="bg-sage/10 border border-sage/40 rounded-sm p-4 mb-6">
-            <p class="text-[10px] tracking-widest uppercase text-sage mb-2">Active promotions</p>
-            <ul class="space-y-1 text-sm">
-                {% for lbl in price_info.campaign_labels %}
-                <li class="text-coffee-dark">✓ {{ lbl }}</li>
-                {% endfor %}
-            </ul>
-            <div class="mt-3 pt-3 border-t border-sage/30 text-xs text-coffee-light">
-                <div class="flex justify-between">
-                    <span>Base wholesale</span>
-                    <span>${{ "%.2f"|format(price_info.base_price) }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span>Campaign savings</span>
-                    <span class="text-sage">−${{ "%.2f"|format(price_info.campaign_discount) }}</span>
-                </div>
-                <div class="flex justify-between font-semibold text-coffee-dark pt-1 border-t border-sage/20 mt-1">
-                    <span>Your price</span>
-                    <span>${{ "%.2f"|format(price_info.price) }}</span>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
         {% if price_info.floor_clamped %}
         <div class="bg-gold/10 border border-gold/40 rounded-sm p-3 mb-4 text-xs">
             <p class="text-coffee-dark">
