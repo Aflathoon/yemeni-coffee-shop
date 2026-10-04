@@ -150,6 +150,9 @@
                 <span>🩺 Site Health</span>
                 {% if stats and stats.open_alerts %}<span class="badge">{{ stats.open_alerts }}</span>{% endif %}
             </a>
+            <a href="/admin/assistant/content" class="sidebar-link {% if 'assistant_content' in (request.endpoint or '') %}active{% endif %}">
+                <span>✍️ Content Studio</span>
+            </a>
         </nav>
 
         <div class="border-t border-coffee-dark/10 p-4">

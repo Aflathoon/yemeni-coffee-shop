@@ -1,0 +1,366 @@
+{% extends "admin_base.html" %}
+{% block title %}Content Studio — Assistant{% endblock %}
+{% block page_title %}Content Studio{% endblock %}
+{% block page_subtitle %}Generate product copy, article drafts, and SEO-optimised text{% endblock %}
+
+{% block content %}
+
+{# ---------- Generated result (if any) ---------- #}
+{% if generated %}
+<div class="bg-white border-2 border-sage rounded-lg p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <p class="text-[10px] tracking-widest uppercase text-sage mb-1">✨ AI Output</p>
+            <h2 class="font-display text-xl text-navy">
+                {% if generated.tool == 'product' %}{{ generated.product_name }}{% endif %}
+                {% if generated.tool == 'article' %}{{ generated.title }}{% endif %}
+                {% if generated.tool == 'seo' %}Rewritten for "{{ generated.keyword }}"{% endif %}
+            </h2>
+        </div>
+        {% if generated.tokens %}
+        <p class="text-[11px] text-coffee-light">{{ generated.tokens }} tokens</p>
+        {% endif %}
+    </div>
+
+    {# Product: editable textarea + Save onto product.long_description #}
+    {% if generated.tool == 'product' %}
+    <form method="POST" action="{{ url_for('admin.assistant_content_product_save') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="product_id" value="{{ generated.product_id }}">
+        <textarea name="content" rows="14"
+                  class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm font-mono">{{ generated.content }}</textarea>
+        <div class="flex justify-between items-center mt-3 flex-wrap gap-3">
+            <p class="text-[12px] text-coffee-light">Review, edit if needed, then save it as this product's full description.</p>
+            <div class="flex gap-2">
+                <a href="{{ url_for('admin.assistant_content') }}" class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark self-center">Discard</a>
+                <button type="submit" class="bg-navy text-cream px-5 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                    Save to product
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+    {# Article: title + body + Save as Article #}
+    {% if generated.tool == 'article' %}
+    <form method="POST" action="{{ url_for('admin.assistant_content_article_save') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Suggested title</label>
+            <input type="text" name="title" value="{{ generated.title }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-base">
+        </div>
+        <div class="mb-3">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Category</label>
+            <input type="text" name="category" value="{{ generated.category }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+        </div>
+        <div class="mb-3">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Article body (HTML)</label>
+            <textarea name="content" rows="22"
+                      class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm font-mono">{{ generated.content }}</textarea>
+        </div>
+        <div class="flex justify-between items-center flex-wrap gap-3">
+            <p class="text-[12px] text-coffee-light">Creates a <strong>draft</strong> article. Edit further in the article editor before publishing.</p>
+            <div class="flex gap-2">
+                <a href="{{ url_for('admin.assistant_content') }}" class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark self-center">Discard</a>
+                <button type="submit" class="bg-navy text-cream px-5 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                    Create draft article
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+    {# SEO: editable textarea + Copy button (no auto-save — you'd paste it manually) #}
+    {% if generated.tool == 'seo' %}
+    <textarea id="seo-output" rows="14"
+              class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm font-mono">{{ generated.content }}</textarea>
+    <div class="flex justify-between items-center mt-3 flex-wrap gap-3">
+        <p class="text-[12px] text-coffee-light">Copy from the box above and paste into your target field.</p>
+        <div class="flex gap-2">
+            <a href="{{ url_for('admin.assistant_content') }}" class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark self-center">Discard</a>
+            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('seo-output').value); this.innerText='✓ Copied'; setTimeout(()=>this.innerText='Copy to clipboard', 1500)"
+                    class="bg-navy text-cream px-5 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                Copy to clipboard
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{# ---------- Three tools #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    {# --- Product description --- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <div class="flex items-center gap-2 mb-1">
+            <span class="text-xl">📦</span>
+            <h2 class="font-display text-lg text-navy">Product description</h2>
+        </div>
+        <p class="text-[13px] text-coffee-light mb-4">Generate rich long-form copy for a single product.</p>
+
+        <form method="POST" action="{{ url_for('admin.assistant_content_product') }}" class="space-y-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Product</label>
+
+                {# Search box #}
+                <input type="search"
+                       id="product-search"
+                       placeholder="Search by name, origin, category…"
+                       autocomplete="off"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm mb-2">
+
+                {# Category filter #}
+                <div class="flex gap-1 mb-2 flex-wrap" id="product-cat-tabs">
+                    <button type="button" data-cat="" class="cat-tab text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-coffee-dark/20 hover:bg-parchment">All</button>
+                    {% for cat in ['coffee','tea','spices','herbs','honey','accessories'] %}
+                    <button type="button" data-cat="{{ cat }}" class="cat-tab text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-coffee-dark/20 hover:bg-parchment">{{ cat }}</button>
+                    {% endfor %}
+                </div>
+
+                {# Result list — hidden input holds the actual ID #}
+                <input type="hidden" name="product_id" id="product-id-input" required>
+                <div id="product-results"
+                     class="border border-coffee-dark/20 rounded-sm bg-cream max-h-48 overflow-auto">
+                    <p class="text-[12px] text-coffee-light italic p-3">Start typing to search…</p>
+                </div>
+
+                <p id="product-selected"
+                   class="text-[12px] text-sage mt-1 hidden">
+                    ✓ Selected: <strong id="product-selected-name"></strong>
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Tone</label>
+                    <select name="tone" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                        <option value="warm">Warm / sensory</option>
+                        <option value="b2b">Professional / B2B</option>
+                        <option value="story">Storytelling</option>
+                        <option value="concise">Concise / factual</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Length</label>
+                    <select name="length" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                        <option value="short">Short (~60w)</option>
+                        <option value="medium" selected>Medium (~120w)</option>
+                        <option value="long">Long (~220w)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Keywords (optional)</label>
+                <input type="text" name="keywords" placeholder="e.g. cardamom, chai, single-origin"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            </div>
+
+            <button type="submit" class="w-full bg-navy text-cream py-2.5 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                Generate description
+            </button>
+        </form>
+    </div>
+
+    {# --- Article draft --- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <div class="flex items-center gap-2 mb-1">
+            <span class="text-xl">📰</span>
+            <h2 class="font-display text-lg text-navy">Article draft</h2>
+        </div>
+        <p class="text-[13px] text-coffee-light mb-4">Full blog post with headings, intro, and conclusion.</p>
+
+        <form method="POST" action="{{ url_for('admin.assistant_content_article') }}" class="space-y-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Topic</label>
+                <input type="text" name="topic" required placeholder="e.g. How to brew Yemeni coffee at home"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Outline (optional)</label>
+                <textarea name="outline" rows="3" placeholder="1. Intro to Yemeni coffee&#10;2. The regions&#10;3. Brewing methods"
+                          class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Category</label>
+                    <select name="category" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                        <option value="coffee">Coffee</option>
+                        <option value="tea">Tea</option>
+                        <option value="spices">Spices</option>
+                        <option value="honey">Honey</option>
+                        <option value="herbs">Herbs</option>
+                        <option value="origins">Origins</option>
+                        <option value="recipes">Recipes</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Length</label>
+                    <select name="length" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                        <option value="short">Short (~700w)</option>
+                        <option value="medium" selected>Medium (~1200w)</option>
+                        <option value="long">Long (~2000w)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Audience</label>
+                <input type="text" name="audience" value="enthusiasts"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            </div>
+
+            <button type="submit" class="w-full bg-navy text-cream py-2.5 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                Generate article
+            </button>
+        </form>
+    </div>
+
+    {# --- SEO enhancer --- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <div class="flex items-center gap-2 mb-1">
+            <span class="text-xl">🔍</span>
+            <h2 class="font-display text-lg text-navy">SEO enhancer</h2>
+        </div>
+        <p class="text-[13px] text-coffee-light mb-4">Rewrite existing copy for a target keyword without sounding robotic.</p>
+
+        <form method="POST" action="{{ url_for('admin.assistant_content_seo') }}" class="space-y-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Original copy</label>
+                <textarea name="original" required rows="5" placeholder="Paste text here…"
+                          class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Target keyword</label>
+                <input type="text" name="keyword" required placeholder="e.g. sidr honey benefits"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Search intent</label>
+                <select name="intent" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                    <option value="informational">Informational</option>
+                    <option value="commercial">Commercial (product page)</option>
+                    <option value="transactional">Transactional (buy)</option>
+                    <option value="navigational">Navigational</option>
+                </select>
+            </div>
+
+            <button type="submit" class="w-full bg-navy text-cream py-2.5 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                Rewrite for SEO
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="mt-8 pt-6 border-t border-coffee-dark/10 text-xs text-coffee-light italic text-center">
+    AI-generated content is a starting point. Always review before publishing — the model can invent details.
+</div>
+
+<script>
+(function() {
+    const searchInput = document.getElementById('product-search');
+    const resultsEl = document.getElementById('product-results');
+    const idInput = document.getElementById('product-id-input');
+    const selectedEl = document.getElementById('product-selected');
+    const selectedNameEl = document.getElementById('product-selected-name');
+    const catTabs = document.querySelectorAll('.cat-tab');
+
+    if (!searchInput) return;
+
+    let allProducts = [];
+    let activeCat = '';
+    let loaded = false;
+
+    function loadOnce(cb) {
+        if (loaded) return cb();
+        fetch('/admin/api/products-index', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => { allProducts = data.items || []; loaded = true; cb(); })
+            .catch(() => { resultsEl.innerHTML = '<p class="text-red-600 text-[12px] p-3">Failed to load products.</p>'; });
+    }
+
+    function highlightMatch(text, q) {
+        if (!q) return text;
+        const idx = text.toLowerCase().indexOf(q.toLowerCase());
+        if (idx === -1) return text;
+        return text.slice(0, idx) + '<mark class="bg-gold/30">' + text.slice(idx, idx + q.length) + '</mark>' + text.slice(idx + q.length);
+    }
+
+    function render() {
+        const q = searchInput.value.trim();
+        let filtered = allProducts;
+
+        if (activeCat) {
+            filtered = filtered.filter(p => p.category.toLowerCase() === activeCat.toLowerCase());
+        }
+
+        if (q.length >= 2) {
+            const lower = q.toLowerCase();
+            filtered = filtered.filter(p =>
+                p.name.toLowerCase().includes(lower) ||
+                p.origin.toLowerCase().includes(lower) ||
+                p.region.toLowerCase().includes(lower) ||
+                p.tags.toLowerCase().includes(lower) ||
+                p.category.toLowerCase().includes(lower)
+            );
+        } else if (q.length === 0 && !activeCat) {
+            // Show first 30 when idle
+            filtered = filtered.slice(0, 30);
+        }
+
+        if (filtered.length === 0) {
+            resultsEl.innerHTML = '<p class="text-[12px] text-coffee-light italic p-3">No matches.</p>';
+            return;
+        }
+
+        const max = 60;
+        const shown = filtered.slice(0, max);
+        resultsEl.innerHTML = shown.map(p => `
+            <button type="button" onclick="pickProduct(${p.id}, ${JSON.stringify(p.name).replace(/"/g, '&quot;')})"
+                    class="w-full text-left px-3 py-2 hover:bg-parchment border-b border-coffee-dark/5 last:border-b-0 transition">
+                <div class="flex justify-between items-baseline gap-2">
+                    <span class="text-sm text-coffee-dark">${highlightMatch(p.name, q)}</span>
+                    <span class="text-[10px] tracking-widest uppercase text-coffee-light shrink-0">${p.category}</span>
+                </div>
+                ${p.origin ? `<p class="text-[11px] text-coffee-light">${p.origin}${p.region ? ' · ' + p.region : ''}</p>` : ''}
+            </button>
+        `).join('') + (filtered.length > max ? `<p class="text-[11px] text-coffee-light italic p-2 text-center">+${filtered.length - max} more — refine your search</p>` : '');
+    }
+
+    window.pickProduct = function(id, name) {
+        idInput.value = id;
+        selectedNameEl.textContent = name;
+        selectedEl.classList.remove('hidden');
+        resultsEl.innerHTML = '<p class="text-[12px] text-sage italic p-3">✓ Selected</p>';
+    };
+
+    searchInput.addEventListener('input', render);
+    searchInput.addEventListener('focus', () => loadOnce(render));
+
+    catTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            activeCat = tab.dataset.cat || '';
+            catTabs.forEach(t => {
+                t.classList.toggle('bg-navy', t === tab && activeCat !== '');
+                t.classList.toggle('text-cream', t === tab && activeCat !== '');
+            });
+            loadOnce(render);
+        });
+    });
+})();
+</script>
+
+{% endblock %}

@@ -1964,3 +1964,343 @@ def assistant_health_resolve(alert_id):
     db.session.commit()
     flash(f"Alert '{a.title}' marked resolved.", "success")
     return redirect(url_for("admin.assistant_health"))
+
+
+# ============ AI ASSISTANT: CONTENT ============
+
+@bp.route("/assistant/content")
+@admin_required
+def assistant_content():
+    """Landing page with three tools."""
+    from app.models import Product
+
+    products = Product.query.filter_by(active=True).order_by(Product.name).all()
+    stats = compute_stats()
+    return render_template(
+        "admin/assistant_content.html",
+        products=products,
+        stats=stats,
+        generated=None,
+    )
+
+
+@bp.route("/assistant/content/product", methods=["POST"])
+@admin_required
+def assistant_content_product():
+    """Generate a long_description for a product."""
+    from app.models import Product
+    from app.ai import chat, is_configured, _system_prompt
+
+    if not is_configured():
+        flash("AI not configured — set the API key in Settings.", "error")
+        return redirect(url_for("admin.settings"))
+
+    product_id = request.form.get("product_id", type=int)
+    tone = request.form.get("tone", "warm")
+    length = request.form.get("length", "medium")
+    keywords = request.form.get("keywords", "").strip()
+
+    product = Product.query.get_or_404(product_id)
+
+    tone_guide = {
+        "warm":    "warm, inviting, sensory — like a good shopkeeper's recommendation",
+        "b2b":     "professional, direct, focused on sourcing and consistency",
+        "story":   "storytelling, evocative — talks about origins and the people behind it",
+        "concise": "short, factual, no fluff — bullet-friendly",
+    }.get(tone, "warm, inviting")
+
+    length_guide = {
+        "short":  "3–4 sentences (~60 words)",
+        "medium": "2 short paragraphs (~120 words)",
+        "long":   "3 paragraphs (~220 words), include a 'how to use' note",
+    }.get(length, "2 short paragraphs")
+
+    system = _system_prompt(
+        "You write product copy for the shop's catalogue. Output clean HTML (use <p>, <strong>, <em>, <ul><li>). "
+        "Never include a heading, price, or meta description. Just the body text."
+    )
+
+    prompt_lines = [
+        f"Write a product description for the following product.",
+        "",
+        f"Name: {product.name}",
+        f"Category: {product.category}",
+    ]
+    if product.subcategory:
+        prompt_lines.append(f"Subcategory: {product.subcategory}")
+    if product.origin_country:
+        prompt_lines.append(f"Origin: {product.origin_country}{' · ' + product.origin_region if product.origin_region else ''}")
+    if product.short_desc:
+        prompt_lines.append(f"Existing one-liner: {product.short_desc}")
+    if product.description:
+        prompt_lines.append(f"Existing summary: {product.description}")
+    if keywords:
+        prompt_lines.append(f"Try to naturally include these keywords: {keywords}")
+    prompt_lines += [
+        "",
+        f"Tone: {tone_guide}",
+        f"Length: {length_guide}",
+        "Output: HTML only. No markdown, no code fences, no headings.",
+    ]
+
+    r = chat(
+        messages=[system, {"role": "user", "content": "\n".join(prompt_lines)}],
+        max_tokens=1200,
+        temperature=0.7,
+    )
+
+    if not r["ok"]:
+        flash(f"AI error: {r['error']}", "error")
+        return redirect(url_for("admin.assistant_content"))
+
+    return render_template(
+        "admin/assistant_content.html",
+        products=Product.query.filter_by(active=True).order_by(Product.name).all(),
+        stats=compute_stats(),
+        generated={
+            "tool": "product",
+            "product_id": product.id,
+            "product_name": product.name,
+            "content": r["content"].strip(),
+            "tokens": (r.get("usage") or {}).get("total_tokens"),
+        },
+    )
+
+
+@bp.route("/assistant/content/product/save", methods=["POST"])
+@admin_required
+def assistant_content_product_save():
+    """Save the AI-generated long_description onto the product."""
+    from app.models import Product
+    product_id = request.form.get("product_id", type=int)
+    content = request.form.get("content", "").strip()
+
+    if not product_id or not content:
+        flash("Nothing to save.", "error")
+        return redirect(url_for("admin.assistant_content"))
+
+    product = Product.query.get_or_404(product_id)
+    product.long_description = content
+    db.session.commit()
+    flash(f"✅ Saved to {product.name}", "success")
+    return redirect(url_for("admin.product_edit", product_id=product.id))
+
+
+@bp.route("/assistant/content/article", methods=["POST"])
+@admin_required
+def assistant_content_article():
+    """Generate a blog article draft."""
+    from app.ai import chat, is_configured, _system_prompt
+
+    if not is_configured():
+        flash("AI not configured — set the API key in Settings.", "error")
+        return redirect(url_for("admin.settings"))
+
+    topic = request.form.get("topic", "").strip()
+    outline = request.form.get("outline", "").strip()
+    category = request.form.get("category", "coffee").strip()
+    length = request.form.get("length", "medium")
+    audience = request.form.get("audience", "enthusiasts").strip()
+
+    if not topic:
+        flash("Topic is required.", "error")
+        return redirect(url_for("admin.assistant_content"))
+
+    length_guide = {
+        "short":  "600–800 words, 3–4 H2 sections",
+        "medium": "1000–1400 words, 5–6 H2 sections + intro + conclusion",
+        "long":   "1800–2400 words, 7–9 H2 sections with H3s, includes intro, takeaway, conclusion",
+    }.get(length, "1000–1400 words, 5–6 H2 sections")
+
+    system = _system_prompt(
+        "You write long-form articles for the shop's journal. Output clean HTML "
+        "(<p>, <h2>, <h3>, <strong>, <em>, <ul><li>, <blockquote>). "
+        "Never include the title tag, meta description, or any wrapper HTML — just the article body. "
+        "Use an engaging but grounded voice. No clickbait. No invented claims."
+    )
+
+    prompt_lines = [
+        f"Write an article for the shop's blog.",
+        "",
+        f"Topic: {topic}",
+        f"Category: {category}",
+        f"Audience: {audience}",
+    ]
+    if outline:
+        prompt_lines += ["", "Rough outline to follow:", outline]
+    prompt_lines += [
+        "",
+        f"Length: {length_guide}",
+        "Structure: <h2> for main sections, <p> for body, occasional <h3> for sub-points.",
+        "No H1 (that's the article title, written separately).",
+        "HTML only. No markdown, no code fences.",
+    ]
+
+    r = chat(
+        messages=[system, {"role": "user", "content": "\n".join(prompt_lines)}],
+        max_tokens=3000,
+        temperature=0.7,
+    )
+
+    if not r["ok"]:
+        flash(f"AI error: {r['error']}", "error")
+        return redirect(url_for("admin.assistant_content"))
+
+    # Suggest a title and slug
+    title_r = chat(
+        messages=[
+            _system_prompt("You write short, punchy titles. Reply with the title only, no quotes, no markdown."),
+            {"role": "user", "content": f"Suggest a title for an article about: {topic}"},
+        ],
+        max_tokens=60,
+        temperature=0.5,
+    )
+    suggested_title = title_r.get("content", "").strip().splitlines()[0] if title_r.get("ok") else topic
+
+    return render_template(
+        "admin/assistant_content.html",
+        products=Product.query.filter_by(active=True).order_by(Product.name).all(),
+        stats=compute_stats(),
+        generated={
+            "tool": "article",
+            "title": suggested_title[:200],
+            "content": r["content"].strip(),
+            "tokens": (r.get("usage") or {}).get("total_tokens"),
+            "category": category,
+        },
+    )
+
+
+@bp.route("/assistant/content/article/save", methods=["POST"])
+@admin_required
+def assistant_content_article_save():
+    """Create a draft Article from the AI output."""
+    from app.models import Article
+    import re
+
+    title = request.form.get("title", "").strip()
+    content = request.form.get("content", "").strip()
+    category = request.form.get("category", "").strip() or None
+
+    if not title or not content:
+        flash("Title and content required.", "error")
+        return redirect(url_for("admin.assistant_content"))
+
+    def slugify(s):
+        return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+    base = slugify(title)
+    slug = base
+    n = 1
+    while Article.query.filter_by(slug=slug).first():
+        n += 1
+        slug = f"{base}-{n}"
+
+    excerpt_r = content[:300].replace("<p>", "").replace("</p>", " ").strip()[:280]
+
+    article = Article(
+        title=title,
+        slug=slug,
+        body=content,
+        excerpt=excerpt_r,
+        category=category,
+        author_name="The Spice & Roast Co.",
+        reading_minutes=max(2, len(content.split()) // 200),
+        published=False,
+    )
+    db.session.add(article)
+    db.session.commit()
+    flash(f"✅ Draft article '{article.title}' created — review and publish from the Articles page.", "success")
+    return redirect(url_for("admin.article_edit", article_id=article.id))
+
+
+@bp.route("/assistant/content/seo", methods=["POST"])
+@admin_required
+def assistant_content_seo():
+    """Rewrite copy to be SEO-friendly."""
+    from app.ai import chat, is_configured, _system_prompt
+
+    if not is_configured():
+        flash("AI not configured — set the API key in Settings.", "error")
+        return redirect(url_for("admin.settings"))
+
+    original = request.form.get("original", "").strip()
+    keyword = request.form.get("keyword", "").strip()
+    intent = request.form.get("intent", "informational").strip()
+
+    if not original or not keyword:
+        flash("Original text and target keyword are required.", "error")
+        return redirect(url_for("admin.assistant_content"))
+
+    system = _system_prompt(
+        "You improve existing copy for SEO without making it sound robotic. "
+        "Never keyword-stuff. Keep the original meaning and voice. "
+        "Output clean HTML (same tags as input)."
+    )
+
+    prompt_lines = [
+        "Rewrite the following copy for better SEO.",
+        "",
+        f"Primary keyword: {keyword}",
+        f"Search intent: {intent}",
+        "",
+        "Guidelines:",
+        "- Include the primary keyword naturally — 1–3 times per 300 words, not more",
+        "- Use semantic variations (related phrases) instead of repeating",
+        "- Keep sentences readable. No robot voice.",
+        "- Preserve any existing <h2>, <h3> structure",
+        "",
+        "Original:",
+        original,
+        "",
+        "Output: cleaned HTML version. No wrapper, no explanation.",
+    ]
+
+    r = chat(
+        messages=[system, {"role": "user", "content": "\n".join(prompt_lines)}],
+        max_tokens=2000,
+        temperature=0.5,
+    )
+
+    if not r["ok"]:
+        flash(f"AI error: {r['error']}", "error")
+        return redirect(url_for("admin.assistant_content"))
+
+    return render_template(
+        "admin/assistant_content.html",
+        products=Product.query.filter_by(active=True).order_by(Product.name).all(),
+        stats=compute_stats(),
+        generated={
+            "tool": "seo",
+            "keyword": keyword,
+            "content": r["content"].strip(),
+            "tokens": (r.get("usage") or {}).get("total_tokens"),
+        },
+    )
+
+
+# ---------- Product picker data ----------
+
+@bp.route("/api/products-index")
+@admin_required
+def api_products_index():
+    """Lightweight product list for client-side picker/search."""
+    from app.models import Product
+    rows = (Product.query
+            .filter_by(active=True)
+            .order_by(Product.name)
+            .all())
+    return {
+        "items": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "category": p.category or "",
+                "origin": p.origin_country or "",
+                "region": p.origin_region or "",
+                "tags": p.tags or "",
+                "price": round(p.price or 0, 2),
+            }
+            for p in rows
+        ]
+    }
