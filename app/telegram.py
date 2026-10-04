@@ -15,6 +15,9 @@ from app.models import Setting
 
 API_ROOT = "https://api.telegram.org"
 
+from pathlib import Path as _Path
+
+
 
 # ---------- Config ----------
 
@@ -79,6 +82,63 @@ def send_photo(photo_url, caption="", parse_mode="HTML"):
     })
 
 
+def send_photo_file(local_path, caption="", parse_mode="HTML"):
+    """
+    Upload a local image file directly to Telegram via multipart.
+    Works in dev without a public URL. Reads token/channel from Setting/env.
+    local_path: absolute or relative path (e.g. app/static/images/foo.jpg)
+    """
+    token, chat_id = get_config()
+    if not token:
+        return {"ok": False, "description": "Bot token not configured"}
+    if not chat_id:
+        return {"ok": False, "description": "Channel not configured"}
+
+    path = _Path(local_path)
+    if not path.is_file():
+        return {"ok": False, "description": f"File not found: {local_path}"}
+
+    url = f"{API_ROOT}/bot{token}/sendPhoto"
+    try:
+        with path.open("rb") as fh:
+            files = {"photo": (path.name, fh)}
+            data = {
+                "chat_id": chat_id,
+                "caption": caption,
+                "parse_mode": parse_mode,
+            }
+            r = requests.post(url, data=data, files=files, timeout=30)
+        resp = r.json()
+        if not resp.get("ok"):
+            return {"ok": False, "description": resp.get("description", f"HTTP {r.status_code}")}
+        return resp
+    except requests.RequestException as e:
+        return {"ok": False, "description": f"Network error: {e}"}
+    except ValueError:
+        return {"ok": False, "description": "Invalid response from Telegram"}
+
+
+def _resolve_local_image(image_field):
+    """
+    Given a Product.image or Post.image value, return the local file path if it
+    exists under app/static/. Returns None if it's a URL or a missing file.
+    """
+    if not image_field:
+        return None
+    if image_field.startswith("http"):
+        return None
+    # Normalize /static/... → app/static/...
+    from flask import current_app
+    rel = image_field.lstrip("/")
+    if rel.startswith("static/"):
+        rel = rel[len("static/"):]
+    base = current_app.static_folder
+    if not base:
+        return None
+    candidate = _Path(base) / rel
+    return str(candidate) if candidate.is_file() else None
+
+
 # ---------- Formatters ----------
 
 def _absolute_url(path_or_url, base_url=None):
@@ -122,15 +182,20 @@ def send_product(product, base_url=None):
         lines.append(f'🔗 <a href="{base_url.rstrip("/")}/product/{product.slug}">View in shop</a>')
 
     caption = "\n".join(lines)
-    image_url = _absolute_url(product.image, base_url)
+    # Try local file upload first (works in dev)
+    local = _resolve_local_image(product.image)
+    if local:
+        r = send_photo_file(local, caption=caption)
+        if r.get("ok"):
+            return r
+        # fall through to URL attempt
 
-    # Try photo first; fall back to text if image fails
-    if image_url and (image_url.startswith("http")):
-        # Convert /static/images/foo.jpg to a form Telegram accepts
-        if image_url.startswith("http"):
-            r = send_photo(image_url, caption=caption)
-            if r.get("ok"):
-                return r
+    image_url = _absolute_url(product.image, base_url)
+    if image_url and image_url.startswith("http"):
+        r = send_photo(image_url, caption=caption)
+        if r.get("ok"):
+            return r
+
     return send_message(caption)
 
 
@@ -148,11 +213,19 @@ def send_post(post, base_url=None):
     caption_lines = [f"<b>{title}</b>", "", _html_escape(body_text)]
     caption = "\n".join(caption_lines)
 
+    # Try local file upload first
+    local = _resolve_local_image(post.image)
+    if local:
+        r = send_photo_file(local, caption=caption)
+        if r.get("ok"):
+            return r
+
     image_url = _absolute_url(post.image, base_url)
     if image_url and image_url.startswith("http"):
         r = send_photo(image_url, caption=caption)
         if r.get("ok"):
             return r
+
     return send_message(caption)
 
 
