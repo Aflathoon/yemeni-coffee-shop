@@ -12,7 +12,7 @@
 </div>
 
 <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
-    <table class="w-full text-sm">
+    <table class="w-full text-[15px]">
         <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
             <tr>
                 <th class="text-left px-4 py-3 w-12"></th>
@@ -34,7 +34,7 @@
                 </td>
                 <td class="px-4 py-2">
                     <a href="{{ url_for('admin.product_edit', product_id=p.id) }}" class="text-coffee-dark hover:text-spice font-medium">{{ p.name }}</a>
-                    <p class="text-[11px] text-coffee-light">{{ p.slug }}</p>
+                    <p class="text-[12px] text-coffee-light">{{ p.slug }}</p>
                 </td>
                 <td class="px-4 py-2 text-xs text-coffee-light">{{ p.category }}</td>
                 <td class="px-4 py-2 text-xs text-coffee-light">{{ p.origin_country or '—' }}</td>
@@ -52,8 +52,8 @@
                     </form>
                 </td>
                 <td class="px-4 py-2 text-right whitespace-nowrap">
-                    <a href="{{ url_for('admin.product_edit', product_id=p.id) }}" class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark mr-2">Edit</a>
-                    <a href="/product/{{ p.slug }}" target="_blank" class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">View</a>
+                    <a href="{{ url_for('admin.product_edit', product_id=p.id) }}" class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mr-2">Edit</a>
+                    <a href="/product/{{ p.slug }}" target="_blank" class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">View</a>
                 </td>
             </tr>
             {% endfor %}

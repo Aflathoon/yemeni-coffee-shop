@@ -29,13 +29,24 @@
       }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-      body { background: #f5f1e8; color: #1f1a14; font-family: 'Inter', system-ui, sans-serif; margin: 0; }
+      html { font-size: 16px; }
+      body {
+        background: #f5f1e8; color: #1f1a14;
+        font-family: 'Inter', system-ui, sans-serif; margin: 0;
+        font-size: 15px; line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+      }
+      .font-display { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; letter-spacing: 0.005em; }
+      code, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
       .font-display { font-family: 'Cormorant Garamond', Georgia, serif; }
       .sidebar-link {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 0.6rem 1rem; font-size: 0.85rem; color: #2e1d12;
+        padding: 0.65rem 1rem; font-size: 0.92rem; font-weight: 500; color: #2e1d12;
         border-left: 3px solid transparent; transition: all 0.15s;
       }
       .sidebar-link:hover { background: #f2ebdc; }
@@ -51,7 +62,7 @@
       }
       .stat-card {
         background: #fff; border: 1px solid rgba(46,29,18,0.08);
-        border-radius: 6px; padding: 1.25rem;
+        border-radius: 6px; padding: 1.25rem; font-size: 0.95rem;
       }
       .task-row {
         display: flex; align-items: flex-start; gap: 0.75rem;
@@ -86,6 +97,9 @@
             <a href="/admin/products" class="sidebar-link {% if request.endpoint == 'admin.products' %}active{% endif %}">
                 <span>📦 Products</span>
                 {% if stats and stats.products %}<span class="text-coffee-light text-xs">{{ stats.products }}</span>{% endif %}
+            </a>
+            <a href="/admin/import/uploads" class="sidebar-link {% if request.endpoint == 'admin.import_uploads' %}active{% endif %}">
+                <span>⬆️ Import</span>
             </a>
             <a href="/admin/customers" class="sidebar-link {% if request.endpoint == 'admin.customers' %}active{% endif %}">
                 <span>👥 Customers</span>
