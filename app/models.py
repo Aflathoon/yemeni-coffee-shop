@@ -138,6 +138,8 @@ class Product(db.Model):
     short_desc = db.Column(db.String(300))
     price = db.Column(db.Float, nullable=False)
     compare_at_price = db.Column(db.Float)                   # "was $X" display
+    cost_price = db.Column(db.Float)                         # our cost — used for margin floor
+    margin_floor_pct = db.Column(db.Float, default=15.0)     # min margin % above cost (default 15)
     weight_grams = db.Column(db.Integer, default=100)
     unit = db.Column(db.String(10), default="ea")     # g | kg | ea | set | bag
     unit_quantity = db.Column(db.Integer, default=1)  # 100, 250, 1, etc.

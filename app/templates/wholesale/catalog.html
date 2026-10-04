@@ -1,7 +1,7 @@
 {% extends "wholesale/base.html" %}
 {% block title %}Catalog — Partner Portal{% endblock %}
 {% block page_title %}Product Catalog{% endblock %}
-{% block page_subtitle %}{{ priced|length }} product(s) — prices shown at your {{ acct.tier }} tier{% endblock %}
+{% block page_subtitle %}{{ priced|length }} product(s) — {% if acct.custom_discount_pct %}blanket {{ acct.custom_discount_pct }}% discount applied{% else %}prices shown at your {{ acct.tier }} tier{% endif %}{% endblock %}
 
 {% block content %}
 

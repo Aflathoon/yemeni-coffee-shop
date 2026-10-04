@@ -483,6 +483,26 @@ def _product_from_form(product):
     product.long_description = request.form.get("long_description", "").strip() or None
     product.price = price
     product.compare_at_price = compare_at
+
+    # Cost price + margin floor
+    cost_raw = request.form.get("cost_price", "").strip()
+    if cost_raw:
+        try:
+            product.cost_price = max(0.0, float(cost_raw))
+        except ValueError:
+            product.cost_price = None
+    else:
+        product.cost_price = None
+
+    floor_raw = request.form.get("margin_floor_pct", "").strip()
+    if floor_raw:
+        try:
+            product.margin_floor_pct = max(0.0, min(90.0, float(floor_raw)))
+        except ValueError:
+            product.margin_floor_pct = 15.0
+    else:
+        product.margin_floor_pct = 15.0
+
     product.weight_grams = weight
     product.unit = request.form.get("unit", "g").strip() or "g"
     try:
@@ -599,6 +619,8 @@ def settings():
             "WHOLESALE_DISCOUNT_GOLD",
             "WHOLESALE_MOQ_DEFAULT",
             "WHOLESALE_MOQ_ENFORCE",
+            "MARGIN_FLOOR_ENFORCE",
+            "MARGIN_FLOOR_PCT_DEFAULT",
         ]
         for f in fields:
             if f in request.form:

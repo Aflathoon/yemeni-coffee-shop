@@ -48,7 +48,9 @@ def price_for(user, product):
         return round(base, 2)
     tier = getattr(user, "wholesale_tier", "standard")
     pct = get_discount_percent(tier)
-    return round(base * (1 - pct / 100.0), 2)
+    discounted = base * (1 - pct / 100.0)
+    final, _ = clamp_to_floor(product, discounted)
+    return final
 
 
 def discount_for(user):
@@ -77,7 +79,7 @@ def override_for(wholesale_account, product):
     }
 
 
-def wholesale_price_for(wholesale_account, product):
+def _wholesale_price_for_raw(wholesale_account, product):
     """
     Effective price for a wholesale partner + product.
 
@@ -177,3 +179,83 @@ def effective_moq(wholesale_account, product):
         return max(1, int(override["min_quantity"]))
 
     return get_default_moq()
+
+
+# ---------- Margin floor ----------
+
+def margin_floor_enforced():
+    """Global toggle — enforce margin floors on discount calculations."""
+    raw = Setting.get("MARGIN_FLOOR_ENFORCE")
+    if raw is None:
+        return True   # on by default
+    return str(raw).strip().lower() not in ("0", "false", "no", "off")
+
+
+def default_margin_floor_pct():
+    """Global fallback margin % if a product doesn't specify one."""
+    raw = Setting.get("MARGIN_FLOOR_PCT_DEFAULT")
+    try:
+        v = float(raw) if raw is not None else 15.0
+        return max(0.0, min(90.0, v))
+    except (ValueError, TypeError):
+        return 15.0
+
+
+def floor_price_for(product):
+    """
+    Compute the minimum allowed price for a product.
+
+    Priority:
+      1. product.cost_price × (1 + product.margin_floor_pct/100)  — precise
+      2. product.price × 0.35                                     — 35% fallback if no cost
+      3. None if no floor applies
+    """
+    if not margin_floor_enforced():
+        return None
+
+    cost = getattr(product, "cost_price", None)
+    if cost is not None and cost > 0:
+        pct = getattr(product, "margin_floor_pct", None)
+        if pct is None:
+            pct = default_margin_floor_pct()
+        floor = float(cost) * (1 + float(pct) / 100.0)
+        return round(floor, 2)
+
+    # Fallback: never below 35% of list
+    base = float(product.price or 0)
+    if base <= 0:
+        return None
+    return round(base * 0.35, 2)
+
+
+def clamp_to_floor(product, price):
+    """
+    If a discount would push price below the floor, clamp at the floor.
+    Returns (final_price, was_clamped).
+    """
+    floor = floor_price_for(product)
+    if floor is None:
+        return round(float(price), 2), False
+    p = float(price)
+    if p < floor:
+        return floor, True
+    return round(p, 2), False
+
+
+
+def wholesale_price_for(wholesale_account, product):
+    """
+    Public wrapper: computes the raw price then clamps to the margin floor.
+    Returns the same dict as _wholesale_price_for_raw but with price clamped
+    and 'clamped': True when the floor kicked in.
+    """
+    info = _wholesale_price_for_raw(wholesale_account, product)
+    final, clamped = clamp_to_floor(product, info["price"])
+    info["price"] = final
+    info["clamped"] = clamped
+    if clamped:
+        # Recompute the effective discount %
+        list_price = info.get("list_price") or product.price or 0
+        if list_price > 0:
+            info["discount_pct"] = round((1 - final / list_price) * 100.0, 1)
+    return info

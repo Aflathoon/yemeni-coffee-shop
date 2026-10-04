@@ -37,14 +37,22 @@
     <div class="stat-card">
         <div class="flex items-start justify-between mb-3">
             <div>
-                <p class="text-[10px] tracking-widest uppercase text-coffee-light">Your tier</p>
-                <p class="font-display text-3xl text-navy mt-1 capitalize">{{ acct.tier }}</p>
+                <p class="text-[10px] tracking-widest uppercase text-coffee-light">
+                    {% if acct.custom_discount_pct %}Your pricing{% else %}Your tier{% endif %}
+                </p>
+                <p class="font-display text-3xl text-navy mt-1 capitalize">
+                    {% if acct.custom_discount_pct %}−{{ acct.custom_discount_pct }}%{% else %}{{ acct.tier }}{% endif %}
+                </p>
             </div>
             <div class="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center text-navy">🏷</div>
         </div>
         <div class="text-xs">
             {% if acct.is_approved %}
+            {% if acct.custom_discount_pct %}
+            <span class="text-sage font-medium">Blanket discount · all products</span>
+            {% else %}
             <span class="text-sage font-medium">−{{ discount }}% off list price</span>
+            {% endif %}
             {% else %}
             <span class="text-coffee-light">Awaiting approval</span>
             {% endif %}

@@ -74,7 +74,23 @@
 
     <div class="lg:col-span-1">
         <div class="bg-white border border-coffee-dark/8 rounded-lg p-5 sticky top-24">
-            <h2 class="font-display text-xl text-navy mb-4">Order summary</h2>
+            <h2 class="font-display text-xl text-navy mb-2">Order summary</h2>
+
+            {# Pricing attribution #}
+            <div class="mb-4 pb-4 border-b border-coffee-dark/10">
+                {% if acct.custom_discount_pct %}
+                <p class="text-[10px] tracking-widest uppercase text-sage">
+                    ✓ Blanket {{ acct.custom_discount_pct }}% discount applied
+                </p>
+                <p class="text-[10px] text-coffee-light mt-0.5">
+                    Negotiated rate for {{ acct.company_name }}
+                </p>
+                {% else %}
+                <p class="text-[10px] tracking-widest uppercase text-gold">
+                    {{ acct.tier|capitalize }} tier pricing
+                </p>
+                {% endif %}
+            </div>
 
             <div class="space-y-2 text-sm mb-4">
                 <div class="flex justify-between">

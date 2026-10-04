@@ -29,6 +29,10 @@
         <span class="inline-block bg-gold text-navy text-[10px] tracking-widest uppercase px-2 py-1 rounded-sm font-semibold mb-3">
             Custom rate for {{ acct.company_name }}
         </span>
+        {% elif price_info.source == 'custom' %}
+        <span class="inline-block bg-sage/25 text-sage text-[10px] tracking-widest uppercase px-2 py-1 rounded-sm font-semibold mb-3">
+            Blanket {{ price_info.discount_pct }}% discount
+        </span>
         {% else %}
         <span class="inline-block bg-navy/10 text-navy text-[10px] tracking-widest uppercase px-2 py-1 rounded-sm font-semibold mb-3">
             {{ acct.tier|capitalize }} tier · −{{ price_info.discount_pct }}%
