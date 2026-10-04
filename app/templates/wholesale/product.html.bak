@@ -83,3 +83,28 @@
                 <p class="text-coffee-dark"><strong>Note:</strong> maximum discount reached for this item — price floored at minimum margin.</p>
             </div>
             {% endif %}
+                <div class="flex justify-between"><dt class="text-coffee-light">Unit</dt><dd class="text-coffee-dark">{{ product|unit_label }}</dd></div>
+                <div class="flex justify-between"><dt class="text-coffee-light">In stock</dt><dd class="text-coffee-dark">{{ product.stock }}</dd></div>
+                <div class="flex justify-between"><dt class="text-coffee-light">SKU</dt><dd class="text-coffee-dark font-mono text-xs">{{ product.slug }}</dd></div>
+            </dl>
+        </div>
+
+        {% if price_info.notes %}
+        <div class="bg-gold/10 border border-gold/40 rounded-sm p-4 mt-4 text-sm">
+            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Account note</p>
+            <p class="text-coffee-dark italic">{{ price_info.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if product.long_description %}
+<div class="mt-12 pt-8 border-t border-coffee-dark/10">
+    <h2 class="font-display text-2xl text-navy mb-4">About this product</h2>
+    <div class="prose max-w-none text-coffee-dark/85 leading-relaxed">
+        {{ product.long_description|safe }}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
