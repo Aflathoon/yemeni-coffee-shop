@@ -48,38 +48,81 @@
                 list
             </p>
         </div>
+
         <p class="text-xs text-coffee-light tracking-widest uppercase mb-4">
             per {{ product|unit_label }}
             {% if price_info.min_quantity > 1 %} · minimum order {{ price_info.min_quantity }}{% endif %}
         </p>
 
-            {% if price_info.campaign_labels %}
-            <div class="bg-sage/10 border border-sage/40 rounded-sm p-4 mb-6">
-                <p class="text-[10px] tracking-widest uppercase text-sage mb-2">Active promotions</p>
-                <ul class="space-y-1 text-sm">
+        {% if price_info.campaign_labels %}
+        <div class="bg-sage/10 border border-sage/40 rounded-sm p-4 mb-6">
+            <p class="text-[10px] tracking-widest uppercase text-sage mb-2">Active promotions</p>
+            <ul class="space-y-1 text-sm">
                 {% for lbl in price_info.campaign_labels %}
                 <li class="text-coffee-dark">✓ {{ lbl }}</li>
                 {% endfor %}
-                </ul>
-                <div class="mt-3 pt-3 border-t border-sage/30 text-xs text-coffee-light">
-                    <div class="flex justify-between">
-                        <span>Base wholesale</span>
-                        <span>${{ "%.2f"|format(price_info.base_price) }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Campaign savings</span>
-                        <span class="text-sage">−${{ "%.2f"|format(price_info.campaign_discount) }}</span>
-                    </div>
-                    <div class="flex justify-between font-semibold text-coffee-dark pt-1 border-t border-sage/20 mt-1">
-                        <span>Your price</span>
-                        <span>${{ "%.2f"|format(price_info.price) }}</span>
-                    </div>
+            </ul>
+            <div class="mt-3 pt-3 border-t border-sage/30 text-xs text-coffee-light">
+                <div class="flex justify-between">
+                    <span>Base wholesale</span>
+                    <span>${{ "%.2f"|format(price_info.base_price) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Campaign savings</span>
+                    <span class="text-sage">−${{ "%.2f"|format(price_info.campaign_discount) }}</span>
+                </div>
+                <div class="flex justify-between font-semibold text-coffee-dark pt-1 border-t border-sage/20 mt-1">
+                    <span>Your price</span>
+                    <span>${{ "%.2f"|format(price_info.price) }}</span>
                 </div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            {% if price_info.floor_clamped %}
-            <div class="bg-gold/10 border border-gold/40 rounded-sm p-3 mb-4 text-xs">
-                <p class="text-coffee-dark"><strong>Note:</strong> maximum discount reached for this item — price floored at minimum margin.</p>
-            </div>
-            {% endif %}
+        {% if price_info.floor_clamped %}
+        <div class="bg-gold/10 border border-gold/40 rounded-sm p-3 mb-4 text-xs">
+            <p class="text-coffee-dark"><strong>Note:</strong> maximum discount reached for this item — price floored at minimum margin.</p>
+        </div>
+        {% endif %}
+
+        <p class="text-coffee-dark/85 leading-relaxed mb-6">{{ product.description }}</p>
+
+        <form method="POST" action="{{ url_for('wholesale.catalog_add', slug=product.slug) }}" class="flex gap-3 mb-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="number" name="quantity" min="{{ price_info.min_quantity }}"
+                   value="{{ price_info.min_quantity }}"
+                   class="w-24 border border-coffee-dark/20 rounded-sm px-3 py-3 text-center bg-cream">
+            <button type="submit" class="flex-1 bg-navy text-cream py-3 rounded-sm text-xs tracking-widest uppercase font-semibold hover:bg-navy-light">
+                Add to wholesale cart
+            </button>
+        </form>
+
+        <div class="bg-cream border border-coffee-dark/10 rounded-sm p-4 text-sm">
+            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-2">Details</p>
+            <dl class="space-y-1">
+                <div class="flex justify-between"><dt class="text-coffee-light">Origin</dt><dd class="text-coffee-dark">{{ product.origin_country or '—' }}{% if product.origin_region %} · {{ product.origin_region }}{% endif %}</dd></div>
+                <div class="flex justify-between"><dt class="text-coffee-light">Unit</dt><dd class="text-coffee-dark">{{ product|unit_label }}</dd></div>
+                <div class="flex justify-between"><dt class="text-coffee-light">In stock</dt><dd class="text-coffee-dark">{{ product.stock }}</dd></div>
+                <div class="flex justify-between"><dt class="text-coffee-light">SKU</dt><dd class="text-coffee-dark font-mono text-xs">{{ product.slug }}</dd></div>
+            </dl>
+        </div>
+
+        {% if price_info.notes %}
+        <div class="bg-gold/10 border border-gold/40 rounded-sm p-4 mt-4 text-sm">
+            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Account note</p>
+            <p class="text-coffee-dark italic">{{ price_info.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if product.long_description %}
+<div class="mt-12 pt-8 border-t border-coffee-dark/10">
+    <h2 class="font-display text-2xl text-navy mb-4">About this product</h2>
+    <div class="prose max-w-none text-coffee-dark/85 leading-relaxed">
+        {{ product.long_description|safe }}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
