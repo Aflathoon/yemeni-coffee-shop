@@ -1,21 +1,28 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
+{% block title %}Sign in — Admin{% endblock %}
+{% block page_title %}Sign in{% endblock %}
 {% block content %}
-<div class="max-w-md mx-auto mt-24 px-6">
-    <div class="bg-white rounded-xl shadow-lg p-8">
-        <h1 class="text-2xl font-bold mb-6">Admin Login</h1>
+<div class="max-w-md mx-auto mt-16">
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-8">
+        <h2 class="font-display text-2xl text-coffee-dark mb-6">Admin sign in</h2>
         <form method="POST" class="space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
-                <label class="block text-sm font-semibold mb-1">Email</label>
-                <input type="email" name="email" required class="w-full border border-stone-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Email</label>
+                <input type="email" name="email" required
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
             </div>
             <div>
-                <label class="block text-sm font-semibold mb-1">Password</label>
-                <input type="password" name="password" required class="w-full border border-stone-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Password</label>
+                <input type="password" name="password" required
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
             </div>
-            <button type="submit" class="w-full bg-stone-900 text-amber-50 py-3 rounded-lg font-bold hover:bg-stone-700">Login</button>
+            <button type="submit"
+                    class="w-full bg-coffee-dark text-cream py-3 rounded-sm text-xs tracking-widest uppercase font-semibold hover:bg-coffee">
+                Sign in
+            </button>
         </form>
-        <p class="text-xs text-stone-500 mt-4">First run? Create an admin user with the CLI command below.</p>
+        <p class="text-xs text-coffee-light text-center mt-4">Default: admin@example.com / changeme123</p>
     </div>
 </div>
 {% endblock %}

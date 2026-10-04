@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin — The Spice & Roast Co.{% endblock %}</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+              body:    ['"Inter"', 'system-ui', 'sans-serif'],
+            },
+            colors: {
+              cream:     "#faf7f0",
+              parchment: "#f2ebdc",
+              ink:       "#1f1a14",
+              coffee:    { DEFAULT: "#5a3a24", dark: "#2e1d12", light: "#8b6a4a" },
+              spice:     { DEFAULT: "#a0522d", warm: "#c26a2e" },
+              sage:      "#7a8b6f",
+              gold:      "#b8935a",
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body { background: #f5f1e8; color: #1f1a14; font-family: 'Inter', system-ui, sans-serif; margin: 0; }
+      .font-display { font-family: 'Cormorant Garamond', Georgia, serif; }
+      .sidebar-link {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.6rem 1rem; font-size: 0.85rem; color: #2e1d12;
+        border-left: 3px solid transparent; transition: all 0.15s;
+      }
+      .sidebar-link:hover { background: #f2ebdc; }
+      .sidebar-link.active {
+        background: #f2ebdc; border-left-color: #a0522d;
+        font-weight: 600;
+      }
+      .badge {
+        display: inline-block; font-size: 0.7rem;
+        background: #a0522d; color: #faf7f0;
+        padding: 0.1rem 0.5rem; border-radius: 9999px;
+        font-weight: 500;
+      }
+      .stat-card {
+        background: #fff; border: 1px solid rgba(46,29,18,0.08);
+        border-radius: 6px; padding: 1.25rem;
+      }
+      .task-row {
+        display: flex; align-items: flex-start; gap: 0.75rem;
+        padding: 0.75rem 0; border-bottom: 1px solid rgba(46,29,18,0.06);
+      }
+      .task-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<div class="flex min-h-screen">
+
+    {# ---------- ADMIN SIDEBAR ---------- #}
+    <aside class="w-60 bg-cream border-r border-coffee-dark/10 shrink-0 flex flex-col">
+        <div class="p-5 border-b border-coffee-dark/10">
+            <a href="/admin/dashboard" class="block">
+                <div class="font-display text-xl text-coffee-dark leading-none">The Spice &amp; Roast Co.</div>
+                <div class="text-[10px] tracking-[0.25em] text-coffee-light mt-1">ADMIN · v1</div>
+            </a>
+        </div>
+
+        <nav class="flex-1 py-4">
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mb-2 uppercase">Store</p>
+
+            <a href="/admin/dashboard" class="sidebar-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                <span>📊 Overview</span>
+            </a>
+            <a href="/admin/orders" class="sidebar-link {% if request.endpoint == 'admin.orders' %}active{% endif %}">
+                <span>🛒 Orders</span>
+                {% if stats and stats.new_orders %}<span class="badge">{{ stats.new_orders }}</span>{% endif %}
+            </a>
+            <a href="/admin/products" class="sidebar-link {% if request.endpoint == 'admin.products' %}active{% endif %}">
+                <span>📦 Products</span>
+                {% if stats and stats.products %}<span class="text-coffee-light text-xs">{{ stats.products }}</span>{% endif %}
+            </a>
+            <a href="/admin/customers" class="sidebar-link {% if request.endpoint == 'admin.customers' %}active{% endif %}">
+                <span>👥 Customers</span>
+            </a>
+
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Content</p>
+
+            <a href="/admin/posts" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.post') %}active{% endif %}">
+                <span>📝 Posts</span>
+            </a>
+            <a href="/admin/upload" class="sidebar-link {% if request.endpoint == 'admin.upload' %}active{% endif %}">
+                <span>🖼 Media</span>
+            </a>
+
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Integrations</p>
+
+            <a href="/admin/social" class="sidebar-link {% if request.endpoint == 'admin.social' %}active{% endif %}">
+                <span>🔗 Social</span>
+            </a>
+            <a href="/admin/settings" class="sidebar-link {% if request.endpoint == 'admin.settings' %}active{% endif %}">
+                <span>⚙️ Settings</span>
+            </a>
+        </nav>
+
+        <div class="border-t border-coffee-dark/10 p-4">
+            <a href="/" class="block text-xs text-coffee-light hover:text-spice mb-2">← View store</a>
+            <form method="POST" action="/admin/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="text-xs text-coffee-light hover:text-red-600">Sign out</button>
+            </form>
+        </div>
+    </aside>
+
+    {# ---------- MAIN ---------- #}
+    <main class="flex-1 min-w-0">
+        <header class="bg-cream border-b border-coffee-dark/10 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+            <div>
+                <h1 class="font-display text-2xl text-coffee-dark">{% block page_title %}Dashboard{% endblock %}</h1>
+                <p class="text-xs text-coffee-light">{% block page_subtitle %}{% endblock %}</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-coffee-light">
+                <span>Signed in as <strong class="text-coffee-dark">{{ current_user.email }}</strong></span>
+            </div>
+        </header>
+
+        <div class="p-6">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for cat, msg in messages %}
+                    <div class="mb-4 px-4 py-3 rounded border text-sm
+                                {% if cat == 'error' %}bg-red-50 border-red-200 text-red-800
+                                {% elif cat == 'warning' %}bg-amber-50 border-amber-200 text-amber-900
+                                {% else %}bg-sage/15 border-sage/40 text-coffee-dark{% endif %}">
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+</div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

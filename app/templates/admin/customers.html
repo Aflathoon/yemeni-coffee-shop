@@ -1,0 +1,28 @@
+{% extends "admin_base.html" %}
+{% block title %}Customers — Admin{% endblock %}
+{% block page_title %}Customers{% endblock %}
+{% block page_subtitle %}{{ users|length }} registered{% endblock %}
+{% block content %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+            <tr>
+                <th class="text-left px-4 py-3">Email</th>
+                <th class="text-left px-4 py-3">Signed up</th>
+                <th class="text-left px-4 py-3">Role</th>
+                <th class="text-right px-4 py-3">Orders</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr class="border-b border-coffee-dark/5">
+                <td class="px-4 py-3">{{ u.email }}</td>
+                <td class="px-4 py-3 text-xs text-coffee-light">{{ u.created_at.strftime("%b %d, %Y") }}</td>
+                <td class="px-4 py-3 text-xs">{% if u.is_admin %}<span class="badge">admin</span>{% else %}customer{% endif %}</td>
+                <td class="px-4 py-3 text-right">{{ order_counts.get(u.id, 0) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

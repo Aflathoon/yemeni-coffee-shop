@@ -1,0 +1,38 @@
+{% extends "admin_base.html" %}
+{% block title %}Posts — Admin{% endblock %}
+{% block page_title %}Content Editor{% endblock %}
+{% block page_subtitle %}{{ posts|length }} post(s){% endblock %}
+{% block content %}
+<div class="flex justify-end mb-5">
+    <a href="{{ url_for('admin.new_post') }}" class="bg-coffee-dark text-cream px-4 py-2 rounded-sm text-xs tracking-widest uppercase hover:bg-coffee">+ New Post</a>
+</div>
+
+{% if posts %}
+<div class="space-y-3">
+    {% for p in posts %}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-4 flex gap-4 items-center">
+        {% if p.image %}
+        <img src="{{ p.image|imgurl }}" class="w-16 h-16 object-cover rounded bg-parchment shrink-0" alt="">
+        {% endif %}
+        <div class="flex-1 min-w-0">
+            <p class="font-display text-lg text-coffee-dark">{{ p.title }}</p>
+            <p class="text-xs text-coffee-light">{{ p.created_at.strftime("%b %d, %Y") }}{% if p.published %} · <span class="text-sage">published</span>{% endif %}</p>
+        </div>
+        <a href="{{ url_for('admin.edit_post', post_id=p.id) }}" class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">Edit</a>
+        {% if not p.published %}
+        <form method="POST" action="{{ url_for('admin.publish_post', post_id=p.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="text-[10px] tracking-widest uppercase text-coffee-dark hover:text-spice">Publish</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="font-display text-2xl text-coffee-dark mb-2">No posts yet</p>
+    <p class="text-coffee-light text-sm mb-6">Create marketing posts to share on social media.</p>
+    <a href="{{ url_for('admin.new_post') }}" class="bg-coffee-dark text-cream px-6 py-3 rounded-sm text-xs tracking-widest uppercase inline-block hover:bg-coffee">Write your first post</a>
+</div>
+{% endif %}
+{% endblock %}

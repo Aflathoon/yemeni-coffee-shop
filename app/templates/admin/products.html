@@ -1,0 +1,39 @@
+{% extends "admin_base.html" %}
+{% block title %}Products — Admin{% endblock %}
+{% block page_title %}Products{% endblock %}
+{% block page_subtitle %}{{ products|length }} SKUs{% endblock %}
+{% block content %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+            <tr>
+                <th class="text-left px-4 py-3">Product</th>
+                <th class="text-left px-4 py-3">Category</th>
+                <th class="text-left px-4 py-3">Origin</th>
+                <th class="text-right px-4 py-3">Price</th>
+                <th class="text-center px-4 py-3">Featured</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in products %}
+            <tr class="border-b border-coffee-dark/5 hover:bg-parchment/40">
+                <td class="px-4 py-3">
+                    <a href="/product/{{ p.slug }}" target="_blank" class="text-coffee-dark hover:text-spice">{{ p.name }}</a>
+                </td>
+                <td class="px-4 py-3 text-xs text-coffee-light">{{ p.category }}</td>
+                <td class="px-4 py-3 text-xs text-coffee-light">{{ p.origin_country or '—' }}</td>
+                <td class="px-4 py-3 text-right">${{ "%.2f"|format(p.price) }}</td>
+                <td class="px-4 py-3 text-center">
+                    <form method="POST" action="{{ url_for('admin.product_toggle_featured', product_id=p.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="text-lg {% if p.featured %}text-gold{% else %}text-stone-300{% endif %}">
+                            {% if p.featured %}★{% else %}☆{% endif %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

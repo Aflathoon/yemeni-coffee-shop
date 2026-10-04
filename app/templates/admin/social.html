@@ -1,0 +1,17 @@
+{% extends "admin_base.html" %}
+{% block title %}Social — Admin{% endblock %}
+{% block page_title %}Social Integrations{% endblock %}
+{% block page_subtitle %}Connect channels to publish from the editor{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% for name, icon, status in [("Telegram","✈️","Not connected"),("Instagram","📷","Not connected"),("WhatsApp Business","💬","Not connected")] %}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <div class="text-3xl mb-3">{{ icon }}</div>
+        <h3 class="font-display text-lg text-coffee-dark mb-1">{{ name }}</h3>
+        <p class="text-xs text-coffee-light mb-4">{{ status }}</p>
+        <button class="text-[10px] tracking-widest uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-coffee">Connect →</button>
+    </div>
+    {% endfor %}
+</div>
+<p class="text-xs text-coffee-light mt-6 italic">Integration scaffolding — actual OAuth flows to come.</p>
+{% endblock %}

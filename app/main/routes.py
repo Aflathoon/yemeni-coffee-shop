@@ -36,7 +36,7 @@ def cart_subtotal():
 
 
 def shipping_for(subtotal):
-    return 0.0 if subtotal >= 75.0 else (8.0 if subtotal > 0 else 0.0)
+    return 0.0 if subtotal >= 100.0 else (8.0 if subtotal > 0 else 0.0)
 
 
 # ---------- Catalog ----------
