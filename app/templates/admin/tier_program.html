@@ -42,7 +42,7 @@
         </form>
         <form method="POST" action="{{ url_for('admin.tier_program_evaluate') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="bg-navy text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light"
+            <button class="bg-[#1a2530] text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-[#2c3a48]"
                     onclick="return confirm('Run evaluation on all partners?')">
                 Run evaluation
             </button>
