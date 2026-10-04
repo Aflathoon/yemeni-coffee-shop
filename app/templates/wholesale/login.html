@@ -1,0 +1,40 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Partner sign in — The Spice & Roast Co.{% endblock %}
+{% block content %}
+
+<div class="max-w-md mx-auto py-16">
+    <div class="text-center mb-8">
+        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">Partner Portal</p>
+        <h1 class="font-display text-3xl text-navy mb-2">Sign in</h1>
+        <p class="text-coffee-light text-sm">Trade accounts only — for retail orders visit the main shop.</p>
+    </div>
+
+    <form method="POST" class="bg-white border border-coffee-dark/8 rounded-sm p-8 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Business email</label>
+            <input type="email" name="email" required value="{{ form.email or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-navy">
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Password</label>
+            <input type="password" name="password" required
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-navy">
+        </div>
+
+        <button type="submit" class="btn-primary w-full">Sign in</button>
+    </form>
+
+    <div class="text-sm text-coffee-light text-center mt-6 space-y-2">
+        <p>No trade account yet?
+            <a href="{{ url_for('wholesale.register') }}" class="text-spice hover:text-navy">Apply now</a>
+        </p>
+        <p class="text-xs">
+            <a href="/" class="hover:text-navy">← Retail shop</a>
+        </p>
+    </div>
+</div>
+
+{% endblock %}

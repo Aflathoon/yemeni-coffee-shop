@@ -1,0 +1,175 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Dashboard — Partner Portal{% endblock %}
+{% block page_title %}{{ acct.company_name }}{% endblock %}
+{% block page_subtitle %}{{ acct.email }} · {{ acct.business_type or 'Business account' }}{% endblock %}
+
+{% block content %}
+
+{# ---------- Pending banner ---------- #}
+{% if acct.status == 'pending' %}
+<div class="bg-gold/10 border border-gold/40 rounded-lg p-5 mb-5">
+    <div class="flex items-start gap-4">
+        <span class="text-2xl">⏳</span>
+        <div class="flex-1">
+            <h2 class="font-display text-lg text-coffee-dark mb-1">Application under review</h2>
+            <p class="text-sm text-coffee-dark/85 leading-relaxed">
+                Thanks, {{ acct.company_name }}. We review new partner accounts within 2 business days.
+                You'll receive an email at <strong>{{ acct.email }}</strong> once approved.
+            </p>
+        </div>
+    </div>
+</div>
+{% elif acct.status == 'rejected' %}
+<div class="bg-red-50 border border-red-200 rounded-lg p-5 mb-5">
+    <h2 class="font-display text-lg text-red-800 mb-1">Application not approved</h2>
+    <p class="text-sm text-red-900/80">If you believe this is a mistake, please contact us.</p>
+</div>
+{% elif acct.status == 'suspended' %}
+<div class="bg-stone-100 border border-stone-300 rounded-lg p-5 mb-5">
+    <h2 class="font-display text-lg text-stone-700 mb-1">Account suspended</h2>
+    <p class="text-sm text-stone-600">Please contact us to resolve.</p>
+</div>
+{% endif %}
+
+{# ---------- Stat tiles ---------- #}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+
+    <div class="stat-card">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <p class="text-[10px] tracking-widest uppercase text-coffee-light">Your tier</p>
+                <p class="font-display text-3xl text-navy mt-1 capitalize">{{ acct.tier }}</p>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center text-navy">🏷</div>
+        </div>
+        <div class="text-xs">
+            {% if acct.is_approved %}
+            <span class="text-sage font-medium">−{{ discount }}% off list price</span>
+            {% else %}
+            <span class="text-coffee-light">Awaiting approval</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <p class="text-[10px] tracking-widest uppercase text-coffee-light">Orders</p>
+                <p class="font-display text-3xl text-navy mt-1">{{ total_orders }}</p>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-spice/15 flex items-center justify-center text-spice">📦</div>
+        </div>
+        <div class="text-xs">
+            <a href="{{ url_for('wholesale.orders') }}" class="text-spice hover:text-coffee-dark uppercase tracking-widest text-[10px]">View all →</a>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <p class="text-[10px] tracking-widest uppercase text-coffee-light">Lifetime spend</p>
+                <p class="font-display text-3xl text-navy mt-1">${{ "%.2f"|format(total_spend) }}</p>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-sage/20 flex items-center justify-center text-sage">$</div>
+        </div>
+        <div class="text-xs text-coffee-light">Since {{ acct.created_at.strftime("%b %Y") }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <p class="text-[10px] tracking-widest uppercase text-coffee-light">Account</p>
+                <p class="font-display text-3xl text-navy mt-1 capitalize">{{ acct.status }}</p>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-coffee-dark/10 flex items-center justify-center">👤</div>
+        </div>
+        <div class="text-xs">
+            <a href="{{ url_for('wholesale.account') }}" class="text-spice hover:text-coffee-dark uppercase tracking-widest text-[10px]">Settings →</a>
+        </div>
+    </div>
+
+</div>
+
+{# ---------- Quick actions (approved only) ---------- #}
+{% if acct.is_approved %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+    <a href="{{ url_for('wholesale.catalog') }}" class="bg-navy text-cream rounded-lg p-5 hover:bg-navy-light transition">
+        <p class="text-2xl mb-2">📚</p>
+        <p class="font-display text-lg mb-1">Browse catalog</p>
+        <p class="text-cream/70 text-xs">Full product list at {{ acct.tier }} pricing</p>
+    </a>
+    <a href="{{ url_for('wholesale.orders') }}" class="bg-white border border-coffee-dark/8 rounded-lg p-5 hover:bg-parchment transition">
+        <p class="text-2xl mb-2">📋</p>
+        <p class="font-display text-lg text-navy mb-1">Order history</p>
+        <p class="text-coffee-light text-xs">Past orders and reorders</p>
+    </a>
+    <a href="{{ url_for('wholesale.price_list') }}" class="bg-white border border-coffee-dark/8 rounded-lg p-5 hover:bg-parchment transition">
+        <p class="text-2xl mb-2">📥</p>
+        <p class="font-display text-lg text-navy mb-1">Download price list</p>
+        <p class="text-coffee-light text-xs">CSV with your tier pricing</p>
+    </a>
+</div>
+{% endif %}
+
+{# ---------- Recent orders + account details ---------- #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <div class="lg:col-span-2 bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display text-lg text-navy">Recent orders</h2>
+            {% if acct.is_approved %}<a href="{{ url_for('wholesale.orders') }}" class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">All →</a>{% endif %}
+        </div>
+        {% if recent_orders %}
+        <div class="space-y-2">
+            {% for o in recent_orders %}
+            <div class="flex items-center justify-between p-2 -mx-2 rounded-sm hover:bg-parchment transition">
+                <div>
+                    <p class="text-sm text-coffee-dark font-medium">#{{ o.id }}</p>
+                    <p class="text-[11px] text-coffee-light">{{ o.created_at.strftime("%b %d · %H:%M") }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-medium">${{ "%.2f"|format(o.total) }}</p>
+                    <p class="text-[10px] uppercase tracking-widest text-coffee-light">{{ o.status }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-coffee-light italic py-6 text-center">No orders yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="lg:col-span-1 bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <h2 class="font-display text-lg text-navy mb-4">Account details</h2>
+        <dl class="space-y-3 text-sm">
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Company</dt>
+                <dd class="text-coffee-dark">{{ acct.company_name }}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Business type</dt>
+                <dd class="text-coffee-dark">{{ acct.business_type or '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Tax ID</dt>
+                <dd class="text-coffee-dark">{{ acct.tax_id or '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Phone</dt>
+                <dd class="text-coffee-dark">{{ acct.phone or '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Address</dt>
+                <dd class="text-coffee-dark leading-relaxed">
+                    {% if acct.address_line %}{{ acct.address_line }}<br>{% endif %}
+                    {% if acct.city %}{{ acct.city }}{% if acct.postal_code %}, {{ acct.postal_code }}{% endif %}<br>{% endif %}
+                    {% if acct.country %}{{ acct.country }}{% endif %}
+                    {% if not acct.address_line and not acct.city and not acct.country %}—{% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
+
+</div>
+
+{% endblock %}

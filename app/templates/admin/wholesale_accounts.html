@@ -1,0 +1,110 @@
+{% extends "admin_base.html" %}
+{% block title %}Trade Accounts — Admin{% endblock %}
+{% block page_title %}Trade Accounts{% endblock %}
+{% block page_subtitle %}Wholesale &amp; agent applications{% endblock %}
+
+{% block content %}
+
+{% if pending %}
+<section class="mb-8">
+    <h2 class="font-display text-2xl text-coffee-dark mb-4">Pending ({{ pending|length }})</h2>
+    <div class="space-y-3">
+        {% for a in pending %}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <div class="flex justify-between items-start gap-4 flex-wrap">
+                <div class="flex-1 min-w-0">
+                    <p class="font-display text-xl text-coffee-dark">{{ a.company_name }}</p>
+                    <p class="text-sm text-coffee-light">
+                        {{ a.business_type or '—' }}
+                        {% if a.tax_id %} · Tax ID {{ a.tax_id }}{% endif %}
+                    </p>
+                    <p class="text-sm text-coffee-light mt-1">
+                        📧 {{ a.email }}
+                        {% if a.phone %} · 📞 {{ a.phone }}{% endif %}
+                        {% if a.country %} · 🌍 {{ a.country }}{% if a.city %}, {{ a.city }}{% endif %}{% endif %}
+                    </p>
+                    {% if a.notes %}
+                    <p class="text-sm mt-3 bg-cream p-3 rounded-sm border border-coffee-dark/10 italic">
+                        "{{ a.notes }}"
+                    </p>
+                    {% endif %}
+                    <p class="text-xs text-coffee-light mt-2">
+                        Applied {{ a.applied_at.strftime("%b %d, %Y · %H:%M") if a.applied_at else "—" }}
+                    </p>
+                </div>
+                <a href="{{ url_for('admin.wholesale_account_detail', acct_id=a.id) }}"
+                   class="bg-coffee-dark text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee whitespace-nowrap">
+                    Review →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="mb-8">
+    <h2 class="font-display text-2xl text-coffee-dark mb-4">Approved partners ({{ approved|length }})</h2>
+    {% if approved %}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+        <table class="w-full text-[15px]">
+            <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+                <tr>
+                    <th class="text-left px-4 py-3">Company</th>
+                    <th class="text-left px-4 py-3">Contact</th>
+                    <th class="text-left px-4 py-3">Type</th>
+                    <th class="text-left px-4 py-3">Tier</th>
+                    <th class="text-left px-4 py-3">Approved</th>
+                    <th class="text-right px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in approved %}
+                <tr class="border-b border-coffee-dark/5 hover:bg-parchment/40">
+                    <td class="px-4 py-3 font-medium">{{ a.company_name }}</td>
+                    <td class="px-4 py-3 text-coffee-light text-[13px]">{{ a.email }}</td>
+                    <td class="px-4 py-3 text-coffee-light text-[13px]">{{ a.business_type or '—' }}</td>
+                    <td class="px-4 py-3">
+                        <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded bg-gold/20 text-coffee-dark font-medium">{{ a.tier }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-coffee-light text-[13px]">{{ a.approved_at.strftime("%b %d, %Y") if a.approved_at else '—' }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <a href="{{ url_for('admin.wholesale_account_detail', acct_id=a.id) }}"
+                           class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark">Manage →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-coffee-light italic">No approved partners yet.</p>
+    {% endif %}
+</section>
+
+{% if rejected or suspended %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% if rejected %}
+    <section>
+        <h2 class="font-display text-lg text-coffee-light mb-3">Rejected ({{ rejected|length }})</h2>
+        <div class="text-sm text-coffee-light space-y-1">
+            {% for a in rejected %}
+            <p><a href="{{ url_for('admin.wholesale_account_detail', acct_id=a.id) }}" class="hover:text-coffee-dark">{{ a.company_name }}</a></p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% if suspended %}
+    <section>
+        <h2 class="font-display text-lg text-coffee-light mb-3">Suspended ({{ suspended|length }})</h2>
+        <div class="text-sm text-coffee-light space-y-1">
+            {% for a in suspended %}
+            <p><a href="{{ url_for('admin.wholesale_account_detail', acct_id=a.id) }}" class="hover:text-coffee-dark">{{ a.company_name }}</a></p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

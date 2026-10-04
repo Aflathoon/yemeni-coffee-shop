@@ -1,0 +1,113 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Create partner account — The Spice & Roast Co.{% endblock %}
+{% block content %}
+
+<div class="max-w-2xl mx-auto py-10">
+    <div class="text-center mb-8">
+        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">Partner Portal</p>
+        <h1 class="font-display text-4xl text-navy mb-2">Apply for a trade account</h1>
+        <p class="text-coffee-light">Volume pricing for retailers, cafés, distributors, and agents.</p>
+    </div>
+
+    <form method="POST" class="bg-white border border-coffee-dark/8 rounded-sm p-8 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Company / business name *</label>
+                <input type="text" name="company_name" required value="{{ form.company_name or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-navy">
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Business type *</label>
+                <select name="business_type" required
+                        class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-navy">
+                    {% set cur = form.business_type or '' %}
+                    <option value="">Choose…</option>
+                    {% for t in ["Shop / retailer","Café / restaurant","Distributor","Agent / broker","Online seller","Other"] %}
+                    <option value="{{ t }}" {% if cur == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Tax / VAT / registration number</label>
+                <input type="text" name="tax_id" value="{{ form.tax_id or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Contact phone</label>
+                <input type="tel" name="phone" value="{{ form.phone or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Business address</label>
+                <input type="text" name="address_line" value="{{ form.address_line or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">City</label>
+                <input type="text" name="city" value="{{ form.city or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Postal code</label>
+                <input type="text" name="postal_code" value="{{ form.postal_code or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Country</label>
+                <input type="text" name="country" value="{{ form.country or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">What are you looking to stock? (optional)</label>
+                <textarea name="notes" rows="3"
+                          class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">{{ form.notes or '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="border-t border-coffee-dark/10 pt-5 mt-3">
+            <h2 class="font-display text-lg text-coffee-dark mb-4">Sign-in credentials</h2>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Email *</label>
+                    <input type="email" name="email" required value="{{ form.email or '' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Password * (min 8)</label>
+                        <input type="password" name="password" required minlength="8"
+                               class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Confirm password *</label>
+                        <input type="password" name="password2" required minlength="8"
+                               class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary w-full mt-4">Create partner account</button>
+        <p class="text-xs text-coffee-light text-center italic">
+            Your account starts as <strong>pending</strong>. We review within 2 business days.
+        </p>
+    </form>
+
+    <p class="text-sm text-coffee-light text-center mt-6">
+        Already have a trade account?
+        <a href="{{ url_for('wholesale.login') }}" class="text-spice hover:text-navy">Sign in</a>
+    </p>
+</div>
+
+{% endblock %}

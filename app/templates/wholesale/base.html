@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Partner Portal — The Spice & Roast Co.{% endblock %}</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['"Playfair Display"', 'Georgia', 'serif'],
+              body:    ['"DM Sans"', 'system-ui', 'sans-serif'],
+            },
+            colors: {
+              cream:     "#faf7f0",
+              parchment: "#f2ebdc",
+              ink:       "#1f1a14",
+              coffee:    { DEFAULT: "#5a3a24", dark: "#2e1d12", light: "#8b6a4a" },
+              spice:     { DEFAULT: "#a0522d", warm: "#c26a2e" },
+              sage:      "#7a8b6f",
+              gold:      "#b8935a",
+              navy:      { DEFAULT: "#1a2530", light: "#2c3a48" },
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+      html { font-size: 16px; }
+      body {
+        background: #f5f1e8; color: #1f1a14;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        margin: 0; font-size: 15px; line-height: 1.5;
+        letter-spacing: -0.005em;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .font-display { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
+      .sidebar-link {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.65rem 1rem; font-size: 0.92rem; font-weight: 500;
+        color: #2e1d12; border-left: 3px solid transparent; transition: all 0.15s;
+      }
+      .sidebar-link:hover { background: #f2ebdc; }
+      .sidebar-link.active {
+        background: #f2ebdc; border-left-color: #1a2530; font-weight: 600;
+      }
+      .badge {
+        display: inline-block; font-size: 0.7rem;
+        background: #1a2530; color: #faf7f0;
+        padding: 0.15rem 0.55rem; border-radius: 9999px;
+        font-weight: 500;
+      }
+      .stat-card {
+        background: #fff; border: 1px solid rgba(46,29,18,0.08);
+        border-radius: 6px; padding: 1.25rem; font-size: 0.95rem;
+      }
+      .badge-tier {
+        display: inline-block; font-size: 0.68rem;
+        letter-spacing: 0.15em; text-transform: uppercase;
+        padding: 0.25rem 0.6rem; border-radius: 2px;
+        font-weight: 600;
+      }
+      .btn-primary {
+        background: #1a2530; color: #faf7f0;
+        padding: 0.75rem 1.5rem; border-radius: 2px;
+        font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+        font-size: 0.72rem; transition: background 0.2s;
+      }
+      .btn-primary:hover { background: #2c3a48; }
+      .btn-outline {
+        border: 1px solid #1a2530; color: #1a2530;
+        padding: 0.65rem 1.4rem; border-radius: 2px;
+        font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+        font-size: 0.72rem; transition: all 0.2s;
+      }
+      .btn-outline:hover { background: #1a2530; color: #faf7f0; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+{# ---------- Top bar ---------- #}
+<div class="bg-navy text-cream text-center py-1.5 px-4 text-[11px] tracking-[0.2em] uppercase">
+    Partner Portal &nbsp;·&nbsp; Wholesale &amp; Trade Accounts
+</div>
+
+<div class="flex min-h-screen">
+
+    {# ---------- SIDEBAR ---------- #}
+    <aside class="w-60 bg-cream border-r border-coffee-dark/10 shrink-0 flex flex-col">
+        <div class="p-5 border-b border-coffee-dark/10">
+            <a href="{{ url_for('wholesale.dashboard') }}" class="block">
+                <div class="font-display text-lg text-navy leading-none">The Spice &amp; Roast Co.</div>
+                <div class="text-[10px] tracking-[0.25em] text-coffee-light mt-1">TRADE · PARTNER</div>
+            </a>
+        </div>
+
+        <nav class="flex-1 py-4">
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mb-2 uppercase">Partner</p>
+
+            <a href="{{ url_for('wholesale.dashboard') }}"
+               class="sidebar-link {% if request.endpoint == 'wholesale.dashboard' %}active{% endif %}">
+                <span>📊 Dashboard</span>
+            </a>
+
+            {% if current_wholesale and current_wholesale.is_approved %}
+            <a href="{{ url_for('wholesale.catalog') }}"
+               class="sidebar-link {% if request.endpoint == 'wholesale.catalog' %}active{% endif %}">
+                <span>📚 Catalog</span>
+            </a>
+            <a href="{{ url_for('wholesale.orders') }}"
+               class="sidebar-link {% if request.endpoint == 'wholesale.orders' %}active{% endif %}">
+                <span>📦 Orders</span>
+            </a>
+            <a href="{{ url_for('wholesale.price_list') }}"
+               class="sidebar-link {% if request.endpoint == 'wholesale.price_list' %}active{% endif %}">
+                <span>📥 Price list</span>
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('wholesale.account') }}"
+               class="sidebar-link {% if request.endpoint == 'wholesale.account' %}active{% endif %}">
+                <span>⚙️ Account</span>
+            </a>
+
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Help</p>
+            <a href="#" class="sidebar-link"><span>💬 Contact us</span></a>
+            <a href="{{ url_for('blog.index') }}" class="sidebar-link"><span>📰 Journal</span></a>
+        </nav>
+
+        <div class="border-t border-coffee-dark/10 p-4">
+            <div class="mb-3">
+                <p class="text-[11px] text-coffee-light uppercase tracking-widest mb-1">Status</p>
+                <span class="badge-tier
+                             {% if current_wholesale and current_wholesale.status == 'approved' %}bg-sage/20 text-sage
+                             {% elif current_wholesale and current_wholesale.status == 'pending' %}bg-gold/20 text-coffee-dark
+                             {% elif current_wholesale and current_wholesale.status == 'rejected' %}bg-red-100 text-red-800
+                             {% else %}bg-stone-200 text-stone-700{% endif %}">
+                    {{ current_wholesale.status if current_wholesale else 'none' }}
+                </span>
+            </div>
+            <a href="/" class="block text-xs text-coffee-light hover:text-spice mb-2">← Retail shop</a>
+            <form method="POST" action="{{ url_for('wholesale.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="text-xs text-coffee-light hover:text-red-600">Sign out</button>
+            </form>
+        </div>
+    </aside>
+
+    {# ---------- MAIN ---------- #}
+    <main class="flex-1 min-w-0">
+        <header class="bg-cream border-b border-coffee-dark/10 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+            <div>
+                <h1 class="font-display text-2xl text-navy">{% block page_title %}Dashboard{% endblock %}</h1>
+                <p class="text-xs text-coffee-light">{% block page_subtitle %}{% endblock %}</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-coffee-light">
+                {% if current_wholesale %}
+                <span>
+                    <strong class="text-coffee-dark">{{ current_wholesale.company_name }}</strong>
+                    · <span class="capitalize">{{ current_wholesale.tier }}</span> tier
+                </span>
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="p-6">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for cat, msg in messages %}
+                    <div class="mb-4 px-4 py-3 rounded border text-sm
+                                {% if cat == 'error' %}bg-red-50 border-red-200 text-red-800
+                                {% elif cat == 'warning' %}bg-amber-50 border-amber-200 text-amber-900
+                                {% else %}bg-sage/15 border-sage/40 text-coffee-dark{% endif %}">
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+</div>
+
+<footer class="bg-navy text-cream/60 py-5 px-6 text-xs text-center">
+    © 2026 The Spice &amp; Roast Co. — Trade Division · <a href="/" class="hover:text-gold">Retail site</a>
+</footer>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

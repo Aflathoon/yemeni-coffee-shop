@@ -1,0 +1,61 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Account — Partner Portal{% endblock %}
+{% block page_title %}Account settings{% endblock %}
+{% block page_subtitle %}Update your business details{% endblock %}
+
+{% block content %}
+<form method="POST" class="bg-white border border-coffee-dark/8 rounded-lg p-6 max-w-3xl space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Company name</label>
+            <input type="text" name="company_name" value="{{ acct.company_name }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+        <div class="col-span-2">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Business type</label>
+            <select name="business_type" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                {% for t in ["Shop / retailer","Café / restaurant","Distributor","Agent / broker","Online seller","Other"] %}
+                <option value="{{ t }}" {% if acct.business_type == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-span-2">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Tax / VAT number</label>
+            <input type="text" name="tax_id" value="{{ acct.tax_id or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+        <div class="col-span-2">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Phone</label>
+            <input type="tel" name="phone" value="{{ acct.phone or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+        <div class="col-span-2">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Address</label>
+            <input type="text" name="address_line" value="{{ acct.address_line or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">City</label>
+            <input type="text" name="city" value="{{ acct.city or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Postal code</label>
+            <input type="text" name="postal_code" value="{{ acct.postal_code or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+        <div class="col-span-2">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Country</label>
+            <input type="text" name="country" value="{{ acct.country or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+    </div>
+
+    <div class="border-t border-coffee-dark/10 pt-4 flex items-center justify-between">
+        <p class="text-xs text-coffee-light">Email <strong class="text-coffee-dark">{{ acct.email }}</strong> can't be changed here.</p>
+        <button type="submit" class="btn-primary">Save changes</button>
+    </div>
+</form>
+{% endblock %}

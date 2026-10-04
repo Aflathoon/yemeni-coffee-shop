@@ -1,0 +1,110 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ acct.company_name }} — Trade Account{% endblock %}
+{% block page_title %}{{ acct.company_name }}{% endblock %}
+{% block page_subtitle %}{{ acct.email }} · applied {{ acct.applied_at.strftime("%b %d, %Y") if acct.applied_at else "—" }}{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <div class="lg:col-span-2 space-y-4">
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-4">Business details</h2>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <div>
+                    <dt class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Company</dt>
+                    <dd class="text-coffee-dark">{{ acct.company_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Business type</dt>
+                    <dd class="text-coffee-dark">{{ acct.business_type or '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Tax / VAT ID</dt>
+                    <dd class="text-coffee-dark">{{ acct.tax_id or '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Phone</dt>
+                    <dd class="text-coffee-dark">{{ acct.phone or '—' }}</dd>
+                </div>
+                <div class="md:col-span-2">
+                    <dt class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Address</dt>
+                    <dd class="text-coffee-dark leading-relaxed">
+                        {% if acct.address_line %}{{ acct.address_line }}<br>{% endif %}
+                        {% if acct.city %}{{ acct.city }}{% if acct.postal_code %}, {{ acct.postal_code }}{% endif %}<br>{% endif %}
+                        {% if acct.country %}{{ acct.country }}{% endif %}
+                        {% if not acct.address_line and not acct.city and not acct.country %}—{% endif %}
+                    </dd>
+                </div>
+                {% if acct.notes %}
+                <div class="md:col-span-2">
+                    <dt class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Applicant notes</dt>
+                    <dd class="text-coffee-dark italic">"{{ acct.notes }}"</dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-3">Internal notes</h2>
+            <form method="POST" action="{{ url_for('admin.wholesale_account_set_notes', acct_id=acct.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <textarea name="admin_notes" rows="4"
+                          class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm"
+                          placeholder="Negotiated rates, contract terms, contacts…">{{ acct.admin_notes or '' }}</textarea>
+                <button class="mt-2 text-[10px] tracking-widest uppercase bg-coffee-dark text-cream px-3 py-1.5 rounded-sm hover:bg-coffee">Save notes</button>
+            </form>
+        </div>
+
+    </div>
+
+    <div class="lg:col-span-1 space-y-4">
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-3">Status</h2>
+            <p class="text-xs text-coffee-light mb-3">Current: <strong class="text-coffee-dark uppercase tracking-widest text-[11px]">{{ acct.status }}</strong></p>
+            <form method="POST" action="{{ url_for('admin.wholesale_account_set_status', acct_id=acct.id) }}" class="space-y-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="status" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                    {% for s in ["pending","approved","rejected","suspended"] %}
+                    <option value="{{ s }}" {% if s == acct.status %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <button class="w-full bg-coffee-dark text-cream py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">Update status</button>
+            </form>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-3">Pricing tier</h2>
+            <p class="text-xs text-coffee-light mb-3">Current: <strong class="text-coffee-dark uppercase">{{ acct.tier }}</strong></p>
+            <form method="POST" action="{{ url_for('admin.wholesale_account_set_tier', acct_id=acct.id) }}" class="space-y-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="tier" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                    <option value="standard" {% if acct.tier == 'standard' %}selected{% endif %}>standard (5%)</option>
+                    <option value="bronze" {% if acct.tier == 'bronze' %}selected{% endif %}>bronze (10%)</option>
+                    <option value="silver" {% if acct.tier == 'silver' %}selected{% endif %}>silver (15%)</option>
+                    <option value="gold" {% if acct.tier == 'gold' %}selected{% endif %}>gold (20%)</option>
+                </select>
+                <button class="w-full bg-coffee-dark text-cream py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">Update tier</button>
+            </form>
+            <p class="text-[11px] text-coffee-light mt-3 italic">
+                Tier discount applies automatically to this account's cart and orders.
+            </p>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5 text-sm">
+            <h2 class="font-display text-lg text-coffee-dark mb-3">Meta</h2>
+            <p class="text-coffee-light">Signed up: <span class="text-coffee-dark">{{ acct.created_at.strftime("%b %d, %Y") }}</span></p>
+            {% if acct.approved_at %}
+            <p class="text-coffee-light mt-1">Approved: <span class="text-coffee-dark">{{ acct.approved_at.strftime("%b %d, %Y") }}</span></p>
+            {% endif %}
+            {% if acct.last_login_at %}
+            <p class="text-coffee-light mt-1">Last login: <span class="text-coffee-dark">{{ acct.last_login_at.strftime("%b %d, %Y · %H:%M") }}</span></p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

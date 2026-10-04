@@ -102,11 +102,23 @@ def compute_stats():
 
     recent = Order.query.order_by(Order.created_at.desc()).limit(6).all()
 
+    # Wholesale counts (graceful if model missing)
+    new_ws = 0
+    approved_ws = 0
+    try:
+        from app.models import WholesaleAccount
+        new_ws = WholesaleAccount.query.filter_by(status="pending").count()
+        approved_ws = WholesaleAccount.query.filter_by(status="approved").count()
+    except Exception:
+        pass
+
     return {
         "products": Product.query.count(),
         "orders": len(orders),
         "users": User.query.count(),
         "posts": Post.query.count(),
+        "new_wholesale_accounts": new_ws,
+        "approved_wholesale_accounts": approved_ws,
         "revenue": revenue_total,
         "revenue_30": revenue_30,
         "revenue_30_delta": pct_delta(revenue_30, revenue_prev_30),
@@ -1046,3 +1058,74 @@ def wholesale_reject(user_id):
     db.session.commit()
     flash(f"{user.email} application rejected", "success")
     return redirect(url_for("admin.wholesale_list"))
+
+
+# ---------- Wholesale accounts (partner program) ----------
+
+@bp.route("/wholesale-accounts")
+@admin_required
+def wholesale_accounts():
+    from app.models import WholesaleAccount
+    pending = WholesaleAccount.query.filter_by(status="pending").order_by(WholesaleAccount.applied_at.desc()).all()
+    approved = WholesaleAccount.query.filter_by(status="approved").order_by(WholesaleAccount.approved_at.desc()).all()
+    rejected = WholesaleAccount.query.filter_by(status="rejected").order_by(WholesaleAccount.applied_at.desc()).all()
+    suspended = WholesaleAccount.query.filter_by(status="suspended").order_by(WholesaleAccount.applied_at.desc()).all()
+    stats = compute_stats()
+    return render_template("admin/wholesale_accounts.html",
+                           pending=pending, approved=approved,
+                           rejected=rejected, suspended=suspended, stats=stats)
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>")
+@admin_required
+def wholesale_account_detail(acct_id):
+    from app.models import WholesaleAccount
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    stats = compute_stats()
+    return render_template("admin/wholesale_account_detail.html", acct=acct, stats=stats)
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>/status", methods=["POST"])
+@admin_required
+def wholesale_account_set_status(acct_id):
+    from datetime import datetime
+    from app.models import WholesaleAccount
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    new_status = request.form.get("status", "").strip()
+    if new_status not in ("pending", "approved", "rejected", "suspended"):
+        flash("Invalid status", "error")
+        return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+
+    acct.status = new_status
+    if new_status == "approved" and not acct.approved_at:
+        acct.approved_at = datetime.utcnow()
+        acct.approved_by = current_user.id
+    db.session.commit()
+    flash(f"{acct.company_name} → {new_status}", "success")
+    return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>/tier", methods=["POST"])
+@admin_required
+def wholesale_account_set_tier(acct_id):
+    from app.models import WholesaleAccount
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    tier = request.form.get("tier", "").strip()
+    if tier not in ("standard", "bronze", "silver", "gold"):
+        flash("Invalid tier", "error")
+        return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+    acct.tier = tier
+    db.session.commit()
+    flash(f"{acct.company_name} tier → {tier}", "success")
+    return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>/notes", methods=["POST"])
+@admin_required
+def wholesale_account_set_notes(acct_id):
+    from app.models import WholesaleAccount
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    acct.admin_notes = request.form.get("admin_notes", "").strip() or None
+    db.session.commit()
+    flash("Notes saved", "success")
+    return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
