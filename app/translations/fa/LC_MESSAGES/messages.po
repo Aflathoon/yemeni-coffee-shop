@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-04 23:06+0100\n"
+"POT-Creation-Date: 2026-10-04 23:09+0100\n"
 "PO-Revision-Date: 2026-10-04 22:45+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fa\n"
@@ -17,4 +17,700 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: app/auth/routes.py:52
+msgid "Too many attempts. Try again in 15 minutes."
+msgstr ""
+
+#: app/auth/routes.py:62
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: app/auth/routes.py:64
+msgid "Password must be at least 8 characters."
+msgstr ""
+
+#: app/auth/routes.py:66
+msgid "Passwords do not match."
+msgstr ""
+
+#: app/auth/routes.py:68
+msgid "An account with that email already exists."
+msgstr ""
+
+#: app/auth/routes.py:86
+#, python-format
+msgid "Welcome, %(name)s!"
+msgstr ""
+
+#: app/auth/routes.py:111
+msgid "Invalid email or password."
+msgstr ""
+
+#: app/auth/routes.py:119
+#, python-format
+msgid "Welcome back, %(name)s!"
+msgstr ""
+
+#: app/auth/routes.py:133
+msgid "You have been signed out."
+msgstr ""
+
+#: app/auth/routes.py:178
+msgid "Profile updated."
+msgstr ""
+
+#: app/auth/routes.py:195
+msgid "That order isn't yours."
+msgstr ""
+
+#: app/auth/routes.py:211
+msgid "Current password is incorrect."
+msgstr ""
+
+#: app/auth/routes.py:213
+msgid "New password must be at least 8 characters."
+msgstr ""
+
+#: app/auth/routes.py:215
+msgid "New passwords do not match."
+msgstr ""
+
+#: app/auth/routes.py:224
+msgid "Password updated."
+msgstr ""
+
+#: app/auth/routes.py:243
+msgid "You're already an approved wholesale partner."
+msgstr ""
+
+#: app/auth/routes.py:257
+msgid "Business name is required."
+msgstr ""
+
+#: app/auth/routes.py:259
+msgid "Please choose a business type."
+msgstr ""
+
+#: app/auth/routes.py:261
+msgid "Contact phone is required."
+msgstr ""
+
+#: app/auth/routes.py:263
+msgid "Country is required."
+msgstr ""
+
+#: app/auth/routes.py:281
+msgid "Application submitted. We'll review it within 2 business days."
+msgstr ""
+
+#: app/main/routes.py:229
+#, python-format
+msgid "Added %(name)s to your cart"
+msgstr ""
+
+#: app/main/routes.py:237
+msgid "Not your cart item"
+msgstr ""
+
+#: app/main/routes.py:240
+msgid "Cart updated"
+msgstr ""
+
+#: app/main/routes.py:251
+msgid "Item removed"
+msgstr ""
+
+#: app/main/routes.py:266
+msgid "Cart cleared"
+msgstr ""
+
+#: app/main/routes.py:276
+msgid "Your cart is empty"
+msgstr ""
+
+#: app/main/routes.py:294
+msgid "Valid email is required"
+msgstr ""
+
+#: app/main/routes.py:295
+msgid "Full name is required"
+msgstr ""
+
+#: app/main/routes.py:296
+msgid "Address is required"
+msgstr ""
+
+#: app/main/routes.py:297
+msgid "City is required"
+msgstr ""
+
+#: app/main/routes.py:298
+msgid "Postal code is required"
+msgstr ""
+
+#: app/main/routes.py:299
+msgid "Country is required"
+msgstr ""
+
+#: app/main/routes.py:335
+#, python-format
+msgid "Order #%(id)s placed — thank you!"
+msgstr ""
+
+#: app/templates/admin_base.html:108
+msgid "ADMIN · v1"
+msgstr ""
+
+#: app/templates/admin_base.html:113
+msgid "Store"
+msgstr ""
+
+#: app/templates/admin_base.html:116
+msgid "Overview"
+msgstr ""
+
+#: app/templates/admin_base.html:119
+msgid "Orders"
+msgstr ""
+
+#: app/templates/admin_base.html:123
+msgid "Products"
+msgstr ""
+
+#: app/templates/admin_base.html:127
+msgid "Duplicates"
+msgstr ""
+
+#: app/templates/admin_base.html:130
+msgid "Import"
+msgstr ""
+
+#: app/templates/admin_base.html:133
+msgid "Customers"
+msgstr ""
+
+#: app/templates/admin_base.html:136
+msgid "Retail applicants"
+msgstr ""
+
+#: app/templates/admin_base.html:139
+msgid "Trade accounts"
+msgstr ""
+
+#: app/templates/admin_base.html:143
+msgid "Tier program"
+msgstr ""
+
+#: app/templates/admin_base.html:146
+msgid "Content"
+msgstr ""
+
+#: app/templates/admin_base.html:149
+msgid "Posts"
+msgstr ""
+
+#: app/templates/admin_base.html:152
+msgid "Campaigns"
+msgstr ""
+
+#: app/templates/admin_base.html:156
+msgid "Articles"
+msgstr ""
+
+#: app/templates/admin_base.html:159
+msgid "Media"
+msgstr ""
+
+#: app/templates/admin_base.html:162
+msgid "Integrations"
+msgstr ""
+
+#: app/templates/admin_base.html:165
+msgid "Social"
+msgstr ""
+
+#: app/templates/admin_base.html:168
+msgid "Settings"
+msgstr ""
+
+#: app/templates/admin_base.html:171
+msgid "Translations"
+msgstr ""
+
+#: app/templates/admin_base.html:174
+msgid "Assistant"
+msgstr ""
+
+#: app/templates/admin_base.html:176
+msgid "Hub"
+msgstr ""
+
+#: app/templates/admin_base.html:179
+msgid "Site Health"
+msgstr ""
+
+#: app/templates/admin_base.html:183
+msgid "Content Studio"
+msgstr ""
+
+#: app/templates/admin_base.html:186
+msgid "Code Assistant"
+msgstr ""
+
+#: app/templates/admin_base.html:191
+msgid "View store"
+msgstr ""
+
+#: app/templates/admin_base.html:194 app/templates/base.html:170
+msgid "Sign out"
+msgstr ""
+
+#: app/templates/admin_base.html:207
+msgid "Signed in as"
+msgstr ""
+
+#: app/templates/base.html:100
+msgid ""
+"FREE SHIPPING ON ORDERS OVER $75 · HAND-SOURCED FROM SMALL PRODUCERS "
+"WORLDWIDE"
+msgstr ""
+
+#: app/templates/base.html:110 app/templates/category.html:12
+msgid "Shop"
+msgstr ""
+
+#: app/templates/base.html:111
+msgid "Coffee"
+msgstr ""
+
+#: app/templates/base.html:112
+msgid "Spices"
+msgstr ""
+
+#: app/templates/base.html:113
+msgid "Honey"
+msgstr ""
+
+#: app/templates/base.html:114
+msgid "Tea"
+msgstr ""
+
+#: app/templates/base.html:115
+msgid "Accessories"
+msgstr ""
+
+#: app/templates/base.html:116
+msgid "Journal"
+msgstr ""
+
+#: app/templates/base.html:117
+msgid "Offers"
+msgstr ""
+
+#: app/templates/base.html:118
+msgid "Trade"
+msgstr ""
+
+#: app/templates/base.html:137
+msgid "Search…"
+msgstr ""
+
+#: app/templates/base.html:163
+msgid "My account"
+msgstr ""
+
+#: app/templates/base.html:164
+msgid "My orders"
+msgstr ""
+
+#: app/templates/base.html:166
+msgid "Admin dashboard"
+msgstr ""
+
+#: app/templates/base.html:175
+msgid "Sign in"
+msgstr ""
+
+#: app/templates/base.html:176
+msgid "Register"
+msgstr ""
+
+#: app/templates/base.html:180
+msgid "Cart"
+msgstr ""
+
+#: app/templates/base.html:199
+msgid "Categories"
+msgstr ""
+
+#: app/templates/base.html:203
+msgid "All Products"
+msgstr ""
+
+#: app/templates/base.html:219 app/templates/product.html:87
+msgid "Origin"
+msgstr ""
+
+#: app/templates/base.html:234
+msgid "Worldwide Shipping"
+msgstr ""
+
+#: app/templates/base.html:235
+msgid "Free over $75. Flat $8 otherwise."
+msgstr ""
+
+#: app/templates/base.html:259
+msgid "Featured"
+msgstr ""
+
+#: app/templates/base.html:278
+msgid "Need help?"
+msgstr ""
+
+#: app/templates/base.html:279
+msgid "Ask about any spice, origin, or brewing method."
+msgstr ""
+
+#: app/templates/base.html:280
+msgid "AI Concierge"
+msgstr ""
+
+#: app/templates/base.html:284
+msgid "Yemeni Flagship"
+msgstr ""
+
+#: app/templates/base.html:285
+msgid "Our most treasured lots."
+msgstr ""
+
+#: app/templates/base.html:287
+msgid "View all"
+msgstr ""
+
+#: app/templates/base.html:301
+msgid ""
+"Sourced from small producers across Yemen, India, Pakistan, Brazil, "
+"Thailand, and beyond."
+msgstr ""
+
+#: app/templates/base.html:305
+msgid "SHOP"
+msgstr ""
+
+#: app/templates/base.html:315
+msgid "HELP"
+msgstr ""
+
+#: app/templates/base.html:317
+msgid "Shipping & Returns"
+msgstr ""
+
+#: app/templates/base.html:318
+msgid "Wholesale & Partnerships"
+msgstr ""
+
+#: app/templates/base.html:319 app/templates/blog/detail.html:9
+#: app/templates/blog/index.html:8
+msgid "The Journal"
+msgstr ""
+
+#: app/templates/base.html:320 app/templates/checkout.html:13
+msgid "Contact"
+msgstr ""
+
+#: app/templates/base.html:324
+msgid "FOLLOW"
+msgstr ""
+
+#: app/templates/base.html:326
+msgid "Instagram"
+msgstr ""
+
+#: app/templates/base.html:327
+msgid "Telegram"
+msgstr ""
+
+#: app/templates/base.html:328
+msgid "WhatsApp"
+msgstr ""
+
+#: app/templates/base.html:333
+msgid "© 2026 The Spice & Roast Co. · All rights reserved."
+msgstr ""
+
+#: app/templates/base.html:391 app/templates/category.html:224
+msgid "Back to top"
+msgstr ""
+
+#: app/templates/cart.html:5
+msgid "Your Cart"
+msgstr ""
+
+#: app/templates/cart.html:9
+msgid "Your cart is empty."
+msgstr ""
+
+#: app/templates/cart.html:10
+msgid "Nothing here yet — go find something wonderful."
+msgstr ""
+
+#: app/templates/cart.html:11
+msgid "Browse products"
+msgstr ""
+
+#: app/templates/cart.html:46
+msgid "Update"
+msgstr ""
+
+#: app/templates/cart.html:59 app/templates/order_confirmation.html:43
+msgid "Continue shopping"
+msgstr ""
+
+#: app/templates/cart.html:62
+msgid "Clear cart"
+msgstr ""
+
+#: app/templates/cart.html:69 app/templates/checkout.html:73
+#: app/templates/order_confirmation.html:14
+msgid "Order Summary"
+msgstr ""
+
+#: app/templates/cart.html:73 app/templates/checkout.html:92
+#: app/templates/order_confirmation.html:24
+msgid "Subtotal"
+msgstr ""
+
+#: app/templates/cart.html:77 app/templates/checkout.html:93
+#: app/templates/order_confirmation.html:25
+msgid "Shipping"
+msgstr ""
+
+#: app/templates/cart.html:78 app/templates/checkout.html:93
+#: app/templates/order_confirmation.html:25
+msgid "Free"
+msgstr ""
+
+#: app/templates/cart.html:88 app/templates/checkout.html:97
+#: app/templates/order_confirmation.html:26
+msgid "Total"
+msgstr ""
+
+#: app/templates/cart.html:92
+msgid "Checkout →"
+msgstr ""
+
+#: app/templates/category.html:46
+msgid "Origin:"
+msgstr ""
+
+#: app/templates/blog/index.html:44 app/templates/category.html:50
+msgid "All"
+msgstr ""
+
+#: app/templates/category.html:73 app/templates/index.html:230
+msgid "Sort"
+msgstr ""
+
+#: app/templates/category.html:76 app/templates/index.html:233
+msgid "Newest first"
+msgstr ""
+
+#: app/templates/category.html:77 app/templates/index.html:234
+msgid "Featured first"
+msgstr ""
+
+#: app/templates/category.html:78 app/templates/index.html:235
+msgid "Price ↑"
+msgstr ""
+
+#: app/templates/category.html:79 app/templates/index.html:236
+msgid "Price ↓"
+msgstr ""
+
+#: app/templates/category.html:80 app/templates/index.html:237
+msgid "Name A→Z"
+msgstr ""
+
+#: app/templates/category.html:83 app/templates/index.html:240
+msgid "Per page"
+msgstr ""
+
+#: app/templates/category.html:99 app/templates/index.html:257
+msgid "« First"
+msgstr ""
+
+#: app/templates/category.html:101 app/templates/index.html:259
+msgid "‹ Prev"
+msgstr ""
+
+#: app/templates/category.html:117 app/templates/index.html:275
+msgid "Next ›"
+msgstr ""
+
+#: app/templates/category.html:119 app/templates/index.html:277
+msgid "Last »"
+msgstr ""
+
+#: app/templates/category.html:172 app/templates/index.html:331
+msgid "Add"
+msgstr ""
+
+#: app/templates/category.html:179
+msgid "Nothing here yet"
+msgstr ""
+
+#: app/templates/category.html:181
+msgid "We haven't added any products in this category yet."
+msgstr ""
+
+#: app/templates/category.html:183 app/templates/offers.html:71
+msgid "Back to shop"
+msgstr ""
+
+#: app/templates/checkout.html:5
+msgid "Checkout"
+msgstr ""
+
+#: app/templates/checkout.html:14
+msgid "Email"
+msgstr ""
+
+#: app/templates/checkout.html:21
+msgid "Shipping Address"
+msgstr ""
+
+#: app/templates/checkout.html:24
+msgid "Full name"
+msgstr ""
+
+#: app/templates/checkout.html:30
+msgid "Address"
+msgstr ""
+
+#: app/templates/checkout.html:37
+msgid "City"
+msgstr ""
+
+#: app/templates/checkout.html:43
+msgid "Postal code"
+msgstr ""
+
+#: app/templates/checkout.html:50
+msgid "Country"
+msgstr ""
+
+#: app/templates/checkout.html:56
+msgid "Notes (optional)"
+msgstr ""
+
+#: app/templates/checkout.html:64
+msgid "Place order"
+msgstr ""
+
+#: app/templates/checkout.html:67
+msgid "Order is placed immediately. Real payment processing comes later."
+msgstr ""
+
+#: app/templates/index.html:211
+msgid "Filtered by"
+msgstr ""
+
+#: app/templates/index.html:214
+msgid "Clear"
+msgstr ""
+
+#: app/templates/index.html:338
+msgid "No products match this filter."
+msgstr ""
+
+#: app/templates/index.html:339
+msgid "Clear filter"
+msgstr ""
+
+#: app/templates/offers.html:8
+msgid "Current Offers"
+msgstr ""
+
+#: app/templates/offers.html:9
+msgid "This Season's Promotions"
+msgstr ""
+
+#: app/templates/offers.html:11
+msgid ""
+"Limited-time deals on selected products. No codes needed — discounts "
+"apply automatically at checkout."
+msgstr ""
+
+#: app/templates/offers.html:42
+msgid "Featured in this offer"
+msgstr ""
+
+#: app/templates/offers.html:69
+msgid "No active offers right now"
+msgstr ""
+
+#: app/templates/offers.html:70
+msgid "Sign up to our newsletter or check back soon — we run promotions monthly."
+msgstr ""
+
+#: app/templates/order_confirmation.html:8
+msgid "Thank you"
+msgstr ""
+
+#: app/templates/order_confirmation.html:31
+msgid "Shipping to"
+msgstr ""
+
+#: app/templates/product.html:6
+msgid "Home"
+msgstr ""
+
+#: app/templates/product.html:65
+msgid "Add to Cart"
+msgstr ""
+
+#: app/templates/product.html:68
+msgid "Free shipping over $75 · Ships within 1–2 business days"
+msgstr ""
+
+#: app/templates/product.html:85
+msgid "The Story"
+msgstr ""
+
+#: app/templates/product.html:88
+msgid "Use"
+msgstr ""
+
+#: app/templates/product.html:89
+msgid "Flavor"
+msgstr ""
+
+#: app/templates/product.html:97
+msgid "More from this collection"
+msgstr ""
+
+#: app/templates/blog/detail.html:51
+msgid "From the shop"
+msgstr ""
+
+#: app/templates/blog/detail.html:70
+msgid "More from the journal"
+msgstr ""
+
+#: app/templates/blog/index.html:9
+msgid "Stories from the Pantry"
+msgstr ""
+
+#: app/templates/blog/index.html:10
+msgid "Origins, brewing notes, recipes, and the people behind the harvest."
+msgstr ""
+
+#: app/templates/blog/index.html:82
+msgid "No articles yet"
+msgstr ""
+
+#: app/templates/blog/index.html:83
+msgid "Check back soon — we're writing the first pieces."
+msgstr ""
 
