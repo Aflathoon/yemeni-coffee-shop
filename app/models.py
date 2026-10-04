@@ -9,14 +9,34 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    is_active_account = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login_at = db.Column(db.DateTime)
     language = db.Column(db.String(5), default="en")
+
+    # Customer profile
+    full_name = db.Column(db.String(200))
+    phone = db.Column(db.String(40))
+    address_line = db.Column(db.String(300))
+    city = db.Column(db.String(100))
+    postal_code = db.Column(db.String(30))
+    country = db.Column(db.String(100))
 
     def set_password(self, pw):
         self.password_hash = generate_password_hash(pw)
 
     def check_password(self, pw):
         return check_password_hash(self.password_hash, pw)
+
+    @property
+    def is_active(self):
+        # Flask-Login calls this; must return True for login to work.
+        # is_active_account is our business flag.
+        return bool(self.is_active_account)
+
+    @property
+    def display_name(self):
+        return self.full_name or self.email.split("@")[0]
 
 
 @login_manager.user_loader
