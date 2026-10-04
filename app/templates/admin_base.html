@@ -12,8 +12,8 @@
         theme: {
           extend: {
             fontFamily: {
-              display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-              body:    ['"Inter"', 'system-ui', 'sans-serif'],
+              display: ['"Playfair Display"', 'Georgia', 'serif'],
+              body:    ['"DM Sans"', 'system-ui', 'sans-serif'],
             },
             colors: {
               cream:     "#faf7f0",
@@ -29,19 +29,24 @@
       }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
       html { font-size: 16px; }
       body {
         background: #f5f1e8; color: #1f1a14;
-        font-family: 'Inter', system-ui, sans-serif; margin: 0;
-        font-size: 15px; line-height: 1.55;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        margin: 0; font-size: 15px; line-height: 1.5;
+        font-weight: 400; letter-spacing: -0.005em;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+        text-rendering: geometricPrecision;
       }
-      .font-display { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; letter-spacing: 0.005em; }
+      .font-display {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        font-optical-sizing: auto;
+      }
       code, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
       .font-display { font-family: 'Cormorant Garamond', Georgia, serif; }
       .sidebar-link {

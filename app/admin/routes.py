@@ -458,11 +458,29 @@ def social():
     return render_template("admin/social.html", stats=stats)
 
 
-@bp.route("/settings")
+@bp.route("/settings", methods=["GET", "POST"])
 @admin_required
 def settings():
+    from app.models import Setting
+
+    if request.method == "POST":
+        fields = [
+            "TELEGRAM_BOT_TOKEN",
+            "TELEGRAM_CHANNEL_ID",
+            "STORE_NAME",
+            "STORE_EMAIL",
+            "FREE_SHIPPING_THRESHOLD",
+            "SHIPPING_FLAT_RATE",
+        ]
+        for f in fields:
+            if f in request.form:
+                Setting.set(f, request.form.get(f, "").strip())
+        flash("Settings saved", "success")
+        return redirect(url_for("admin.settings"))
+
+    settings_map = Setting.get_all()
     stats = compute_stats()
-    return render_template("admin/settings.html", stats=stats)
+    return render_template("admin/settings.html", stats=stats, settings_map=settings_map)
 
 
 # ---------- Uploads ----------
@@ -562,3 +580,218 @@ def api_uploads():
             if _allowed_file(f):
                 items.append({"url": f"/static/uploads/{kind}/{f}", "name": f})
     return {"items": items, "kind": kind}
+
+
+# ---------- Import from uploads ----------
+
+def _name_from_filename(filename):
+    """darjeeling-first-flush-abc123.jpg → 'Darjeeling First Flush'."""
+    import re
+    stem = filename.rsplit(".", 1)[0]
+    # Strip the trailing hash we add on upload (-a1b2c3d4e5f6)
+    stem = re.sub(r"-[a-f0-9]{6,16}$", "", stem)
+    # Replace separators with spaces
+    stem = re.sub(r"[-_]+", " ", stem)
+    # Collapse whitespace, title case
+    stem = " ".join(w.capitalize() for w in stem.split())
+    return stem.strip() or "Untitled"
+
+
+def _guess_category(name):
+    n = name.lower()
+    if any(k in n for k in ["coffee", "mokha", "arabica", "espresso", "roast"]):
+        return "coffee"
+    if any(k in n for k in ["honey", "honeycomb", "sidr"]):
+        return "honey"
+    if any(k in n for k in ["tea", "rooibos", "darjeeling", "assam", "ceylon"]):
+        return "tea"
+    if any(k in n for k in ["mint", "lavender", "oregano", "thyme", "rosemary", "herb"]):
+        return "herbs"
+    return "spices"
+
+
+def _scan_uploads_for_import():
+    """Return list of dicts describing importable images."""
+    from app.models import Product as _P
+    from app.models import Setting as _S
+    folder = os.path.join(current_app.static_folder, "uploads", "products")
+    if not os.path.isdir(folder):
+        return []
+
+    # Names already used as image in DB — skip those
+    existing_images = {p.image for p in _P.query.all() if p.image}
+
+    items = []
+    for f in sorted(os.listdir(folder)):
+        if not _allowed_file(f):
+            continue
+        url = f"/static/uploads/products/{f}"
+        name = _name_from_filename(f)
+        already = url in existing_images
+        items.append({
+            "filename": f,
+            "url": url,
+            "suggested_name": name,
+            "suggested_slug": _slugify(name),
+            "suggested_category": _guess_category(name),
+            "already_imported": already,
+        })
+    return items
+
+
+@bp.route("/import/uploads")
+@admin_required
+def import_uploads():
+    stats = compute_stats()
+    items = _scan_uploads_for_import()
+    new_count = sum(1 for i in items if not i["already_imported"])
+    return render_template("admin/import_uploads.html", stats=stats, items=items, new_count=new_count)
+
+
+@bp.route("/import/uploads/create", methods=["POST"])
+@admin_required
+def import_create_one():
+    """Create a single product from the selected upload."""
+    from app.models import Product as _P
+
+    filename = request.form.get("filename", "").strip()
+    if not filename or "/" in filename or ".." in filename:
+        return {"ok": False, "error": "invalid filename"}, 400
+
+    full = os.path.join(current_app.static_folder, "uploads", "products", filename)
+    if not os.path.isfile(full):
+        return {"ok": False, "error": "file not found"}, 404
+
+    name = request.form.get("name", "").strip() or _name_from_filename(filename)
+    category = request.form.get("category", "").strip() or _guess_category(name)
+    try:
+        price = float(request.form.get("price", "0") or 0)
+    except ValueError:
+        price = 0.0
+
+    url = f"/static/uploads/products/{filename}"
+
+    # Check duplicate image
+    if _P.query.filter_by(image=url).first():
+        return {"ok": False, "error": "already imported"}, 409
+
+    product = _P(
+        name=name,
+        slug=_unique_slug(_slugify(name)),
+        category=category,
+        description=request.form.get("description", "").strip() or f"A new addition to our {category} collection.",
+        short_desc=request.form.get("short_desc", "").strip() or f"New {category} — see full details.",
+        price=price,
+        weight_grams=100,
+        image=url,
+        stock=100,
+        active=True,
+        featured=False,
+    )
+    db.session.add(product)
+    db.session.commit()
+
+    return {
+        "ok": True,
+        "id": product.id,
+        "name": product.name,
+        "slug": product.slug,
+        "edit_url": url_for("admin.product_edit", product_id=product.id),
+    }
+
+
+@bp.route("/import/uploads/create-all", methods=["POST"])
+@admin_required
+def import_create_all():
+    """Bulk-create products for every non-imported upload."""
+    from app.models import Product as _P
+
+    items = [i for i in _scan_uploads_for_import() if not i["already_imported"]]
+    created = 0
+    skipped = 0
+    for i in items:
+        if _P.query.filter_by(image=i["url"]).first():
+            skipped += 1
+            continue
+        product = _P(
+            name=i["suggested_name"],
+            slug=_unique_slug(i["suggested_slug"]),
+            category=i["suggested_category"],
+            description=f"A new addition to our {i['suggested_category']} collection.",
+            short_desc=f"New {i['suggested_category']} — see full details.",
+            price=0.0,
+            weight_grams=100,
+            image=i["url"],
+            stock=100,
+            active=False,   # keep inactive until price/description are filled in
+            featured=False,
+        )
+        db.session.add(product)
+        created += 1
+
+    db.session.commit()
+    flash(f"Created {created} draft product(s), skipped {skipped} existing", "success")
+    return redirect(url_for("admin.import_uploads"))
+
+
+# ---------- Telegram diagnostics ----------
+
+@bp.route("/settings/test-telegram", methods=["POST"])
+@admin_required
+def settings_test_telegram():
+    from app.telegram import test_connection
+    result = test_connection()
+    if result.get("ok"):
+        flash(f"✅ {result.get('description', 'Test sent')}", "success")
+    else:
+        flash(f"❌ Telegram: {result.get('description', 'Unknown error')}", "error")
+    return redirect(url_for("admin.settings"))
+
+
+@bp.route("/settings/test-chat", methods=["POST"])
+@admin_required
+def settings_test_chat():
+    from app.telegram import test_chat_id
+    result = test_chat_id()
+    if result.get("ok"):
+        flash(f"✅ {result.get('description')}", "success")
+    else:
+        flash(f"❌ {result.get('description', 'Unknown error')}", "error")
+    return redirect(url_for("admin.settings"))
+
+
+@bp.route("/products/<int:product_id>/share-telegram", methods=["POST"])
+@admin_required
+def product_share_telegram(product_id):
+    from app.models import Product as _P
+    from app.telegram import send_product, is_configured
+    if not is_configured():
+        flash("Telegram not configured — set token and channel in Settings", "error")
+        return redirect(url_for("admin.settings"))
+
+    product = _P.query.get_or_404(product_id)
+    base_url = request.host_url.rstrip("/")
+    result = send_product(product, base_url=base_url)
+    if result.get("ok"):
+        flash(f"✅ '{product.name}' sent to Telegram", "success")
+    else:
+        flash(f"❌ Telegram: {result.get('description', 'Unknown error')}", "error")
+    return redirect(url_for("admin.product_edit", product_id=product_id))
+
+
+@bp.route("/post/<int:post_id>/share-telegram", methods=["POST"])
+@admin_required
+def post_share_telegram(post_id):
+    from app.telegram import send_post, is_configured
+    if not is_configured():
+        flash("Telegram not configured — set token and channel in Settings", "error")
+        return redirect(url_for("admin.settings"))
+
+    post = Post.query.get_or_404(post_id)
+    base_url = request.host_url.rstrip("/")
+    result = send_post(post, base_url=base_url)
+    if result.get("ok"):
+        flash(f"✅ '{post.title}' sent to Telegram", "success")
+    else:
+        flash(f"❌ Telegram: {result.get('description', 'Unknown error')}", "error")
+    return redirect(url_for("admin.posts"))

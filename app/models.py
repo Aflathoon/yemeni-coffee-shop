@@ -114,6 +114,31 @@ class OrderItem(db.Model):
     product = db.relationship("Product")
 
 
+class Setting(db.Model):
+    """Key/value store for runtime-editable settings (Telegram token, channel, etc.)."""
+    key = db.Column(db.String(100), primary_key=True)
+    value = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @classmethod
+    def get(cls, key, default=None):
+        row = cls.query.get(key)
+        return row.value if row else default
+
+    @classmethod
+    def set(cls, key, value):
+        row = cls.query.get(key)
+        if row:
+            row.value = value
+        else:
+            db.session.add(cls(key=key, value=value))
+        db.session.commit()
+
+    @classmethod
+    def get_all(cls):
+        return {r.key: r.value for r in cls.query.all()}
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200))

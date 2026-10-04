@@ -11,8 +11,8 @@
         theme: {
           extend: {
             fontFamily: {
-              display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-              body:    ['"Inter"', 'system-ui', 'sans-serif'],
+              display: ['"Playfair Display"', 'Georgia', 'serif'],
+              body:    ['"DM Sans"', 'system-ui', 'sans-serif'],
             },
             colors: {
               cream:     "#faf7f0",
@@ -29,11 +29,23 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-      body { background: #faf7f0; color: #1f1a14; font-family: 'Inter', system-ui, sans-serif; margin: 0; }
-      .font-display { font-family: 'Cormorant Garamond', Georgia, serif; }
+      body {
+        background: #faf7f0; color: #1f1a14;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        margin: 0; font-size: 15px; line-height: 1.5;
+        letter-spacing: -0.005em;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: geometricPrecision;
+      }
+      .font-display {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
       .product-img { background: #f2ebdc; width: 100%; height: 220px; object-fit: cover; display: block; }
       .card { background: #fff; border-radius: 4px; overflow: hidden; border: 1px solid rgba(46,29,18,0.08); }
       img { max-width: 100%; display: block; }

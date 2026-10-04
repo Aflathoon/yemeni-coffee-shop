@@ -221,6 +221,10 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="text-xs tracking-widest uppercase px-4 py-2 border border-coffee-dark/20 rounded-sm hover:bg-parchment">Duplicate</button>
             </form>
+            <form method="POST" action="{{ url_for('admin.product_share_telegram', product_id=product.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-xs tracking-widest uppercase px-4 py-2 border border-spice/40 text-spice rounded-sm hover:bg-spice/10">Share to Telegram</button>
+            </form>
             {% endif %}
             <button type="submit" class="bg-coffee-dark text-cream px-6 py-2 rounded-sm text-xs tracking-widest uppercase font-semibold hover:bg-coffee">
                 {% if product %}Save changes{% else %}Create product{% endif %}

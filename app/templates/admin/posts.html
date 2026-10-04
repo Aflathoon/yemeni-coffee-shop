@@ -19,6 +19,10 @@
             <p class="text-xs text-coffee-light">{{ p.created_at.strftime("%b %d, %Y") }}{% if p.published %} · <span class="text-sage">published</span>{% endif %}</p>
         </div>
         <a href="{{ url_for('admin.edit_post', post_id=p.id) }}" class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">Edit</a>
+        <form method="POST" action="{{ url_for('admin.post_share_telegram', post_id=p.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">Send to Telegram</button>
+        </form>
         {% if not p.published %}
         <form method="POST" action="{{ url_for('admin.publish_post', post_id=p.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

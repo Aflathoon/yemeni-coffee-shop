@@ -53,6 +53,10 @@
                 </td>
                 <td class="px-4 py-2 text-right whitespace-nowrap">
                     <a href="{{ url_for('admin.product_edit', product_id=p.id) }}" class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mr-2">Edit</a>
+                    <form method="POST" action="{{ url_for('admin.product_share_telegram', product_id=p.id) }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-spice mr-2">📤</button>
+                    </form>
                     <a href="/product/{{ p.slug }}" target="_blank" class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">View</a>
                 </td>
             </tr>

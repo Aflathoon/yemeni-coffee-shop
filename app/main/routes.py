@@ -259,6 +259,11 @@ def checkout():
     form = {}
     if current_user.is_authenticated:
         form["email"] = current_user.email
+        form["full_name"] = current_user.full_name or ""
+        form["address_line"] = current_user.address_line or ""
+        form["city"] = current_user.city or ""
+        form["postal_code"] = current_user.postal_code or ""
+        form["country"] = current_user.country or ""
 
     return render_template(
         "checkout.html",
