@@ -134,6 +134,15 @@ def compute_stats():
     except Exception:
         pass
 
+    # Open AI alerts
+    open_alerts = 0
+    try:
+        from app.models import AiAlert
+        open_alerts = AiAlert.query.filter_by(resolved=False).filter(
+            AiAlert.status.in_(("warn", "fail"))).count()
+    except Exception:
+        pass
+
     return {
         "products": Product.query.count(),
         "orders": len(orders),
@@ -144,6 +153,7 @@ def compute_stats():
         "live_campaigns": live_campaigns,
         "scheduled_campaigns": scheduled_campaigns,
         "partners_at_risk": partners_at_risk,
+        "open_alerts": open_alerts,
         "revenue": revenue_total,
         "revenue_30": revenue_30,
         "revenue_30_delta": pct_delta(revenue_30, revenue_prev_30),
@@ -1859,3 +1869,86 @@ def settings_test_ai():
     else:
         flash(f"❌ AI: {result.get('description', 'Unknown error')}", "error")
     return redirect(url_for("admin.settings"))
+
+
+# ============ AI ASSISTANT: HEALTH ============
+
+@bp.route("/assistant/health")
+@admin_required
+def assistant_health():
+    """On-demand health check panel."""
+    from app.health import run_all_checks, summarize
+    from app.models import AiAlert
+
+    results = run_all_checks()
+    summary = summarize(results)
+
+    # Recent alerts (last 30)
+    recent_alerts = (AiAlert.query
+                     .order_by(AiAlert.created_at.desc())
+                     .limit(30).all())
+
+    stats = compute_stats()
+    return render_template(
+        "admin/assistant_health.html",
+        results=results,
+        summary=summary,
+        recent_alerts=recent_alerts,
+        stats=stats,
+    )
+
+
+@bp.route("/assistant/health/summarize", methods=["POST"])
+@admin_required
+def assistant_health_summarize():
+    """Run all checks and get AI summary."""
+    from app.health import run_all_checks
+    from app.ai import explain_health, is_configured
+    from app.models import AiAlert
+
+    if not is_configured():
+        flash("AI not configured — set the API key in Settings.", "error")
+        return redirect(url_for("admin.settings"))
+
+    results = run_all_checks()
+    summary = explain_health(results)
+
+    if summary.get("ok"):
+        # Persist each problem as an alert
+        for r in results:
+            if r["status"] in ("warn", "fail"):
+                # Skip if an unresolved identical alert exists
+                existing = (AiAlert.query
+                            .filter_by(check_name=r["name"], status=r["status"], resolved=False)
+                            .first())
+                if existing:
+                    existing.message = r["message"]
+                    existing.detail = r.get("detail")
+                    existing.ai_summary = summary.get("summary")
+                else:
+                    db.session.add(AiAlert(
+                        check_name=r["name"],
+                        status=r["status"],
+                        title=r["name"].replace("_", " ").title(),
+                        message=r["message"],
+                        detail=r.get("detail"),
+                        ai_summary=summary.get("summary"),
+                    ))
+        db.session.commit()
+        flash("✅ AI summary generated. See below.", "success")
+    else:
+        flash(f"❌ AI error: {summary.get('error')}", "error")
+
+    return redirect(url_for("admin.assistant_health"))
+
+
+@bp.route("/assistant/health/alert/<int:alert_id>/resolve", methods=["POST"])
+@admin_required
+def assistant_health_resolve(alert_id):
+    from app.models import AiAlert
+    a = AiAlert.query.get_or_404(alert_id)
+    a.resolved = True
+    a.resolved_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Alert '{a.title}' marked resolved.", "success")
+    return redirect(url_for("admin.assistant_health"))

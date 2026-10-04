@@ -144,6 +144,12 @@
             <a href="/admin/settings" class="sidebar-link {% if request.endpoint == 'admin.settings' %}active{% endif %}">
                 <span>⚙️ Settings</span>
             </a>
+
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Assistant</p>
+            <a href="/admin/assistant/health" class="sidebar-link {% if 'assistant_health' in (request.endpoint or '') %}active{% endif %}">
+                <span>🩺 Site Health</span>
+                {% if stats and stats.open_alerts %}<span class="badge">{{ stats.open_alerts }}</span>{% endif %}
+            </a>
         </nav>
 
         <div class="border-t border-coffee-dark/10 p-4">

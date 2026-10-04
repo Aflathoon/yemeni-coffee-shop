@@ -467,6 +467,23 @@ class CampaignProduct(db.Model):
     __table_args__ = (db.UniqueConstraint("campaign_id", "product_id", name="uq_campaign_product"),)
 
 
+class AiAlert(db.Model):
+    """Health check alerts stored by the watcher (Patch C) and manual runs."""
+    __tablename__ = "ai_alert"
+
+    id = db.Column(db.Integer, primary_key=True)
+    check_name = db.Column(db.String(80), index=True)
+    status = db.Column(db.String(20))          # warn | fail | ok
+    title = db.Column(db.String(200))
+    message = db.Column(db.Text)               # raw check message
+    detail = db.Column(db.Text)                # traceback / extra info
+    ai_summary = db.Column(db.Text)            # AI's plain-language explanation
+    ai_fix_suggestion = db.Column(db.Text)     # AI's proposed fix (diff or instructions)
+    resolved = db.Column(db.Boolean, default=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    resolved_at = db.Column(db.DateTime)
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200))

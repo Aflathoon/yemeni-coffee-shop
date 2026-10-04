@@ -1,0 +1,130 @@
+{% extends "admin_base.html" %}
+{% block title %}Health — Assistant{% endblock %}
+{% block page_title %}Site Health{% endblock %}
+{% block page_subtitle %}{{ summary.ok }} ok · {{ summary.warn }} warning · {{ summary.fail }} failing{% endblock %}
+
+{% block content %}
+
+{# Summary cards #}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Passed</p>
+        <p class="font-display text-2xl text-sage">{{ summary.ok }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Warnings</p>
+        <p class="font-display text-2xl text-amber-600">{{ summary.warn }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Failing</p>
+        <p class="font-display text-2xl text-red-700">{{ summary.fail }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Total</p>
+        <p class="font-display text-2xl text-navy">{{ summary.total }}</p>
+    </div>
+</div>
+
+{# Actions #}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div>
+        <h2 class="font-display text-lg text-coffee-dark">Diagnostic checks</h2>
+        <p class="text-sm text-coffee-light mt-1 max-w-xl">
+            Six checks run inside the app. Refresh re-runs everything.
+            <strong>AI Summary</strong> asks DeepSeek to explain the failures in plain language.
+        </p>
+    </div>
+    <div class="flex gap-2">
+        <a href="{{ url_for('admin.assistant_health') }}"
+           class="text-[11px] tracking-widest uppercase border border-coffee-dark/20 px-4 py-2 rounded-sm hover:bg-parchment">
+            Re-run checks
+        </a>
+        <form method="POST" action="{{ url_for('admin.assistant_health_summarize') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="bg-navy text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                ✨ AI Summary
+            </button>
+        </form>
+    </div>
+</div>
+
+{# Check results #}
+<div class="space-y-2 mb-8">
+    {% for r in results %}
+    <div class="bg-white border rounded-lg p-4
+                {% if r.status == 'fail' %}border-red-300
+                {% elif r.status == 'warn' %}border-amber-300
+                {% else %}border-coffee-dark/8{% endif %}">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start gap-3 flex-1 min-w-0">
+                <span class="text-2xl shrink-0">
+                    {% if r.status == 'fail' %}❌
+                    {% elif r.status == 'warn' %}⚠️
+                    {% else %}✅{% endif %}
+                </span>
+                <div class="min-w-0">
+                    <p class="font-medium text-coffee-dark">{{ r.name.replace('_', ' ').title() }}</p>
+                    <p class="text-sm text-coffee-light mt-0.5">{{ r.message }}</p>
+                    {% if r.detail %}
+                    <details class="mt-2">
+                        <summary class="text-[11px] tracking-widest uppercase text-spice cursor-pointer hover:text-coffee-dark">Details</summary>
+                        <pre class="mt-2 text-[12px] bg-cream p-3 rounded border border-coffee-dark/10 overflow-auto max-h-48 whitespace-pre-wrap">{{ r.detail }}</pre>
+                    </details>
+                    {% endif %}
+                </div>
+            </div>
+            <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded shrink-0
+                         {% if r.status == 'fail' %}bg-red-100 text-red-800
+                         {% elif r.status == 'warn' %}bg-amber-100 text-amber-800
+                         {% else %}bg-sage/20 text-sage{% endif %}">
+                {{ r.status }}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# Recent alerts #}
+<section>
+    <h2 class="font-display text-2xl text-coffee-dark mb-4">Recent alerts</h2>
+    {% if recent_alerts %}
+    <div class="space-y-2">
+        {% for a in recent_alerts %}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-4 {% if a.resolved %}opacity-50{% endif %}">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <p class="font-medium text-coffee-dark">{{ a.title }}</p>
+                        <span class="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded
+                                     {% if a.status == 'fail' %}bg-red-100 text-red-800{% else %}bg-amber-100 text-amber-800{% endif %}">{{ a.status }}</span>
+                        {% if a.resolved %}
+                        <span class="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded bg-sage/20 text-sage">resolved</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-coffee-light">{{ a.message }}</p>
+                    {% if a.ai_summary %}
+                    <div class="mt-2 bg-navy/5 border-l-2 border-navy/30 p-2 pl-3">
+                        <p class="text-[10px] tracking-widest uppercase text-navy/60 mb-0.5">AI explanation</p>
+                        <p class="text-[13px] text-coffee-dark/85">{{ a.ai_summary }}</p>
+                    </div>
+                    {% endif %}
+                    <p class="text-[11px] text-coffee-light mt-1">{{ a.created_at.strftime("%b %d · %H:%M") }}</p>
+                </div>
+                <div class="flex flex-col gap-1 shrink-0">
+                    {% if not a.resolved %}
+                    <form method="POST" action="{{ url_for('admin.assistant_health_resolve', alert_id=a.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="text-[10px] tracking-widest uppercase text-sage hover:text-coffee-dark">Resolve</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-coffee-light italic text-sm">No alerts yet. Run a health check + AI summary above to populate.</p>
+    {% endif %}
+</section>
+
+{% endblock %}
