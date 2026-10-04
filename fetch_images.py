@@ -250,7 +250,7 @@ def main():
     ap.add_argument("--variants", type=int, default=1)
     ap.add_argument("--retry-failed", action="store_true",
                     help="Only try items whose .jpg is missing from disk")
-    ap.add_argument("--wiki-only-delay", type=float, default=WIKI_MIN_INTERVAL)
+    ap.add_argument("--wiki-only-delay", type=float, default=1.2)
     args = ap.parse_args()
 
     global WIKI_MIN_INTERVAL
