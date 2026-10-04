@@ -6,6 +6,7 @@ from collections import defaultdict
 from flask import (
     render_template, request, redirect, url_for, flash, session
 )
+from flask_babel import gettext as _
 from flask_login import (
     current_user, login_user, logout_user, login_required
 )
@@ -48,7 +49,7 @@ def register():
     if request.method == "POST":
         key = f"register:{_client_ip()}"
         if _rate_limited(key):
-            flash("Too many attempts. Try again in 15 minutes.", "error")
+            flash(_("Too many attempts. Try again in 15 minutes."), "error")
             return render_template("auth/register.html", form=request.form)
 
         email = request.form.get("email", "").strip().lower()
@@ -58,13 +59,13 @@ def register():
 
         errors = []
         if not EMAIL_RE.match(email):
-            errors.append("Please enter a valid email address.")
+            errors.append(_("Please enter a valid email address."))
         if len(password) < 8:
-            errors.append("Password must be at least 8 characters.")
+            errors.append(_("Password must be at least 8 characters."))
         if password != confirm:
-            errors.append("Passwords do not match.")
+            errors.append(_("Passwords do not match."))
         if User.query.filter_by(email=email).first():
-            errors.append("An account with that email already exists.")
+            errors.append(_("An account with that email already exists."))
 
         if errors:
             for e in errors:
@@ -82,7 +83,7 @@ def register():
         db.session.commit()
         _merge_cart(user)
 
-        flash(f"Welcome, {user.display_name}!", "success")
+        flash(_("Welcome, %(name)s!", name=user.display_name), "success")
         return redirect(url_for("auth.account"))
 
     return render_template("auth/register.html", form={})
@@ -107,7 +108,7 @@ def login():
         user = User.query.filter_by(email=email).first()
         if not user or not user.check_password(password) or not user.is_active_account:
             _record_attempt(key)
-            flash("Invalid email or password.", "error")
+            flash(_("Invalid email or password."), "error")
             return render_template("auth/login.html", form=request.form)
 
         login_user(user, remember=True)
@@ -115,7 +116,7 @@ def login():
         db.session.commit()
         _merge_cart(user)
 
-        flash(f"Welcome back, {user.display_name}!", "success")
+        flash(_("Welcome back, %(name)s!", name=user.display_name), "success")
         next_url = request.args.get("next") or url_for("auth.account")
         if not next_url.startswith("/"):
             next_url = url_for("auth.account")
@@ -129,7 +130,7 @@ def login():
 @bp.route("/logout", methods=["POST"])
 def logout():
     logout_user()
-    flash("You have been signed out.", "success")
+    flash(_("You have been signed out."), "success")
     return redirect(url_for("main.index"))
 
 
@@ -174,7 +175,7 @@ def account_edit():
         current_user.postal_code = request.form.get("postal_code", "").strip() or None
         current_user.country = request.form.get("country", "").strip() or None
         db.session.commit()
-        flash("Profile updated.", "success")
+        flash(_("Profile updated."), "success")
         return redirect(url_for("auth.account"))
     return render_template("auth/account_edit.html")
 
@@ -191,7 +192,7 @@ def account_orders():
 def account_order_detail(order_id):
     order = Order.query.get_or_404(order_id)
     if order.user_id != current_user.id:
-        flash("That order isn't yours.", "error")
+        flash(_("That order isn't yours."), "error")
         return redirect(url_for("auth.account_orders"))
     return render_template("auth/account_order_detail.html", order=order)
 
@@ -207,11 +208,11 @@ def account_password():
 
     errors = []
     if not current_user.check_password(current_pw):
-        errors.append("Current password is incorrect.")
+        errors.append(_("Current password is incorrect."))
     if len(new_pw) < 8:
-        errors.append("New password must be at least 8 characters.")
+        errors.append(_("New password must be at least 8 characters."))
     if new_pw != confirm:
-        errors.append("New passwords do not match.")
+        errors.append(_("New passwords do not match."))
 
     if errors:
         for e in errors:
@@ -220,7 +221,7 @@ def account_password():
 
     current_user.set_password(new_pw)
     db.session.commit()
-    flash("Password updated.", "success")
+    flash(_("Password updated."), "success")
     return redirect(url_for("auth.account"))
 
 
@@ -239,7 +240,7 @@ def wholesale_apply():
     """Submit an application. Requires login (creates lead with contact info)."""
     from datetime import datetime
     if current_user.is_wholesale and current_user.wholesale_status == "approved":
-        flash("You're already an approved wholesale partner.", "success")
+        flash(_("You're already an approved wholesale partner."), "success")
         return redirect(url_for("auth.account"))
 
     if request.method == "POST":
@@ -253,13 +254,13 @@ def wholesale_apply():
 
         errors = []
         if not business_name:
-            errors.append("Business name is required.")
+            errors.append(_("Business name is required."))
         if not business_type:
-            errors.append("Please choose a business type.")
+            errors.append(_("Please choose a business type."))
         if not phone:
-            errors.append("Contact phone is required.")
+            errors.append(_("Contact phone is required."))
         if not country:
-            errors.append("Country is required.")
+            errors.append(_("Country is required."))
 
         if errors:
             for e in errors:
@@ -277,7 +278,7 @@ def wholesale_apply():
         current_user.wholesale_applied_at = datetime.utcnow()
         db.session.commit()
 
-        flash("Application submitted. We'll review it within 2 business days.", "success")
+        flash(_("Application submitted. We'll review it within 2 business days."), "success")
         return redirect(url_for("auth.account"))
 
     return render_template("auth/wholesale_apply.html", form={})

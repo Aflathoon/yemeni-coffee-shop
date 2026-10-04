@@ -5,9 +5,9 @@
 <div class="max-w-6xl mx-auto py-8">
 
     <header class="text-center mb-12">
-        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">The Journal</p>
-        <h1 class="font-display text-5xl text-coffee-dark mb-4">Stories from the Pantry</h1>
-        <p class="text-coffee-light max-w-xl mx-auto">Origins, brewing notes, recipes, and the people behind the harvest.</p>
+        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">{{ _("The Journal") }}</p>
+        <h1 class="font-display text-5xl text-coffee-dark mb-4">{{ _("Stories from the Pantry") }}</h1>
+        <p class="text-coffee-light max-w-xl mx-auto">{{ _("Origins, brewing notes, recipes, and the people behind the harvest.") }}</p>
     </header>
 
     {% if featured %}
@@ -41,7 +41,7 @@
         <a href="{{ url_for('blog.index') }}"
            class="text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-sm border border-coffee-dark/20
                   {% if not active_category and not active_tag %}bg-coffee-dark text-cream border-coffee-dark{% else %}text-coffee-dark hover:bg-parchment{% endif %}">
-            All
+            {{ _("All") }}
         </a>
         {% for c in categories %}
         <a href="{{ url_for('blog.index', category=c) }}"
@@ -79,8 +79,8 @@
     </div>
     {% else %}
     <div class="bg-cream border border-coffee-dark/10 rounded-sm p-16 text-center">
-        <p class="font-display text-2xl text-coffee-dark mb-2">No articles yet</p>
-        <p class="text-coffee-light">Check back soon — we're writing the first pieces.</p>
+        <p class="font-display text-2xl text-coffee-dark mb-2">{{ _("No articles yet") }}</p>
+        <p class="text-coffee-light">{{ _("Check back soon — we're writing the first pieces.") }}</p>
     </div>
     {% endif %}
 </div>

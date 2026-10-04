@@ -5,10 +5,10 @@
 <div class="max-w-5xl mx-auto py-10">
 
     <header class="text-center mb-12">
-        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">Current Offers</p>
-        <h1 class="font-display text-5xl text-coffee-dark mb-4">This Season's Promotions</h1>
+        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">{{ _("Current Offers") }}</p>
+        <h1 class="font-display text-5xl text-coffee-dark mb-4">{{ _("This Season's Promotions") }}</h1>
         <p class="text-coffee-light max-w-xl mx-auto">
-            Limited-time deals on selected products. No codes needed — discounts apply automatically at checkout.
+            {{ _("Limited-time deals on selected products. No codes needed — discounts apply automatically at checkout.") }}
         </p>
     </header>
 
@@ -39,7 +39,7 @@
 
                 {% if samples.get(c.id) %}
                 <div class="pt-5 border-t border-coffee-dark/10">
-                    <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-3">Featured in this offer</p>
+                    <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-3">{{ _("Featured in this offer") }}</p>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {% for p in samples[c.id] %}
                         <a href="/product/{{ p.slug }}" class="group">
@@ -66,9 +66,9 @@
     {% else %}
     <div class="bg-cream border border-coffee-dark/10 rounded-lg p-16 text-center">
         <p class="text-4xl mb-3">🎯</p>
-        <p class="font-display text-2xl text-coffee-dark mb-3">No active offers right now</p>
-        <p class="text-coffee-light text-sm mb-6">Sign up to our newsletter or check back soon — we run promotions monthly.</p>
-        <a href="/" class="btn-primary inline-block">Back to shop</a>
+        <p class="font-display text-2xl text-coffee-dark mb-3">{{ _("No active offers right now") }}</p>
+        <p class="text-coffee-light text-sm mb-6">{{ _("Sign up to our newsletter or check back soon — we run promotions monthly.") }}</p>
+        <a href="/" class="btn-primary inline-block">{{ _("Back to shop") }}</a>
     </div>
     {% endif %}
 

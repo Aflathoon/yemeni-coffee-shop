@@ -3,6 +3,7 @@ from flask import (
     render_template, jsonify, request, session, redirect,
     url_for, flash
 )
+from flask_babel import gettext as _
 from flask_login import current_user
 from sqlalchemy import func
 from app import db
@@ -225,7 +226,7 @@ def cart_add(slug):
             db.session.add(CartItem(session_id=sid, product_id=product.id, quantity=qty))
 
     db.session.commit()
-    flash(f"Added {product.name} to your cart", "success")
+    flash(_("Added %(name)s to your cart", name=product.name), "success")
     return redirect(request.referrer or url_for("main.cart_view"))
 
 
@@ -233,10 +234,10 @@ def cart_add(slug):
 def cart_update(item_id):
     item = CartItem.query.get_or_404(item_id)
     if not _owns_item(item):
-        return ("Not your cart item", 403)
+        return (_("Not your cart item"), 403)
     item.quantity = max(1, int(request.form.get("quantity", 1)))
     db.session.commit()
-    flash("Cart updated", "success")
+    flash(_("Cart updated"), "success")
     return redirect(url_for("main.cart_view"))
 
 
@@ -247,7 +248,7 @@ def cart_remove(item_id):
         return ("Not your cart item", 403)
     db.session.delete(item)
     db.session.commit()
-    flash("Item removed", "success")
+    flash(_("Item removed"), "success")
     return redirect(url_for("main.cart_view"))
 
 
@@ -262,7 +263,7 @@ def cart_clear():
     for item in get_cart_items():
         db.session.delete(item)
     db.session.commit()
-    flash("Cart cleared", "success")
+    flash(_("Cart cleared"), "success")
     return redirect(url_for("main.cart_view"))
 
 
@@ -272,7 +273,7 @@ def cart_clear():
 def checkout():
     items = get_cart_items()
     if not items:
-        flash("Your cart is empty", "warning")
+        flash(_("Your cart is empty"), "warning")
         return redirect(url_for("main.cart_view"))
 
     subtotal = cart_subtotal()
@@ -290,12 +291,12 @@ def checkout():
 
         errors = []
         if not email or "@" not in email:
-            errors.append("Valid email is required")
-        if not full_name: errors.append("Full name is required")
-        if not address_line: errors.append("Address is required")
-        if not city: errors.append("City is required")
-        if not postal_code: errors.append("Postal code is required")
-        if not country: errors.append("Country is required")
+            errors.append(_("Valid email is required"))
+        if not full_name: errors.append(_("Full name is required"))
+        if not address_line: errors.append(_("Address is required"))
+        if not city: errors.append(_("City is required"))
+        if not postal_code: errors.append(_("Postal code is required"))
+        if not country: errors.append(_("Country is required"))
 
         if errors:
             for e in errors:
@@ -331,7 +332,7 @@ def checkout():
             db.session.delete(item)
 
         db.session.commit()
-        flash(f"Order #{order.id} placed — thank you!", "success")
+        flash(_("Order #%(id)s placed — thank you!", id=order.id), "success")
         return redirect(url_for("main.order_confirmation", order_id=order.id))
 
     form = {}

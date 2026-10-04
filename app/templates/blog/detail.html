@@ -6,7 +6,7 @@
 {% block content %}
 
 <article class="max-w-3xl mx-auto py-8">
-    <a href="{{ url_for('blog.index') }}" class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-spice mb-6 inline-block">← The Journal</a>
+    <a href="{{ url_for('blog.index') }}" class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-spice mb-6 inline-block">← {{ _("The Journal") }}</a>
 
     {% if article.category %}
     <p class="text-[10px] tracking-[0.25em] text-spice uppercase mb-3">{{ article.category }}</p>
@@ -48,7 +48,7 @@
 
 {% if sponsored %}
 <section class="max-w-6xl mx-auto mt-16 pt-10 border-t border-coffee-dark/10">
-    <h2 class="font-display text-2xl text-coffee-dark mb-6">From the shop</h2>
+    <h2 class="font-display text-2xl text-coffee-dark mb-6">{{ _("From the shop") }}</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         {% for p in sponsored %}
         <a href="/product/{{ p.slug }}" class="card hover:shadow-md transition">
@@ -67,7 +67,7 @@
 
 {% if related %}
 <section class="max-w-6xl mx-auto mt-16 pt-10 border-t border-coffee-dark/10">
-    <h2 class="font-display text-2xl text-coffee-dark mb-6">More from the journal</h2>
+    <h2 class="font-display text-2xl text-coffee-dark mb-6">{{ _("More from the journal") }}</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         {% for a in related %}
         <a href="{{ url_for('blog.detail', slug=a.slug) }}" class="card hover:shadow-md transition group">
