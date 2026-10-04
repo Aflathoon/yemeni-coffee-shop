@@ -1,53 +1,108 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
+{% block title %}Media — Admin{% endblock %}
+{% block page_title %}Uploads · {{ kind }}{% endblock %}
+{% block page_subtitle %}{{ total }} file(s){% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6">Upload Images</h1>
 
-    <div class="bg-white rounded-xl shadow p-6 mb-8">
-        <form method="POST" enctype="multipart/form-data" class="space-y-4">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{# Tabs #}
+<div class="flex gap-2 mb-5">
+    {% for k in ["products", "posts", "originals"] %}
+    <a href="{{ url_for('admin.upload', kind=k) }}"
+       class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm border
+              {% if k == kind %}bg-coffee-dark text-cream border-coffee-dark{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        {{ k|capitalize }}
+    </a>
+    {% endfor %}
+</div>
 
-            <div>
-                <label class="block text-sm font-semibold mb-1">File</label>
-                <input type="file" name="file" accept="image/*" required
-                       class="w-full border border-stone-300 rounded-lg px-3 py-2">
-            </div>
+{# Upload form — multi-file #}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-6 mb-6">
+    <h2 class="font-display text-lg text-coffee-dark mb-3">Upload new files</h2>
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="kind" value="{{ kind }}">
 
-            <div>
-                <label class="block text-sm font-semibold mb-1">Purpose</label>
-                <select name="kind" class="w-full border border-stone-300 rounded-lg px-3 py-2">
-                    <option value="products">Product image</option>
-                    <option value="posts">Post / marketing image</option>
-                    <option value="originals">Original (unprocessed)</option>
-                </select>
-            </div>
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">
+                Files (select one or many — Ctrl/Cmd+click)
+            </label>
+            <input type="file" name="files" accept="image/*" multiple required
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
 
+        <div class="flex items-center gap-4">
             <button type="submit"
-                    class="bg-coffee-dark text-amber-50 px-6 py-2 rounded-lg font-bold hover:bg-coffee">
+                    class="bg-coffee-dark text-cream px-5 py-2.5 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">
                 Upload
             </button>
-        </form>
-    </div>
-
-    {% for kind, files in gallery.items() %}
-    <div class="mb-8">
-        <h2 class="text-lg font-bold mb-3">{{ kind|capitalize }} ({{ files|length }})</h2>
-        {% if files %}
-        <div class="grid grid-cols-4 md:grid-cols-6 gap-3">
-            {% for url in files %}
-            <div class="relative group">
-                <img src="{{ url }}" class="w-full h-24 object-cover rounded shadow" loading="lazy">
-                <button onclick="navigator.clipboard.writeText('{{ url }}');this.innerText='Copied!';setTimeout(()=>this.innerText='Copy path',1200)"
-                        class="absolute inset-x-1 bottom-1 bg-black/70 text-white text-[10px] py-1 rounded opacity-0 group-hover:opacity-100 transition">
-                    Copy path
-                </button>
-            </div>
-            {% endfor %}
+            <p class="text-[12px] text-coffee-light italic">
+                For hundreds of files at once, use the CLI: <code class="bg-parchment px-1 rounded">python bulk_upload.py &lt;folder&gt; --kind {{ kind }}</code>
+            </p>
         </div>
-        {% else %}
-        <p class="text-sm text-coffee-light">No uploads yet in this category.</p>
-        {% endif %}
+    </form>
+</div>
+
+{# Search #}
+<div class="flex items-center gap-3 mb-4">
+    <form method="GET" class="flex-1 flex gap-2">
+        <input type="hidden" name="kind" value="{{ kind }}">
+        <input type="search" name="q" value="{{ q }}" placeholder="Filter by filename…"
+               class="flex-1 max-w-md border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+        <button class="bg-coffee-dark text-cream px-4 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">Search</button>
+        {% if q %}<a href="{{ url_for('admin.upload', kind=kind) }}" class="px-3 py-2 text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark self-center">Clear</a>{% endif %}
+    </form>
+    <p class="text-sm text-coffee-light">{{ total }} file(s)</p>
+</div>
+
+{# Gallery #}
+{% if gallery %}
+<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 mb-6">
+    {% for url in gallery %}
+    <div class="relative group bg-white border border-coffee-dark/8 rounded overflow-hidden">
+        <img src="{{ url }}" class="w-full h-24 object-cover bg-parchment" loading="lazy" alt="">
+        <div class="absolute inset-x-1 bottom-1 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+            <button onclick="navigator.clipboard.writeText('{{ url }}');this.innerText='✓';setTimeout(()=>this.innerText='Copy',1000)"
+                    class="flex-1 bg-black/75 text-white text-[10px] py-1 rounded">
+                Copy
+            </button>
+            <form method="POST" action="{{ url_for('admin.upload_delete') }}"
+                  onsubmit="return confirm('Delete this file?')" class="flex-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="kind" value="{{ kind }}">
+                <input type="hidden" name="url" value="{{ url }}">
+                <button class="w-full bg-red-600/85 text-white text-[10px] py-1 rounded">Del</button>
+            </form>
+        </div>
+        <p class="absolute top-1 left-1 bg-black/60 text-white text-[9px] px-1 rounded truncate max-w-[90%]">
+            {{ url.split('/')[-1] }}
+        </p>
     </div>
     {% endfor %}
 </div>
+
+{# Pagination #}
+{% if total_pages > 1 %}
+<div class="flex justify-center items-center gap-3 mb-8">
+    {% if page > 1 %}
+    <a href="{{ url_for('admin.upload', kind=kind, q=q, page=page-1) }}"
+       class="text-[11px] tracking-widest uppercase bg-parchment px-4 py-2 rounded-sm hover:bg-coffee-dark hover:text-cream">← Prev</a>
+    {% endif %}
+    <span class="text-sm text-coffee-light">Page {{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="{{ url_for('admin.upload', kind=kind, q=q, page=page+1) }}"
+       class="text-[11px] tracking-widest uppercase bg-parchment px-4 py-2 rounded-sm hover:bg-coffee-dark hover:text-cream">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="font-display text-2xl text-coffee-dark mb-3">
+        {% if q %}No files match "{{ q }}"{% else %}No uploads yet in this category{% endif %}
+    </p>
+    <p class="text-coffee-light text-sm">Upload images using the form above.</p>
+</div>
+{% endif %}
+
 {% endblock %}
