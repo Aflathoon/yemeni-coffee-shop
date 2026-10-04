@@ -32,14 +32,23 @@ class Product(db.Model):
     subcategory = db.Column(db.String(100))
     origin_country = db.Column(db.String(100), index=True)
     origin_region = db.Column(db.String(200))
-    description = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=False)         # short plain-text summary
+    long_description = db.Column(db.Text)                    # rich HTML body
     short_desc = db.Column(db.String(300))
     price = db.Column(db.Float, nullable=False)
+    compare_at_price = db.Column(db.Float)                   # "was $X" display
     weight_grams = db.Column(db.Integer, default=100)
     image = db.Column(db.String(200), default="placeholder.jpg")
+    gallery = db.Column(db.Text)                             # newline-separated image paths
     stock = db.Column(db.Integer, default=100)
+    stock_alert_threshold = db.Column(db.Integer, default=5)
+    tags = db.Column(db.String(400))                         # comma-separated
+    meta_title = db.Column(db.String(200))
+    meta_description = db.Column(db.String(300))
+    active = db.Column(db.Boolean, default=True, index=True) # hide without deleting
     featured = db.Column(db.Boolean, default=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class CartItem(db.Model):

@@ -36,7 +36,12 @@
             <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product.weight_grams }}g</span>
         </div>
 
-        <p class="font-display text-3xl text-coffee-dark mb-6">${{ "%.2f"|format(product.price) }}</p>
+        <p class="font-display text-3xl text-coffee-dark mb-6">
+            ${{ "%.2f"|format(product.price) }}
+            {% if product.compare_at_price and product.compare_at_price > product.price %}
+            <span class="text-base text-coffee-light line-through ml-2">${{ "%.2f"|format(product.compare_at_price) }}</span>
+            {% endif %}
+        </p>
 
         <p class="text-coffee-dark/85 leading-relaxed mb-8">{{ product.description }}</p>
 
@@ -49,6 +54,20 @@
             </button>
         </form>
         <p class="text-xs text-coffee-light tracking-wider">Free shipping over $75 · Ships within 1–2 business days</p>
+
+        {% if product.gallery %}
+        <div class="mt-8 grid grid-cols-4 gap-2">
+            {% for g in product.gallery.split("\n") if g.strip() %}
+            <img src="{{ g.strip()|imgurl }}" class="w-full aspect-square object-cover rounded-sm bg-parchment" alt="">
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if product.long_description %}
+        <div class="mt-8 border-t border-coffee-dark/10 pt-6 prose prose-sm max-w-none text-coffee-dark/85 leading-relaxed">
+            {{ product.long_description|safe }}
+        </div>
+        {% endif %}
 
         <div class="mt-8 border-t border-coffee-dark/10 pt-6">
             <h3 class="font-display text-lg text-coffee-dark mb-3">The Story</h3>

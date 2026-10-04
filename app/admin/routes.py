@@ -215,6 +215,172 @@ def product_toggle_featured(product_id):
     return redirect(url_for("admin.products"))
 
 
+# ---------- Products (full CRUD) ----------
+
+def _slugify(s):
+    import re
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def _unique_slug(base, exclude_id=None):
+    from app.models import Product as _P
+    slug = base
+    n = 1
+    while True:
+        q = _P.query.filter_by(slug=slug)
+        if exclude_id:
+            q = q.filter(_P.id != exclude_id)
+        if not q.first():
+            return slug
+        n += 1
+        slug = f"{base}-{n}"
+
+
+@bp.route("/products/new", methods=["GET", "POST"])
+@admin_required
+def product_new():
+    stats = compute_stats()
+    if request.method == "POST":
+        product, err = _product_from_form(None)
+        if err:
+            flash(err, "error")
+            return render_template("admin/product_edit.html",
+                                   product=None, stats=stats, form=request.form)
+        db.session.add(product)
+        db.session.commit()
+        flash(f"Product '{product.name}' created", "success")
+        return redirect(url_for("admin.products"))
+    return render_template("admin/product_edit.html", product=None, stats=stats, form={})
+
+
+@bp.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
+@admin_required
+def product_edit(product_id):
+    from app.models import Product as _P
+    product = _P.query.get_or_404(product_id)
+    stats = compute_stats()
+    if request.method == "POST":
+        _, err = _product_from_form(product)
+        if err:
+            flash(err, "error")
+            return render_template("admin/product_edit.html",
+                                   product=product, stats=stats, form=request.form)
+        db.session.commit()
+        flash(f"Product '{product.name}' updated", "success")
+        return redirect(url_for("admin.products"))
+    return render_template("admin/product_edit.html", product=product, stats=stats, form=None)
+
+
+@bp.route("/products/<int:product_id>/delete", methods=["POST"])
+@admin_required
+def product_delete(product_id):
+    from app.models import Product as _P
+    product = _P.query.get_or_404(product_id)
+    name = product.name
+    db.session.delete(product)
+    db.session.commit()
+    flash(f"Deleted '{name}'", "success")
+    return redirect(url_for("admin.products"))
+
+
+@bp.route("/products/<int:product_id>/duplicate", methods=["POST"])
+@admin_required
+def product_duplicate(product_id):
+    from app.models import Product as _P
+    src = _P.query.get_or_404(product_id)
+    copy = _P(
+        name=src.name + " (copy)",
+        slug=_unique_slug(_slugify(src.name + " copy")),
+        category=src.category, subcategory=src.subcategory,
+        origin_country=src.origin_country, origin_region=src.origin_region,
+        description=src.description, long_description=src.long_description,
+        short_desc=src.short_desc,
+        price=src.price, compare_at_price=src.compare_at_price,
+        weight_grams=src.weight_grams, image=src.image, gallery=src.gallery,
+        stock=src.stock, stock_alert_threshold=src.stock_alert_threshold,
+        tags=src.tags, meta_title=src.meta_title, meta_description=src.meta_description,
+        active=src.active, featured=False,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Duplicated as '{copy.name}'", "success")
+    return redirect(url_for("admin.product_edit", product_id=copy.id))
+
+
+def _product_from_form(product):
+    """Populate or create Product from form. Returns (product, error)."""
+    from app.models import Product as _P
+    name = request.form.get("name", "").strip()
+    if not name:
+        return None, "Name is required"
+
+    category = request.form.get("category", "").strip()
+    if not category:
+        return None, "Category is required"
+
+    try:
+        price = float(request.form.get("price", "0"))
+    except ValueError:
+        return None, "Price must be a number"
+    if price < 0:
+        return None, "Price must be positive"
+
+    compare_at = request.form.get("compare_at_price", "").strip()
+    try:
+        compare_at = float(compare_at) if compare_at else None
+    except ValueError:
+        compare_at = None
+
+    try:
+        weight = int(request.form.get("weight_grams", "100") or 100)
+    except ValueError:
+        weight = 100
+
+    try:
+        stock = int(request.form.get("stock", "0") or 0)
+    except ValueError:
+        stock = 0
+
+    try:
+        alert = int(request.form.get("stock_alert_threshold", "5") or 5)
+    except ValueError:
+        alert = 5
+
+    slug_input = request.form.get("slug", "").strip()
+    if not slug_input:
+        slug_input = _slugify(name)
+
+    is_new = product is None
+    if is_new:
+        product = _P()
+
+    existing_id = None if is_new else product.id
+    product.slug = _unique_slug(slug_input, exclude_id=existing_id)
+
+    product.name = name
+    product.category = category
+    product.subcategory = request.form.get("subcategory", "").strip() or None
+    product.origin_country = request.form.get("origin_country", "").strip() or None
+    product.origin_region = request.form.get("origin_region", "").strip() or None
+    product.short_desc = request.form.get("short_desc", "").strip() or None
+    product.description = request.form.get("description", "").strip() or ""
+    product.long_description = request.form.get("long_description", "").strip() or None
+    product.price = price
+    product.compare_at_price = compare_at
+    product.weight_grams = weight
+    product.stock = stock
+    product.stock_alert_threshold = alert
+    product.image = request.form.get("image", "").strip() or "placeholder.jpg"
+    product.gallery = request.form.get("gallery", "").strip() or None
+    product.tags = request.form.get("tags", "").strip() or None
+    product.meta_title = request.form.get("meta_title", "").strip() or None
+    product.meta_description = request.form.get("meta_description", "").strip() or None
+    product.active = request.form.get("active") == "1"
+    product.featured = request.form.get("featured") == "1"
+
+    return product, None
+
+
 # ---------- Customers ----------
 
 @bp.route("/customers")
@@ -378,3 +544,21 @@ def upload_delete():
     else:
         flash("File not found", "error")
     return redirect(url_for("admin.upload", kind=kind))
+
+
+# ---------- Uploads API (for picker) ----------
+
+@bp.route("/api/uploads")
+@admin_required
+def api_uploads():
+    """Return list of upload URLs for the image picker."""
+    kind = request.args.get("kind", "products")
+    if kind not in ("products", "posts", "originals"):
+        kind = "products"
+    folder = os.path.join(current_app.static_folder, "uploads", kind)
+    items = []
+    if os.path.isdir(folder):
+        for f in sorted(os.listdir(folder), reverse=True):
+            if _allowed_file(f):
+                items.append({"url": f"/static/uploads/{kind}/{f}", "name": f})
+    return {"items": items, "kind": kind}
