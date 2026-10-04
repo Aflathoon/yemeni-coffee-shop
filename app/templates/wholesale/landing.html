@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Partner Portal — The Spice & Roast Co.{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto py-16 text-center">
+    <h1 class="font-display text-4xl text-coffee-dark mb-4">Partner Portal</h1>
+    <p class="text-coffee-light mb-8">Coming soon — this will be the wholesale and agent login area.</p>
+    <div class="flex gap-3 justify-center">
+        <a href="{{ url_for('wholesale.register') }}" class="btn-primary">Apply for an account</a>
+        <a href="{{ url_for('wholesale.login') }}" class="btn-outline">Sign in</a>
+    </div>
+</div>
+{% endblock %}

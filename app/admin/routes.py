@@ -559,6 +559,11 @@ def settings():
             "STORE_EMAIL",
             "FREE_SHIPPING_THRESHOLD",
             "SHIPPING_FLAT_RATE",
+            "WHOLESALE_DISCOUNT_STANDARD",
+            "WHOLESALE_DISCOUNT_BRONZE",
+            "WHOLESALE_DISCOUNT_SILVER",
+            "WHOLESALE_DISCOUNT_GOLD",
+            "WHOLESALE_MOQ_DEFAULT",
         ]
         for f in fields:
             if f in request.form:

@@ -31,7 +31,12 @@
                     {% if item.product.origin_country %} · {{ item.product.origin_country }}{% endif %}
                     · {{ item.product|unit_label }}
                 </p>
-                <p class="text-sm mt-1.5">${{ "%.2f"|format(item.product.price) }} each</p>
+                <p class="text-sm mt-1.5">
+                    ${{ "%.2f"|format(item.product|price_for) }} each
+                    {% if is_wholesale and (item.product|price_for) < item.product.price %}
+                    <span class="text-[11px] text-coffee-light line-through ml-1">${{ "%.2f"|format(item.product.price) }}</span>
+                    {% endif %}
+                </p>
             </div>
 
             <form method="POST" action="/cart/update/{{ item.id }}" class="flex items-center gap-1">
@@ -41,7 +46,7 @@
                 <button class="text-[10px] tracking-widest uppercase bg-parchment px-2 py-1 rounded-sm hover:bg-coffee-dark hover:text-cream">Update</button>
             </form>
 
-            <p class="font-semibold w-20 text-right">${{ "%.2f"|format(item.product.price * item.quantity) }}</p>
+            <p class="font-semibold w-20 text-right">${{ "%.2f"|format((item.product|price_for) * item.quantity) }}</p>
 
             <form method="POST" action="/cart/remove/{{ item.id }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

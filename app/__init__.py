@@ -105,6 +105,18 @@ def create_app():
     from app.blog import bp as blog_bp
     app.register_blueprint(blog_bp)
 
+    from app.wholesale import bp as wholesale_bp
+    app.register_blueprint(wholesale_bp)
+
+    # Expose wholesale session helpers to templates
+    from app.wholesale.session import current_wholesale as _current_wholesale
+    @app.context_processor
+    def inject_wholesale():
+        return {
+            "current_wholesale": _current_wholesale(),
+            "is_wholesale_logged_in": _current_wholesale() is not None,
+        }
+
     # ---------- Language selection ----------
 
     @app.route("/set-language/<code>")

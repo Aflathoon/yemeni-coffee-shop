@@ -32,7 +32,13 @@ def cart_count():
 
 
 def cart_subtotal():
-    return round(sum(i.product.price * i.quantity for i in get_cart_items()), 2)
+    from app.pricing import price_for
+    from flask_login import current_user
+    total = 0.0
+    for item in get_cart_items():
+        unit = price_for(current_user, item.product)
+        total += unit * item.quantity
+    return round(total, 2)
 
 
 def shipping_for(subtotal):
@@ -241,14 +247,16 @@ def checkout():
         db.session.add(order)
         db.session.flush()
 
+        from app.pricing import price_for
         for item in items:
+            unit = price_for(current_user, item.product)
             db.session.add(OrderItem(
                 order_id=order.id,
                 product_id=item.product_id,
                 product_name=item.product.name,
-                product_price=item.product.price,
+                product_price=unit,                       # snapshot the effective (tier) price
                 quantity=item.quantity,
-                line_total=round(item.product.price * item.quantity, 2),
+                line_total=round(unit * item.quantity, 2),
             ))
             db.session.delete(item)
 

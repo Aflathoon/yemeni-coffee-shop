@@ -56,7 +56,12 @@
         </a>
         <div class="mt-auto p-4 pt-2 flex items-center justify-between border-t border-coffee-dark/8">
             <div>
+                {% if is_wholesale %}
+                <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p|price_for) }}</p>
+                <p class="text-[10px] text-coffee-light line-through">${{ "%.2f"|format(p.price) }}</p>
+                {% else %}
                 <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p.price) }}</p>
+                {% endif %}
                 <p class="text-[10px] text-coffee-light tracking-wider">{{ p|unit_label }}</p>
             </div>
             <form method="POST" action="/cart/add/{{ p.slug }}">

@@ -83,7 +83,7 @@
                         <p class="font-display text-sm text-coffee-dark truncate">{{ item.product.name }}</p>
                         <p class="text-[11px] text-coffee-light">× {{ item.quantity }}</p>
                     </div>
-                    <p class="font-medium text-sm">${{ "%.2f"|format(item.product.price * item.quantity) }}</p>
+                    <p class="font-medium text-sm">${{ "%.2f"|format((item.product|price_for) * item.quantity) }}</p>
                 </div>
                 {% endfor %}
             </div>

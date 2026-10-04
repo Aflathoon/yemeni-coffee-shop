@@ -44,6 +44,44 @@
     </div>
 
     <div class="bg-white border border-coffee-dark/8 rounded-lg p-6">
+        <h2 class="font-display text-xl text-coffee-dark mb-4">Wholesale discounts</h2>
+        <p class="text-[13px] text-coffee-light mb-4">Applied automatically to approved partners by tier. Values are percentages off list price.</p>
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-[12px] tracking-widest uppercase text-coffee-light mb-1">Standard tier (%)</label>
+                <input type="number" step="0.5" min="0" max="90" name="WHOLESALE_DISCOUNT_STANDARD"
+                       value="{{ settings_map.get('WHOLESALE_DISCOUNT_STANDARD', '5') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[15px]">
+            </div>
+            <div>
+                <label class="block text-[12px] tracking-widest uppercase text-coffee-light mb-1">Bronze tier (%)</label>
+                <input type="number" step="0.5" min="0" max="90" name="WHOLESALE_DISCOUNT_BRONZE"
+                       value="{{ settings_map.get('WHOLESALE_DISCOUNT_BRONZE', '10') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[15px]">
+            </div>
+            <div>
+                <label class="block text-[12px] tracking-widest uppercase text-coffee-light mb-1">Silver tier (%)</label>
+                <input type="number" step="0.5" min="0" max="90" name="WHOLESALE_DISCOUNT_SILVER"
+                       value="{{ settings_map.get('WHOLESALE_DISCOUNT_SILVER', '15') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[15px]">
+            </div>
+            <div>
+                <label class="block text-[12px] tracking-widest uppercase text-coffee-light mb-1">Gold tier (%)</label>
+                <input type="number" step="0.5" min="0" max="90" name="WHOLESALE_DISCOUNT_GOLD"
+                       value="{{ settings_map.get('WHOLESALE_DISCOUNT_GOLD', '20') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[15px]">
+            </div>
+        </div>
+        <div class="mt-3">
+            <label class="block text-[12px] tracking-widest uppercase text-coffee-light mb-1">Default minimum order quantity (MOQ)</label>
+            <input type="number" min="1" name="WHOLESALE_MOQ_DEFAULT"
+                   value="{{ settings_map.get('WHOLESALE_MOQ_DEFAULT', '1') }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[15px]">
+            <p class="text-[12px] text-coffee-light mt-1">Wholesale customers can't order less than this many units per line.</p>
+        </div>
+    </div>
+
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-6">
         <div class="flex items-center gap-2 mb-4">
             <h2 class="font-display text-xl text-coffee-dark">Telegram</h2>
             {% if settings_map.get('TELEGRAM_BOT_TOKEN') and settings_map.get('TELEGRAM_CHANNEL_ID') %}

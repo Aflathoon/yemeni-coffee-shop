@@ -55,6 +55,57 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+class WholesaleAccount(db.Model):
+    """Separate account table for B2B / wholesale partners.
+
+    Sessions are custom (session['ws_id']) — not tied to Flask-Login.
+    """
+    __tablename__ = "wholesale_account"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(256), nullable=False)
+
+    # Business identity
+    company_name = db.Column(db.String(250), nullable=False)
+    business_type = db.Column(db.String(80))              # shop, cafe, distributor, agent, other
+    tax_id = db.Column(db.String(80))
+    phone = db.Column(db.String(40))
+
+    # Address
+    address_line = db.Column(db.String(300))
+    city = db.Column(db.String(100))
+    postal_code = db.Column(db.String(30))
+    country = db.Column(db.String(100))
+
+    # Application
+    status = db.Column(db.String(20), default="pending", index=True)  # pending | approved | rejected | suspended
+    tier = db.Column(db.String(20), default="standard")                # standard | bronze | silver | gold
+    notes = db.Column(db.Text)                                        # applicant's own notes
+    admin_notes = db.Column(db.Text)                                  # internal
+    applied_at = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime)
+    approved_by = db.Column(db.Integer, db.ForeignKey("user.id"))     # which admin approved
+    last_login_at = db.Column(db.DateTime)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def set_password(self, pw):
+        self.password_hash = generate_password_hash(pw)
+
+    def check_password(self, pw):
+        return check_password_hash(self.password_hash, pw)
+
+    @property
+    def is_approved(self):
+        return self.status == "approved"
+
+    @property
+    def display_name(self):
+        return self.company_name or self.email.split("@")[0]
+
+
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
@@ -86,10 +137,17 @@ class Product(db.Model):
 
 
 class CartItem(db.Model):
-    """A line in the cart. Tied to a session_id (anonymous) OR a user_id."""
+    """A line in the cart.
+
+    Belongs to exactly one of:
+      - session_id (anonymous retail visitor)
+      - user_id    (logged-in retail customer)
+      - wholesale_id (logged-in wholesale partner)
+    """
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(64), index=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    wholesale_id = db.Column(db.Integer, db.ForeignKey("wholesale_account.id"), index=True)
     product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
     quantity = db.Column(db.Integer, default=1, nullable=False)
     added_at = db.Column(db.DateTime, default=datetime.utcnow)

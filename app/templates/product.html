@@ -36,12 +36,24 @@
             <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product|unit_label }}</span>
         </div>
 
-        <p class="font-display text-3xl text-coffee-dark mb-6">
-            ${{ "%.2f"|format(product.price) }}
-            {% if product.compare_at_price and product.compare_at_price > product.price %}
-            <span class="text-base text-coffee-light line-through ml-2">${{ "%.2f"|format(product.compare_at_price) }}</span>
+        <div class="mb-6">
+            {% if is_wholesale %}
+            <p class="font-display text-3xl text-coffee-dark">
+                ${{ "%.2f"|format(product|price_for) }}
+                <span class="text-[11px] tracking-widest uppercase bg-gold/20 text-coffee-dark px-2 py-1 rounded ml-2 align-middle">
+                    wholesale · {{ wholesale_discount }}%
+                </span>
+            </p>
+            <p class="text-sm text-coffee-light line-through mt-1">List: ${{ "%.2f"|format(product.price) }}</p>
+            {% else %}
+            <p class="font-display text-3xl text-coffee-dark">
+                ${{ "%.2f"|format(product.price) }}
+                {% if product.compare_at_price and product.compare_at_price > product.price %}
+                <span class="text-base text-coffee-light line-through ml-2">${{ "%.2f"|format(product.compare_at_price) }}</span>
+                {% endif %}
+            </p>
             {% endif %}
-        </p>
+        </div>
 
         <p class="text-coffee-dark/85 leading-relaxed mb-8">{{ product.description }}</p>
 
