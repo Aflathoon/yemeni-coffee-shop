@@ -25,6 +25,42 @@
     </div>
 </div>
 
+{# Watcher status #}
+<div class="bg-navy text-cream rounded-lg p-5 mb-6">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+            <p class="text-[10px] tracking-widest uppercase text-gold mb-1">Background watcher</p>
+            {% if watcher_enabled %}
+                <p class="font-display text-xl">
+                    Enabled · runs every {{ watcher_interval }} min
+                </p>
+                {% if last_run %}
+                <p class="text-sm text-cream/70 mt-1">
+                    Last run: {{ last_run.started_at.strftime("%b %d, %Y · %H:%M") }}
+                    · ok={{ last_run.ok_count }} warn={{ last_run.warn_count }} fail={{ last_run.fail_count }}
+                    {% if last_run.new_alerts %} · {{ last_run.new_alerts }} new alert(s){% endif %}
+                </p>
+                {% else %}
+                <p class="text-sm text-cream/70 mt-1">No runs logged yet — run <code>python run_watcher.py</code> or set up cron.</p>
+                {% endif %}
+            {% else %}
+                <p class="font-display text-xl">Disabled</p>
+                <p class="text-sm text-cream/70 mt-1">
+                    Enable in <a href="{{ url_for('admin.settings') }}" class="underline text-gold">Settings → AI Assistant</a>.
+                </p>
+            {% endif %}
+        </div>
+        {% if last_run and last_run.finished_at %}
+        <div class="text-right">
+            <p class="text-[10px] tracking-widest uppercase text-cream/50">Duration</p>
+            <p class="font-display text-xl">
+                {{ ((last_run.finished_at - last_run.started_at).total_seconds() * 1000)|int }}ms
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 {# Actions #}
 <div class="bg-white border border-coffee-dark/8 rounded-lg p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
     <div>

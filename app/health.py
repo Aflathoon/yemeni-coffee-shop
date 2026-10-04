@@ -245,3 +245,93 @@ def summarize(results):
     warn = sum(1 for r in results if r["status"] == "warn")
     fail = sum(1 for r in results if r["status"] == "fail")
     return {"ok": ok, "warn": warn, "fail": fail, "total": len(results)}
+
+
+# ---------- Persistence ----------
+
+def persist_alerts(results, ai_summary=None, notify=True):
+    """
+    Save warn/fail results as AiAlert records with deduplication.
+
+    Deduplication rule: if an unresolved alert exists for the same
+    (check_name, status), update its message/detail instead of creating
+    a new row. This prevents alert spam on every run.
+
+    Returns:
+        dict with {created, updated, resolved_auto, telegram_sent}
+    """
+    from app.models import AiAlert, AiWatcherRun
+    from datetime import datetime
+
+    created = 0
+    updated = 0
+    resolved_auto = 0
+    new_alert_ids = []
+
+    # 1. Handle each current problem
+    for r in results:
+        if r["status"] not in ("warn", "fail"):
+            continue
+
+        existing = (AiAlert.query
+                    .filter_by(check_name=r["name"], status=r["status"], resolved=False)
+                    .first())
+        if existing:
+            existing.message = r["message"]
+            existing.detail = r.get("detail")
+            if ai_summary:
+                existing.ai_summary = ai_summary
+            updated += 1
+        else:
+            a = AiAlert(
+                check_name=r["name"],
+                status=r["status"],
+                title=r["name"].replace("_", " ").title(),
+                message=r["message"],
+                detail=r.get("detail"),
+                ai_summary=ai_summary,
+            )
+            db.session.add(a)
+            db.session.flush()
+            new_alert_ids.append(a.id)
+            created += 1
+
+    # 2. Auto-resolve alerts whose check now passes
+    passing_checks = {r["name"] for r in results if r["status"] == "ok"}
+    for a in AiAlert.query.filter_by(resolved=False).all():
+        if a.check_name in passing_checks:
+            a.resolved = True
+            a.resolved_at = datetime.utcnow()
+            resolved_auto += 1
+
+    db.session.commit()
+
+    # 3. Telegram notification for NEW alerts only
+    telegram_sent = 0
+    if notify and new_alert_ids:
+        try:
+            from app.telegram import send_message, is_configured as tg_ok
+            if tg_ok():
+                new_rows = AiAlert.query.filter(AiAlert.id.in_(new_alert_ids)).all()
+                lines = [f"⚠ <b>Site health — {len(new_rows)} new alert(s)</b>", ""]
+                for a in new_rows:
+                    icon = "❌" if a.status == "fail" else "⚠️"
+                    lines.append(f"{icon} <b>{a.title}</b>")
+                    lines.append(f"   {a.message[:200]}")
+                    if a.detail:
+                        lines.append(f"   <i>{a.detail.splitlines()[0][:200]}</i>")
+                    lines.append("")
+                if ai_summary:
+                    lines.append("🤖 " + ai_summary[:400])
+                result = send_message("\n".join(lines))
+                if result.get("ok"):
+                    telegram_sent = len(new_rows)
+        except Exception:
+            pass   # never block on notification failure
+
+    return {
+        "created": created,
+        "updated": updated,
+        "resolved_auto": resolved_auto,
+        "telegram_sent": telegram_sent,
+    }

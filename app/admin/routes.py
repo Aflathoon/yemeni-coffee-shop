@@ -1878,7 +1878,7 @@ def settings_test_ai():
 def assistant_health():
     """On-demand health check panel."""
     from app.health import run_all_checks, summarize
-    from app.models import AiAlert
+    from app.models import AiAlert, AiWatcherRun, Setting
 
     results = run_all_checks()
     summary = summarize(results)
@@ -1888,12 +1888,24 @@ def assistant_health():
                      .order_by(AiAlert.created_at.desc())
                      .limit(30).all())
 
+    # Watcher state
+    recent_runs = (AiWatcherRun.query
+                   .order_by(AiWatcherRun.started_at.desc())
+                   .limit(10).all())
+    last_run = recent_runs[0] if recent_runs else None
+    watcher_enabled = (Setting.get("AI_WATCHER_ENABLED") or "0") == "1"
+    watcher_interval = int(Setting.get("AI_WATCHER_INTERVAL_MIN") or 30)
+
     stats = compute_stats()
     return render_template(
         "admin/assistant_health.html",
         results=results,
         summary=summary,
         recent_alerts=recent_alerts,
+        recent_runs=recent_runs,
+        last_run=last_run,
+        watcher_enabled=watcher_enabled,
+        watcher_interval=watcher_interval,
         stats=stats,
     )
 

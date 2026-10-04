@@ -484,6 +484,21 @@ class AiAlert(db.Model):
     resolved_at = db.Column(db.DateTime)
 
 
+class AiWatcherRun(db.Model):
+    """Log of every background health check run."""
+    __tablename__ = "ai_watcher_run"
+
+    id = db.Column(db.Integer, primary_key=True)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    finished_at = db.Column(db.DateTime)
+    ok_count = db.Column(db.Integer, default=0)
+    warn_count = db.Column(db.Integer, default=0)
+    fail_count = db.Column(db.Integer, default=0)
+    new_alerts = db.Column(db.Integer, default=0)
+    telegram_sent = db.Column(db.Integer, default=0)
+    error = db.Column(db.Text)                 # if the run itself crashed
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200))
