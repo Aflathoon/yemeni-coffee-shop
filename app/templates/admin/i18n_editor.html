@@ -1,0 +1,84 @@
+{% extends "admin_base.html" %}
+{% block title %}Translate {{ lang_name }} — Admin{% endblock %}
+{% block page_title %}Translation Editor{% endblock %}
+{% block page_subtitle %}{{ lang_name }} ({{ lang }}) — {{ translated }}/{{ total }} translated{% endblock %}
+
+{% block content %}
+
+{# Language switcher #}
+<div class="flex flex-wrap gap-2 mb-5">
+    {% for code, name in all_langs.items() %}
+    <a href="{{ url_for('admin.i18n_editor', lang=code) }}"
+       class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm border
+              {% if code == lang %}bg-navy text-cream border-navy{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        {{ code }} · {{ name }}
+    </a>
+    {% endfor %}
+</div>
+
+{# Filter tabs #}
+<div class="flex gap-2 mb-4 items-center">
+    {% for mode, label, count in [('untranslated', 'Untranslated', untranslated), ('translated', 'Translated', translated), ('all', 'All', total)] %}
+    <a href="{{ url_for('admin.i18n_editor', lang=lang, filter=mode) }}"
+       class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm border
+              {% if filter_mode == mode %}bg-coffee-dark text-cream border-coffee-dark{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        {{ label }} ({{ count }})
+    </a>
+    {% endfor %}
+</div>
+
+{% if not entries %}
+<div class="bg-sage/10 border border-sage/40 rounded-lg p-16 text-center">
+    <p class="text-4xl mb-3">✓</p>
+    <p class="font-display text-2xl text-navy mb-2">Nothing to show</p>
+    <p class="text-coffee-light text-sm">
+        {% if filter_mode == 'untranslated' %}
+            Everything's translated for {{ lang_name }}!
+        {% else %}
+            No entries yet. Run <code class="bg-parchment px-1 rounded">./i18n.sh extract && ./i18n.sh update</code> first.
+        {% endif %}
+    </p>
+</div>
+{% else %}
+
+<form method="POST" class="space-y-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% for e in entries %}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-4">
+        <div class="flex flex-col md:flex-row gap-3">
+            <div class="flex-1 min-w-0">
+                <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Source (English)</p>
+                <p class="text-[15px] text-coffee-dark font-medium whitespace-pre-wrap break-words">{{ e.msgid }}</p>
+                {% if e.refs %}
+                <p class="text-[10px] text-coffee-light mt-1 font-mono truncate" title="{{ e.refs }}">{{ e.refs }}</p>
+                {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <label class="block text-[10px] tracking-widest uppercase text-coffee-light mb-1">
+                    Translation ({{ lang_name }})
+                </label>
+                <textarea name="{{ e.field }}" rows="2"
+                          dir="{% if lang in ('ar', 'ur', 'fa') %}rtl{% else %}ltr{% endif %}"
+                          placeholder="Type translation…"
+                          class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[15px] font-medium
+                                 {% if e.msgstr %}border-sage/50{% endif %}">{{ e.msgstr }}</textarea>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="sticky bottom-2 bg-cream border border-coffee-dark/15 rounded-lg p-4 flex items-center justify-between shadow-lg">
+        <p class="text-sm text-coffee-light">
+            {{ entries|length }} visible · leave blank to keep untranslated
+        </p>
+        <button type="submit"
+                class="bg-navy text-cream px-6 py-2.5 rounded-sm text-[11px] tracking-widest uppercase font-semibold hover:bg-navy-light">
+            Save translations
+        </button>
+    </div>
+</form>
+
+{% endif %}
+
+{% endblock %}

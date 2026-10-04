@@ -46,8 +46,8 @@
                     </div>
                 </td>
                 <td class="px-4 py-3 text-[12px] text-coffee-light">
-                    {% if r.po_exists %}<span class="text-sage">.po</span>{% else %}<span class="text-stone-400">no .po</span>{% endif %}
-                    {% if r.mo_exists %} · <span class="text-sage">.mo</span>{% else %} · <span class="text-stone-400">no .mo</span>{% endif %}
+                    <a href="{{ url_for('admin.i18n_editor', lang=r.lang) }}"
+                       class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark">Edit →</a>
                 </td>
             </tr>
             {% endfor %}

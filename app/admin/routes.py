@@ -4,6 +4,7 @@ from functools import wraps
 from flask import (
     render_template, request, redirect, url_for, flash, current_app
 )
+from flask_babel import gettext as _
 from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
@@ -2845,3 +2846,160 @@ def i18n_status():
 
     stats = compute_stats()
     return render_template("admin/i18n_status.html", rows=rows, stats=stats)
+
+
+# ============ i18n EDITOR ============
+
+def _po_path(lang):
+    from flask import current_app
+    from pathlib import Path
+    return Path(current_app.root_path) / "translations" / lang / "LC_MESSAGES" / "messages.po"
+
+
+def _read_po(lang):
+    """Parse a .po file into a list of entries: [{msgid, msgstr, context, line_no}]"""
+    import re
+    path = _po_path(lang)
+    if not path.exists():
+        return []
+    text = path.read_text(encoding="utf-8", errors="replace")
+
+    entries = []
+    # Split on blank lines into blocks, keep only ones with msgid
+    blocks = re.split(r"\n\s*\n", text)
+    for block in blocks:
+        if not re.search(r"^msgid\s", block, re.M):
+            continue
+        msgid_m = re.search(r'^msgid\s+"((?:[^"\\]|\\.)*)"', block, re.M)
+        msgstr_m = re.search(r'^msgstr\s+"((?:[^"\\]|\\.)*)"', block, re.M)
+        refs_m = re.search(r"^#:\s*(.+)$", block, re.M)
+
+        if not msgid_m:
+            continue
+        msgid = msgid_m.group(1)
+        if not msgid:
+            # skip the header entry
+            continue
+        msgstr = msgstr_m.group(1) if msgstr_m else ""
+        refs = refs_m.group(1).strip() if refs_m else ""
+
+        entries.append({
+            "msgid": msgid.replace('\\"', '"').replace("\\n", "\n"),
+            "msgstr": msgstr.replace('\\"', '"').replace("\\n", "\n"),
+            "refs": refs,
+        })
+    return entries
+
+
+def _write_po(lang, entries_map):
+    """Rewrite each .po with new msgstr values from the entries_map {msgid: msgstr}."""
+    import re
+    path = _po_path(lang)
+    if not path.exists():
+        return 0
+
+    text = path.read_text(encoding="utf-8", errors="replace")
+
+    # Split into blocks and rewrite
+    blocks = re.split(r"(\n\s*\n)", text)
+    out = []
+    updated = 0
+    for i, block in enumerate(blocks):
+        if not re.search(r"^msgid\s", block, re.M):
+            out.append(block)
+            continue
+
+        msgid_m = re.search(r'^msgid\s+"((?:[^"\\]|\\.)*)"', block, re.M)
+        if not msgid_m:
+            out.append(block)
+            continue
+
+        raw_msgid = msgid_m.group(1)
+        key = raw_msgid.replace('\\"', '"').replace("\\n", "\n")
+        if key and key in entries_map:
+            new_value = entries_map[key]
+            # Escape for PO
+            escaped = new_value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+            # Replace msgstr line
+            if re.search(r'^msgstr\s+"', block, re.M):
+                block = re.sub(r'^msgstr\s+"((?:[^"\\]|\\.)*)"', f'msgstr "{escaped}"', block, count=1, flags=re.M)
+            else:
+                # Add msgstr after msgid
+                block = re.sub(r'(^msgid\s+"((?:[^"\\]|\\.)*)"\n)', r'\1' + f'msgstr "{escaped}"\n', block, count=1, flags=re.M)
+            updated += 1
+        out.append(block)
+
+    path.write_text("".join(out))
+    return updated
+
+
+@bp.route("/i18n/editor/<lang>", methods=["GET", "POST"])
+@admin_required
+def i18n_editor(lang):
+    """Edit translations for one language."""
+    from app import LANGUAGES
+
+    if lang not in LANGUAGES:
+        flash("Unknown language.", "error")
+        return redirect(url_for("admin.i18n_status"))
+
+    if request.method == "POST":
+        # Collect all msgid_* form fields
+        entries = _read_po(lang)
+        entries_map = {}
+        for e in entries:
+            field_name = "t_" + str(hash(e["msgid"]))
+            new_val = request.form.get(field_name)
+            if new_val is not None and new_val != e["msgstr"]:
+                entries_map[e["msgid"]] = new_val
+
+        if not entries_map:
+            flash("No changes.", "info")
+            return redirect(url_for("admin.i18n_editor", lang=lang))
+
+        updated = _write_po(lang, entries_map)
+
+        # Auto-compile after save
+        import subprocess, sys
+        from pathlib import Path
+        root = Path(__file__).resolve().parent.parent.parent
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "babel.messages.frontend", "compile",
+                 "-d", str(root / "app" / "translations")],
+                capture_output=True, timeout=30, cwd=str(root),
+            )
+        except Exception:
+            pass
+
+        flash(f"Saved {updated} translation(s) for {LANGUAGES[lang]}.", "success")
+        return redirect(url_for("admin.i18n_editor", lang=lang))
+
+    # GET
+    entries = _read_po(lang)
+    # Add a hash for form field naming (stable per session is fine here)
+    for e in entries:
+        e["field"] = "t_" + str(hash(e["msgid"]))
+
+    # Filter
+    filter_mode = request.args.get("filter", "untranslated")
+    if filter_mode == "untranslated":
+        shown = [e for e in entries if not e["msgstr"]]
+    elif filter_mode == "translated":
+        shown = [e for e in entries if e["msgstr"]]
+    else:
+        shown = entries
+
+    stats = compute_stats()
+    return render_template(
+        "admin/i18n_editor.html",
+        lang=lang,
+        lang_name=LANGUAGES[lang],
+        all_langs=LANGUAGES,
+        entries=shown,
+        total=len(entries),
+        translated=sum(1 for e in entries if e["msgstr"]),
+        untranslated=sum(1 for e in entries if not e["msgstr"]),
+        filter_mode=filter_mode,
+        stats=stats,
+    )
