@@ -1,0 +1,190 @@
+{% extends "admin_base.html" %}
+{% block title %}Code Assistant — Admin{% endblock %}
+{% block page_title %}Code Assistant{% endblock %}
+{% block page_subtitle %}Describe a problem — the AI reads the relevant files and proposes a fix{% endblock %}
+
+{% block content %}
+
+{# ---------- AI result card ---------- #}
+{% if suggestion %}
+<div class="bg-white border-2 border-navy rounded-lg p-6 mb-6">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+            <p class="text-[10px] tracking-widest uppercase text-navy mb-1">✨ AI Diagnosis</p>
+            <h2 class="font-display text-xl text-navy">Analysis</h2>
+        </div>
+        <div class="text-[11px] text-coffee-light">
+            {% if usage.total_tokens %}{{ usage.total_tokens }} tokens · {% endif %}
+            {{ picked_files|length }} file(s) read
+        </div>
+    </div>
+
+    {# Diagnosis #}
+    {% if suggestion.diagnosis %}
+    <div class="bg-navy/5 border-l-4 border-navy p-4 mb-5">
+        <p class="text-[10px] tracking-widest uppercase text-navy/70 mb-2">Diagnosis</p>
+        <p class="text-sm text-coffee-dark leading-relaxed whitespace-pre-wrap">{{ suggestion.diagnosis }}</p>
+    </div>
+    {% endif %}
+
+    {# Files to change #}
+    {% if suggestion.files %}
+    <div class="mb-5">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-2">Files to change</p>
+        <div class="flex flex-wrap gap-2">
+            {% for f in suggestion.files %}
+            <code class="text-[12px] bg-parchment px-2 py-1 rounded">{{ f }}</code>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# Diffs #}
+    {% if suggestion.diffs %}
+    <div class="mb-5">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-2">Proposed changes</p>
+        <div class="space-y-3">
+            {% for d in suggestion.diffs %}
+            <div class="border border-coffee-dark/15 rounded overflow-hidden">
+                <div class="bg-parchment px-3 py-2 flex items-center justify-between">
+                    <code class="text-[12px] text-coffee-dark font-medium">{{ d.path }}</code>
+                    <span class="text-[10px] tracking-widest uppercase text-coffee-light">diff</span>
+                </div>
+                <pre class="text-[12px] p-3 bg-cream overflow-auto max-h-72 whitespace-pre-wrap font-mono">{{ d.diff }}</pre>
+                <div class="bg-white border-t border-coffee-dark/10 p-3 flex justify-end gap-2">
+                    <button type="button"
+                            onclick="navigator.clipboard.writeText(document.querySelectorAll('pre')[{{ loop.index0 }}].textContent); this.innerText='✓ Copied'; setTimeout(()=>this.innerText='Copy diff', 1200)"
+                            class="text-[10px] tracking-widest uppercase border border-coffee-dark/20 px-3 py-1.5 rounded-sm hover:bg-parchment">
+                        Copy diff
+                    </button>
+                    <form method="POST" action="{{ url_for('admin.assistant_code_apply') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="path" value="{{ d.path }}">
+                        <input type="hidden" name="diff" value="{{ d.diff }}">
+                        <button type="submit"
+                                onclick="return confirm('Apply this change to {{ d.path }}? A .bak will be created and the app will be re-verified after.')"
+                                class="text-[10px] tracking-widest uppercase bg-spice text-cream px-4 py-1.5 rounded-sm hover:bg-coffee-dark font-semibold">
+                            Apply fix
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-amber-50 border border-amber-200 rounded p-4 mb-5">
+        <p class="text-sm text-amber-900">
+            The AI didn't produce a machine-readable diff. Read the diagnosis above and apply the change manually.
+            You can also re-run with more context by adding files below.
+        </p>
+    </div>
+    {% endif %}
+
+    {# VERIFY #}
+    {% if suggestion.verify %}
+    <div class="bg-sage/10 border border-sage/40 rounded p-4 mb-5">
+        <p class="text-[10px] tracking-widest uppercase text-sage mb-2">How to verify</p>
+        <code class="text-[12px] text-coffee-dark">{{ suggestion.verify }}</code>
+    </div>
+    {% endif %}
+
+    <details class="mt-4">
+        <summary class="text-[11px] tracking-widest uppercase text-coffee-light cursor-pointer hover:text-coffee-dark">Show raw AI response</summary>
+        <pre class="mt-2 text-[11px] bg-cream p-3 rounded border border-coffee-dark/10 overflow-auto max-h-80 whitespace-pre-wrap">{{ suggestion.raw }}</pre>
+    </details>
+</div>
+{% endif %}
+
+{# ---------- Input form ---------- #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    {# Left: description + files #}
+    <form method="POST" action="{{ url_for('admin.assistant_code_diagnose') }}" class="lg:col-span-2 bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <h2 class="font-display text-lg text-navy mb-3">Describe the problem</h2>
+        <textarea name="problem" rows="5" required
+                  placeholder="e.g. The blog index page shows a 500 error since yesterday. Here's the traceback: TemplateSyntaxError 'endblock' at line 211"
+                  class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm mb-4">{{ problem }}</textarea>
+
+        <div class="mb-3">
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-2">
+                Files to include (leave all unchecked for auto-detect)
+            </label>
+            <div class="border border-coffee-dark/20 rounded-sm bg-cream max-h-64 overflow-auto p-3"
+                 id="file-picker">
+                {% set picked_set = picked_files or [] %}
+                {% for f in files %}
+                <label class="flex items-center gap-2 py-1 text-[13px] hover:bg-parchment px-1 rounded cursor-pointer">
+                    <input type="checkbox" name="files" value="{{ f }}"
+                           {% if f in picked_set %}checked{% endif %}
+                           class="accent-navy file-cb">
+                    <code class="text-coffee-dark">{{ f }}</code>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="flex items-center justify-between mt-2">
+                <p class="text-[11px] text-coffee-light">
+                    <span id="file-count">0</span> selected
+                </p>
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleAll(true)"
+                            class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-navy">Select all</button>
+                    <button type="button" onclick="toggleAll(false)"
+                            class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-navy">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-navy text-cream py-3 rounded-sm text-[11px] tracking-widest uppercase font-semibold hover:bg-navy-light">
+            🔍 Diagnose with AI
+        </button>
+        <p class="text-[11px] text-coffee-light text-center mt-2 italic">
+            Reads files, proposes a diff. You review it, then click Apply if you agree.
+        </p>
+    </form>
+
+    {# Right: safety notes #}
+    <div class="space-y-4">
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h3 class="font-display text-lg text-navy mb-2">How it works</h3>
+            <ol class="text-[13px] text-coffee-light space-y-2 list-decimal list-inside">
+                <li>You describe the problem</li>
+                <li>Relevant files are sent to DeepSeek</li>
+                <li>AI reads + diagnoses</li>
+                <li>You see a proposed diff</li>
+                <li><strong class="text-coffee-dark">You click Apply</strong></li>
+                <li>A <code class="bg-parchment px-1 rounded">.bak</code> is saved</li>
+                <li>Change is applied</li>
+                <li>App is re-verified</li>
+                <li>If broken → auto-rollback</li>
+            </ol>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-5">
+            <h3 class="font-display text-base text-amber-900 mb-2">⚠ Safety</h3>
+            <p class="text-[13px] text-amber-900/90 leading-relaxed">
+                The AI can be wrong. Diffs are previewed so you decide.
+                Every apply is backed up and verified.
+                Never blind-apply a change you don't understand.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateCount() {
+    const n = document.querySelectorAll('.file-cb:checked').length;
+    document.getElementById('file-count').textContent = n;
+}
+function toggleAll(state) {
+    document.querySelectorAll('.file-cb').forEach(cb => cb.checked = state);
+    updateCount();
+}
+document.querySelectorAll('.file-cb').forEach(cb => cb.addEventListener('change', updateCount));
+updateCount();
+</script>
+
+{% endblock %}

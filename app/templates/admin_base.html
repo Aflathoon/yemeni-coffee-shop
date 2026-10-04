@@ -147,12 +147,18 @@
             </a>
 
             <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Assistant</p>
+            <a href="/admin/assistant" class="sidebar-link {% if request.endpoint == 'admin.assistant_hub' %}active{% endif %}">
+                <span>🤖 Hub</span>
+            </a>
             <a href="/admin/assistant/health" class="sidebar-link {% if 'assistant_health' in (request.endpoint or '') %}active{% endif %}">
                 <span>🩺 Site Health</span>
                 {% if stats and stats.open_alerts %}<span class="badge">{{ stats.open_alerts }}</span>{% endif %}
             </a>
             <a href="/admin/assistant/content" class="sidebar-link {% if 'assistant_content' in (request.endpoint or '') %}active{% endif %}">
                 <span>✍️ Content Studio</span>
+            </a>
+            <a href="/admin/assistant/code" class="sidebar-link {% if 'assistant_code' in (request.endpoint or '') %}active{% endif %}">
+                <span>🛠 Code Assistant</span>
             </a>
         </nav>
 
@@ -196,5 +202,119 @@
 </div>
 
 {% block scripts %}{% endblock %}
+{# ---------- Floating AI drawer (global) ---------- #}
+<button type="button" id="ai-fab"
+        onclick="toggleAiDrawer()"
+        title="AI Assistant"
+        class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-navy text-cream shadow-xl hover:bg-navy-light transition flex items-center justify-center text-2xl">
+    🤖
+</button>
+
+<div id="ai-drawer"
+     class="hidden fixed bottom-24 right-6 z-50 w-[380px] max-w-[92vw] max-h-[70vh] bg-white border border-coffee-dark/15 rounded-lg shadow-2xl flex flex-col overflow-hidden">
+    <div class="bg-navy text-cream px-4 py-3 flex items-center justify-between">
+        <div>
+            <p class="text-[10px] tracking-widest uppercase text-gold">Assistant</p>
+            <p class="font-display text-lg">Quick chat</p>
+        </div>
+        <button type="button" onclick="toggleAiDrawer()" class="text-cream/70 hover:text-cream text-xl leading-none">×</button>
+    </div>
+
+    <div class="px-4 py-3 border-b border-coffee-dark/10 flex gap-2 flex-wrap">
+        <a href="{{ url_for('admin.assistant_health') }}" class="text-[10px] tracking-widest uppercase text-navy border border-navy/20 px-2 py-1 rounded-sm hover:bg-navy hover:text-cream transition">Health</a>
+        <a href="{{ url_for('admin.assistant_content') }}" class="text-[10px] tracking-widest uppercase text-navy border border-navy/20 px-2 py-1 rounded-sm hover:bg-navy hover:text-cream transition">Content</a>
+        <a href="{{ url_for('admin.assistant_code') }}" class="text-[10px] tracking-widest uppercase text-navy border border-navy/20 px-2 py-1 rounded-sm hover:bg-navy hover:text-cream transition">Code</a>
+        <a href="{{ url_for('admin.assistant_hub') }}" class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-navy self-center ml-auto">Hub →</a>
+    </div>
+
+    <div id="ai-chat-log" class="flex-1 overflow-auto p-4 space-y-3 text-sm bg-cream min-h-[200px]">
+        <div class="text-[13px] text-coffee-light italic">
+            Ask anything about the site, or just chat. For deep work, use the tools above.
+        </div>
+    </div>
+
+    <form id="ai-chat-form" class="border-t border-coffee-dark/10 p-3 flex gap-2 bg-white">
+        <input type="text" id="ai-chat-input" placeholder="Ask something…" autocomplete="off"
+               class="flex-1 border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm focus:outline-none focus:border-navy">
+        <button type="submit" class="bg-navy text-cream px-4 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+            Send
+        </button>
+    </form>
+</div>
+
+<script>
+(function() {
+    const drawer = document.getElementById('ai-drawer');
+    const form = document.getElementById('ai-chat-form');
+    const input = document.getElementById('ai-chat-input');
+    const log = document.getElementById('ai-chat-log');
+
+    window.toggleAiDrawer = function() {
+        drawer.classList.toggle('hidden');
+        if (!drawer.classList.contains('hidden')) {
+            setTimeout(() => input.focus(), 50);
+        }
+    };
+
+    function appendMsg(role, text) {
+        const el = document.createElement('div');
+        if (role === 'user') {
+            el.className = 'text-right';
+            el.innerHTML = '<span class="inline-block bg-navy text-cream px-3 py-2 rounded-lg max-w-[80%] text-left whitespace-pre-wrap"></span>';
+            el.firstChild.textContent = text;
+        } else if (role === 'assistant') {
+            el.className = '';
+            el.innerHTML = '<div class="bg-white border border-coffee-dark/10 px-3 py-2 rounded-lg max-w-[90%] text-coffee-dark whitespace-pre-wrap"></div>';
+            el.firstChild.textContent = text;
+        } else {
+            el.className = 'text-center text-[11px] text-coffee-light italic';
+            el.textContent = text;
+        }
+        log.appendChild(el);
+        log.scrollTop = log.scrollHeight;
+        return el;
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        appendMsg('user', msg);
+
+        const thinking = appendMsg('system', 'Thinking…');
+
+        try {
+            const resp = await fetch('{{ url_for("admin.assistant_chat") }}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}',
+                },
+                body: JSON.stringify({
+                    message: msg,
+                    context: 'admin page: ' + location.pathname,
+                }),
+            });
+            const data = await resp.json();
+            thinking.remove();
+            appendMsg('assistant', data.reply || 'No reply.');
+        } catch (err) {
+            thinking.remove();
+            appendMsg('system', 'Network error: ' + err.message);
+        }
+    });
+
+    // Keyboard shortcut: press "/" outside an input to open
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            e.preventDefault();
+            window.toggleAiDrawer();
+        }
+    });
+})();
+</script>
+
 </body>
 </html>

@@ -2304,3 +2304,347 @@ def api_products_index():
             for p in rows
         ]
     }
+
+
+# ============ AI ASSISTANT: CODE ============
+
+@bp.route("/assistant/code")
+@admin_required
+def assistant_code():
+    """Code assistant landing page."""
+    from app.codebase import list_files
+    files = list_files()
+    stats = compute_stats()
+    return render_template(
+        "admin/assistant_code.html",
+        files=files,
+        stats=stats,
+        suggestion=None,
+        picked_files=[],
+        problem="",
+    )
+
+
+@bp.route("/assistant/code/diagnose", methods=["POST"])
+@admin_required
+def assistant_code_diagnose():
+    """Send problem + selected files to the AI. Returns diagnosis + suggested patch."""
+    from app.ai import chat, is_configured
+    from app.codebase import read_many, guess_relevant_files, list_files
+
+    if not is_configured():
+        flash("AI not configured.", "error")
+        return redirect(url_for("admin.settings"))
+
+    problem = request.form.get("problem", "").strip()
+    if not problem:
+        flash("Describe the problem first.", "error")
+        return redirect(url_for("admin.assistant_code"))
+
+    # Which files?
+    picked = request.form.getlist("files")
+    if not picked:
+        picked = guess_relevant_files(problem)
+        flash(f"AI selected {len(picked)} file(s) based on your description.", "success")
+
+    # Read them
+    contents = read_many(picked)
+
+    if not contents:
+        flash("No readable files matched. Try picking files manually.", "warning")
+        return redirect(url_for("admin.assistant_code"))
+
+    # Build the context block
+    files_block = []
+    for path, body in contents.items():
+        # Trim very long files, keeping head and tail
+        if len(body) > 8000:
+            head = body[:5000]
+            tail = body[-1500:]
+            body = head + "\n\n# ... [truncated] ...\n\n" + tail
+        files_block.append(f"### FILE: {path}\n```\n{body}\n```")
+
+    system = {
+        "role": "system",
+        "content": (
+            "You are a senior Python/Flask engineer reviewing a small e-commerce codebase. "
+            "Your job: diagnose problems described by the admin, look at the provided files, and propose a precise fix.\n\n"
+            "Output format (use these exact section headers):\n\n"
+            "DIAGNOSIS:\n"
+            "<1-4 sentences explaining what's wrong>\n\n"
+            "FILES_TO_CHANGE:\n"
+            "<one file path per line — only files that need edits>\n\n"
+            "FIX:\n"
+            "For each file, output a fenced block:\n"
+            "```file:path/to/file.py\n"
+            "<the exact lines that must change, shown as a unified diff using --- and +++ and @@ markers>\n"
+            "```\n\n"
+            "VERIFY:\n"
+            "<one-line command to test the fix>\n\n"
+            "Rules:\n"
+            "- Only propose changes to files you were shown.\n"
+            "- Keep diffs minimal — do not rewrite whole files.\n"
+            "- Never invent imports or functions that don't exist.\n"
+            "- If you're not confident, say so in DIAGNOSIS and give two possible causes."
+        ),
+    }
+
+    user_block = (
+        f"PROBLEM REPORTED BY ADMIN:\n{problem}\n\n"
+        f"FILES PROVIDED ({len(contents)} total, {sum(len(v) for v in contents.values())} chars):\n\n"
+        + "\n\n".join(files_block)
+    )
+
+    r = chat(
+        messages=[system, {"role": "user", "content": user_block}],
+        model=None,          # use configured chat model
+        max_tokens=4000,
+        temperature=0.2,     # low temp — we want precise, not creative
+    )
+
+    if not r["ok"]:
+        flash(f"AI error: {r['error']}", "error")
+        return redirect(url_for("admin.assistant_code"))
+
+    # Parse the response into sections
+    raw = r["content"]
+    parsed = _parse_diagnosis(raw)
+
+    return render_template(
+        "admin/assistant_code.html",
+        files=list_files(),
+        stats=compute_stats(),
+        suggestion=parsed,
+        raw=raw,
+        picked_files=list(contents.keys()),
+        problem=problem,
+        usage=(r.get("usage") or {}),
+    )
+
+
+def _parse_diagnosis(text):
+    """Split the AI response into DIAGNOSIS / FILES_TO_CHANGE / FIX / VERIFY."""
+    import re
+    out = {"diagnosis": "", "files": [], "diffs": [], "verify": "", "raw": text}
+
+    # DIAGNOSIS
+    m = re.search(r"DIAGNOSIS:\s*(.*?)(?=\n\s*FILES_TO_CHANGE:|\Z)", text, re.S | re.I)
+    if m:
+        out["diagnosis"] = m.group(1).strip()
+
+    # FILES_TO_CHANGE
+    m = re.search(r"FILES_TO_CHANGE:\s*(.*?)(?=\n\s*FIX:|\Z)", text, re.S | re.I)
+    if m:
+        for line in m.group(1).strip().splitlines():
+            line = line.strip().lstrip("-*•").strip()
+            if line:
+                out["files"].append(line)
+
+    # FIX: find ```file:...``` blocks with diff content
+    for fm in re.finditer(r"```file:([^\n]+)\n(.*?)```", text, re.S):
+        out["diffs"].append({
+            "path": fm.group(1).strip(),
+            "diff": fm.group(2).strip(),
+        })
+
+    # VERIFY
+    m = re.search(r"VERIFY:\s*(.*?)(?=\n\n[A-Z_]+:|\Z)", text, re.S | re.I)
+    if m:
+        out["verify"] = m.group(1).strip()
+
+    return out
+
+
+@bp.route("/assistant/code/apply", methods=["POST"])
+@admin_required
+def assistant_code_apply():
+    """Apply a proposed diff, verify, rollback on failure."""
+    import os
+    import shutil
+    import subprocess
+    import sys
+    from datetime import datetime
+    from pathlib import Path
+    from app.codebase import project_root
+
+    path = request.form.get("path", "").strip()
+    diff_text = request.form.get("diff", "").strip()
+
+    if not path or not diff_text:
+        flash("Missing path or diff.", "error")
+        return redirect(url_for("admin.assistant_code"))
+
+    # Resolve + safe path check
+    root = project_root()
+    full = (root / path).resolve()
+    try:
+        full.relative_to(root)
+    except ValueError:
+        flash("Refused: path outside project.", "error")
+        return redirect(url_for("admin.assistant_code"))
+
+    if not full.is_file():
+        flash(f"File not found: {path}", "error")
+        return redirect(url_for("admin.assistant_code"))
+
+    # Backup
+    ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    bak = full.with_suffix(full.suffix + f".bak.{ts}")
+    shutil.copy2(full, bak)
+
+    # Apply via patch
+    original = full.read_text(encoding="utf-8", errors="replace")
+
+    # Try `patch` command first (handles proper unified diffs)
+    applied = False
+    apply_err = ""
+
+    try:
+        # Write diff to temp file
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".diff", delete=False, encoding="utf-8") as tf:
+            # Some models omit the ---/+++ headers, so ensure they're present
+            d = diff_text
+            if "---" not in d.splitlines()[0] if d.splitlines() else True:
+                pass
+            tf.write(d)
+            diff_file = tf.name
+
+        # `patch -p0` expects a/b paths; try -p1 as fallback
+        result = subprocess.run(
+            ["patch", "--forward", "-p0", str(full), diff_file],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0:
+            applied = True
+        else:
+            apply_err = result.stderr[:400] or result.stdout[:400]
+            # Try -p1
+            result2 = subprocess.run(
+                ["patch", "--forward", "-p1", "-d", str(root), diff_file],
+                capture_output=True, text=True, timeout=15,
+            )
+            if result2.returncode == 0:
+                applied = True
+            else:
+                apply_err += " | " + (result2.stderr[:300] or result2.stdout[:300])
+
+        os.unlink(diff_file)
+    except FileNotFoundError:
+        apply_err = "The `patch` utility is not installed. Run: sudo apt install patch"
+    except Exception as e:
+        apply_err = str(e)
+
+    if not applied:
+        # Restore from backup
+        shutil.copy2(bak, full)
+        flash(f"❌ Could not apply diff: {apply_err}", "error")
+        return redirect(url_for("admin.assistant_code"))
+
+    # Verify: does the app still load?
+    verify_ok = True
+    verify_err = ""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", "from app import create_app; create_app(); print('ok')"],
+            cwd=str(root), capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0 or "ok" not in result.stdout:
+            verify_ok = False
+            verify_err = (result.stderr or result.stdout)[-600:]
+    except Exception as e:
+        verify_ok = False
+        verify_err = str(e)
+
+    if not verify_ok:
+        # Rollback
+        shutil.copy2(bak, full)
+        flash(f"❌ Change broke the app — auto-rolled back. Error: {verify_err[:300]}", "error")
+        return redirect(url_for("admin.assistant_code"))
+
+    flash(f"✅ Applied to {path}. Backup: {bak.name}", "success")
+    return redirect(url_for("admin.assistant_code"))
+
+
+# ============ AI ASSISTANT: HUB ============
+
+@bp.route("/assistant")
+@admin_required
+def assistant_hub():
+    """Central hub for all assistant tools."""
+    from app.models import AiAlert, AiWatcherRun, Article, Product
+
+    # Recent AI-related activity
+    open_alerts = (AiAlert.query
+                   .filter_by(resolved=False)
+                   .filter(AiAlert.status.in_(("warn", "fail")))
+                   .order_by(AiAlert.created_at.desc())
+                   .limit(5).all())
+
+    last_watcher = (AiWatcherRun.query
+                    .order_by(AiWatcherRun.started_at.desc())
+                    .first())
+
+    # Counts
+    recent_articles = Article.query.order_by(Article.created_at.desc()).limit(5).all()
+    # Products missing a long_description (candidates for AI writing)
+    products_missing_desc = (Product.query
+                             .filter_by(active=True)
+                             .filter((Product.long_description.is_(None)) | (Product.long_description == ""))
+                             .count())
+
+    stats = compute_stats()
+    return render_template(
+        "admin/assistant_hub.html",
+        open_alerts=open_alerts,
+        last_watcher=last_watcher,
+        recent_articles=recent_articles,
+        products_missing_desc=products_missing_desc,
+        stats=stats,
+    )
+
+
+@bp.route("/assistant/chat", methods=["POST"])
+@admin_required
+def assistant_chat():
+    """
+    Minimal chat endpoint used by the drawer.
+    Accepts {message, context} and returns {ok, reply}.
+    """
+    from app.ai import chat, is_configured
+
+    if not is_configured():
+        return {"ok": False, "reply": "AI not configured. Set the API key in Settings."}, 400
+
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    context = (data.get("context") or "").strip()
+
+    if not message:
+        return {"ok": False, "reply": "Empty message."}, 400
+
+    system = {
+        "role": "system",
+        "content": (
+            "You are an assistant embedded in the admin panel of a Flask shop called "
+            "The Spice & Roast Co. Be concise — one or two short paragraphs max. "
+            "If asked to fix code, tell the admin to use the Code Assistant at /admin/assistant/code. "
+            "If asked to write content, direct them to /admin/assistant/content. "
+            "If they describe a bug or broken page, tell them to run a health check first at /admin/assistant/health."
+        ),
+    }
+
+    user_msg = message
+    if context:
+        user_msg = f"[Context: {context}]\n\n{message}"
+
+    r = chat(
+        messages=[system, {"role": "user", "content": user_msg}],
+        max_tokens=600,
+        temperature=0.5,
+    )
+
+    if not r["ok"]:
+        return {"ok": False, "reply": f"Error: {r['error']}"}, 500
+
+    return {"ok": True, "reply": r["content"].strip()}
