@@ -1,67 +1,162 @@
 {% extends "admin_base.html" %}
 {% block title %}Products — Admin{% endblock %}
 {% block page_title %}Products{% endblock %}
-{% block page_subtitle %}{{ products|length }} SKU(s){% endblock %}
+{% block page_subtitle %}{{ products|length }} product(s) shown{% if active_category %} · {{ active_category }}{% endif %}{% if active_country %} · {{ active_country }}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="flex justify-end mb-5">
+
+{# ---------- Top bar: New product + search ---------- #}
+<div class="flex flex-wrap gap-3 items-center justify-between mb-5">
+    <form method="GET" class="flex-1 min-w-[260px] max-w-md flex gap-2">
+        {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+        {% if active_country %}<input type="hidden" name="country" value="{{ active_country }}">{% endif %}
+        {% if active_status %}<input type="hidden" name="status" value="{{ active_status }}">{% endif %}
+        <input type="search" name="q" value="{{ search }}" placeholder="Search by name, tag, region…"
+               class="flex-1 border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[14px] focus:outline-none focus:border-coffee-dark">
+        <button class="bg-coffee-dark text-cream px-4 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">Search</button>
+        {% if search %}<a href="{{ url_for('admin.products') }}" class="px-3 py-2 text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark self-center">Clear</a>{% endif %}
+    </form>
+
     <a href="{{ url_for('admin.product_new') }}"
-       class="bg-coffee-dark text-cream px-4 py-2 rounded-sm text-xs tracking-widest uppercase hover:bg-coffee">
+       class="bg-coffee-dark text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee whitespace-nowrap">
         + New product
     </a>
 </div>
 
+{# ---------- Category tabs ---------- #}
+<div class="flex flex-wrap gap-2 mb-4">
+    <a href="{{ url_for('admin.products', country=active_country or None, status=active_status or None, q=search or None, sort=active_sort) }}"
+       class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm border
+              {% if not active_category %}bg-coffee-dark text-cream border-coffee-dark{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        All ({{ category_counts.values()|sum }})
+    </a>
+    {% for cat in ['coffee','tea','spices','herbs','honey','blends','accessories'] %}
+    {% set cnt = category_counts.get(cat, 0) %}
+    {% if cnt > 0 %}
+    <a href="{{ url_for('admin.products', category=cat, country=active_country or None, status=active_status or None, q=search or None, sort=active_sort) }}"
+       class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm border
+              {% if active_category == cat %}bg-coffee-dark text-cream border-coffee-dark{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        {{ cat|capitalize }} ({{ cnt }})
+    </a>
+    {% endif %}
+    {% endfor %}
+</div>
+
+{# ---------- Country + status filters ---------- #}
+<div class="flex flex-wrap gap-3 items-center mb-5 pb-4 border-b border-coffee-dark/10">
+    <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-[10px] tracking-widest uppercase text-coffee-light">Origin:</span>
+        <a href="{{ url_for('admin.products', category=active_category or None, status=active_status or None, q=search or None, sort=active_sort) }}"
+           class="text-[11px] px-2 py-1 rounded-sm border
+                  {% if not active_country %}bg-spice text-cream border-spice{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+            All
+        </a>
+        {% for country, cnt in country_counts.items() %}
+        <a href="{{ url_for('admin.products', category=active_category or None, country=country, status=active_status or None, q=search or None, sort=active_sort) }}"
+           class="text-[11px] px-2 py-1 rounded-sm border
+                  {% if active_country == country %}bg-spice text-cream border-spice{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+            {{ country }} ({{ cnt }})
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="flex items-center gap-2 ml-auto">
+        <span class="text-[10px] tracking-widest uppercase text-coffee-light">Status:</span>
+        {% for val, label in [('','All'),('active','Active'),('inactive','Hidden'),('featured','Featured'),('low_stock','Low stock')] %}
+        <a href="{{ url_for('admin.products', category=active_category or None, country=active_country or None, status=val or None, q=search or None, sort=active_sort) }}"
+           class="text-[11px] px-2 py-1 rounded-sm border
+                  {% if active_status == val %}bg-sage text-cream border-sage{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+
+        <select onchange="location = this.value"
+                class="text-[11px] border border-coffee-dark/20 rounded-sm px-2 py-1 bg-cream ml-2">
+            {% set base = {'category': active_category, 'country': active_country, 'status': active_status, 'q': search} %}
+            {% for val, label in [('name','A→Z'),('price_asc','Price ↑'),('price_desc','Price ↓'),('stock','Stock ↑'),('newest','Newest')] %}
+            {% set url_params = {} %}
+            {% for k,v in base.items() %}{% if v %}{% set _ = url_params.update({k: v}) %}{% endif %}{% endfor %}
+            {% set _ = url_params.update({'sort': val}) %}
+            <option value="{{ url_for('admin.products', **url_params) }}" {% if active_sort == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+{# ---------- Products table ---------- #}
+{% if products %}
 <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
-    <table class="w-full text-[15px]">
+    <table class="w-full text-[14px]">
         <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
             <tr>
-                <th class="text-left px-4 py-3 w-12"></th>
-                <th class="text-left px-4 py-3">Product</th>
-                <th class="text-left px-4 py-3">Category</th>
-                <th class="text-left px-4 py-3">Origin</th>
-                <th class="text-right px-4 py-3">Price</th>
-                <th class="text-right px-4 py-3">Stock</th>
-                <th class="text-center px-4 py-3">Active</th>
-                <th class="text-center px-4 py-3">Featured</th>
-                <th class="text-right px-4 py-3"></th>
+                <th class="text-left px-3 py-3 w-14"></th>
+                <th class="text-left px-3 py-3">Product</th>
+                <th class="text-left px-3 py-3">Category</th>
+                <th class="text-left px-3 py-3">Origin</th>
+                <th class="text-right px-3 py-3">Price</th>
+                <th class="text-right px-3 py-3">Stock</th>
+                <th class="text-center px-3 py-3">Active</th>
+                <th class="text-center px-3 py-3">★</th>
+                <th class="text-right px-3 py-3"></th>
             </tr>
         </thead>
         <tbody>
+            {% set current_cat = namespace(v=None) %}
             {% for p in products %}
+            {% if p.category != current_cat.v and not active_category %}
+                <tr class="bg-parchment/70">
+                    <td colspan="9" class="px-4 py-2 text-[11px] tracking-widest uppercase text-coffee-dark font-semibold">
+                        {{ p.category|capitalize }} · {{ category_counts.get(p.category, 0) }} item(s)
+                    </td>
+                </tr>
+                {% set current_cat.v = p.category %}
+            {% endif %}
             <tr class="border-b border-coffee-dark/5 hover:bg-parchment/40 {% if not p.active %}opacity-50{% endif %}">
-                <td class="px-4 py-2">
+                <td class="px-3 py-2">
                     <img src="{{ p.image|imgurl }}" class="w-10 h-10 object-cover rounded bg-parchment" alt="">
                 </td>
-                <td class="px-4 py-2">
+                <td class="px-3 py-2">
                     <a href="{{ url_for('admin.product_edit', product_id=p.id) }}" class="text-coffee-dark hover:text-spice font-medium">{{ p.name }}</a>
-                    <p class="text-[12px] text-coffee-light">{{ p.slug }}</p>
+                    <p class="text-[11px] text-coffee-light">{{ p.slug }}</p>
                 </td>
-                <td class="px-4 py-2 text-xs text-coffee-light">{{ p.category }}</td>
-                <td class="px-4 py-2 text-xs text-coffee-light">{{ p.origin_country or '—' }}</td>
-                <td class="px-4 py-2 text-right">${{ "%.2f"|format(p.price) }}</td>
-                <td class="px-4 py-2 text-right {% if p.stock <= (p.stock_alert_threshold or 5) %}text-red-700 font-medium{% endif %}">
+                <td class="px-3 py-2 text-[13px] text-coffee-light">{{ p.category }}</td>
+                <td class="px-3 py-2 text-[13px] text-coffee-light">{{ p.origin_country or '—' }}</td>
+                <td class="px-3 py-2 text-right">${{ "%.2f"|format(p.price) }}</td>
+                <td class="px-3 py-2 text-right {% if p.stock <= (p.stock_alert_threshold or 5) %}text-red-700 font-medium{% endif %}">
                     {{ p.stock }}
                 </td>
-                <td class="px-4 py-2 text-center">
+                <td class="px-3 py-2 text-center">
                     {% if p.active %}<span class="text-sage">●</span>{% else %}<span class="text-stone-300">○</span>{% endif %}
                 </td>
-                <td class="px-4 py-2 text-center">
+                <td class="px-3 py-2 text-center">
                     <form method="POST" action="{{ url_for('admin.product_toggle_featured', product_id=p.id) }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button class="text-lg {% if p.featured %}text-gold{% else %}text-stone-300{% endif %}">{% if p.featured %}★{% else %}☆{% endif %}</button>
+                        <button class="text-lg {% if p.featured %}text-gold{% else %}text-stone-300{% endif %}">
+                            {% if p.featured %}★{% else %}☆{% endif %}
+                        </button>
                     </form>
                 </td>
-                <td class="px-4 py-2 text-right whitespace-nowrap">
-                    <a href="{{ url_for('admin.product_edit', product_id=p.id) }}" class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mr-2">Edit</a>
+                <td class="px-3 py-2 text-right whitespace-nowrap">
+                    <a href="{{ url_for('admin.product_edit', product_id=p.id) }}"
+                       class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mr-2">Edit</a>
                     <form method="POST" action="{{ url_for('admin.product_share_telegram', product_id=p.id) }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-spice mr-2">📤</button>
                     </form>
-                    <a href="/product/{{ p.slug }}" target="_blank" class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">View</a>
+                    <a href="/product/{{ p.slug }}" target="_blank"
+                       class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">View</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+{% else %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="font-display text-2xl text-coffee-dark mb-2">No products match these filters</p>
+    <p class="text-coffee-light text-sm mb-6">Try a different category, country, or search term.</p>
+    <a href="{{ url_for('admin.products') }}" class="btn-primary inline-block">Reset filters</a>
+</div>
+{% endif %}
+
 {% endblock %}

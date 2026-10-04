@@ -200,9 +200,91 @@ def order_set_status(order_id):
 @bp.route("/products")
 @admin_required
 def products():
-    all_products = Product.query.order_by(Product.category, Product.name).all()
+    from sqlalchemy import func
+
+    # Filters from query string
+    category = request.args.get("category", "").strip()
+    country = request.args.get("country", "").strip()
+    search = request.args.get("q", "").strip()
+    status = request.args.get("status", "").strip()  # active | inactive | featured | low_stock
+    sort = request.args.get("sort", "name")          # name | price_asc | price_desc | stock | newest
+
+    q = Product.query
+
+    if category:
+        q = q.filter_by(category=category)
+    if country:
+        q = q.filter_by(origin_country=country)
+    if search:
+        like = f"%{search}%"
+        q = q.filter(
+            (Product.name.ilike(like))
+            | (Product.description.ilike(like))
+            | (Product.tags.ilike(like))
+            | (Product.origin_region.ilike(like))
+        )
+    if status == "active":
+        q = q.filter_by(active=True)
+    elif status == "inactive":
+        q = q.filter_by(active=False)
+    elif status == "featured":
+        q = q.filter_by(featured=True)
+    elif status == "low_stock":
+        q = q.filter(Product.stock <= Product.stock_alert_threshold)
+
+    # Sorting
+    if sort == "price_asc":
+        q = q.order_by(Product.price.asc())
+    elif sort == "price_desc":
+        q = q.order_by(Product.price.desc())
+    elif sort == "stock":
+        q = q.order_by(Product.stock.asc())
+    elif sort == "newest":
+        q = q.order_by(Product.created_at.desc())
+    else:
+        q = q.order_by(Product.category.asc(), Product.name.asc())
+
+    all_products = q.all()
+
+    # Category counts (unfiltered by category, but respecting other filters)
+    cat_q = db.session.query(Product.category, func.count(Product.id))
+    if country:
+        cat_q = cat_q.filter_by(origin_country=country)
+    if search:
+        like = f"%{search}%"
+        cat_q = cat_q.filter(
+            (Product.name.ilike(like))
+            | (Product.description.ilike(like))
+            | (Product.tags.ilike(like))
+        )
+    category_counts = dict(cat_q.group_by(Product.category).all())
+
+    # Country counts
+    country_q = db.session.query(Product.origin_country, func.count(Product.id))
+    if category:
+        country_q = country_q.filter_by(category=category)
+    if search:
+        like = f"%{search}%"
+        country_q = country_q.filter(
+            (Product.name.ilike(like)) | (Product.description.ilike(like))
+        )
+    country_counts = dict(
+        country_q.filter(Product.origin_country.isnot(None))
+                 .group_by(Product.origin_country)
+                 .order_by(Product.origin_country).all()
+    )
+
     stats = compute_stats()
-    return render_template("admin/products.html", products=all_products, stats=stats)
+    return render_template("admin/products.html",
+                           products=all_products,
+                           stats=stats,
+                           category_counts=category_counts,
+                           country_counts=country_counts,
+                           active_category=category,
+                           active_country=country,
+                           active_status=status,
+                           active_sort=sort,
+                           search=search)
 
 
 @bp.route("/products/<int:product_id>/toggle-featured", methods=["POST"])
