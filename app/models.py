@@ -58,6 +58,9 @@ class Product(db.Model):
     price = db.Column(db.Float, nullable=False)
     compare_at_price = db.Column(db.Float)                   # "was $X" display
     weight_grams = db.Column(db.Integer, default=100)
+    unit = db.Column(db.String(10), default="ea")     # g | kg | ea | set | bag
+    unit_quantity = db.Column(db.Integer, default=1)  # 100, 250, 1, etc.
+    allow_custom_weight = db.Column(db.Boolean, default=False)  # show g/kg selector
     image = db.Column(db.String(200), default="placeholder.jpg")
     gallery = db.Column(db.Text)                             # newline-separated image paths
     stock = db.Column(db.Integer, default=100)

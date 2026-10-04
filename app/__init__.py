@@ -41,6 +41,22 @@ def create_app():
     migrate.init_app(app, db)
 
     # --- Jinja filters ---
+    @app.template_filter("unit_label")
+    def unit_label_filter(product):
+        """Return a human label like '250 g', '1 kg', 'set of 4'."""
+        unit = getattr(product, "unit", None) or "g"
+        qty = getattr(product, "unit_quantity", None)
+        if unit == "ea":
+            return f"{qty}x" if qty and qty > 1 else "each"
+        if unit == "set":
+            return f"set of {qty}" if qty and qty > 1 else "set"
+        if unit == "bag":
+            return f"{qty} bag" if qty else "bag"
+        if unit == "kg":
+            return f"{qty or 1} kg"
+        # default grams
+        return f"{qty or 1} g"
+
     @app.template_filter("imgurl")
     def imgurl_filter(value):
         """Return a usable URL for an image field, preferring WebP if it exists.

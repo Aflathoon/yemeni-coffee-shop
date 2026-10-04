@@ -368,6 +368,12 @@ def _product_from_form(product):
     product.price = price
     product.compare_at_price = compare_at
     product.weight_grams = weight
+    product.unit = request.form.get("unit", "g").strip() or "g"
+    try:
+        product.unit_quantity = int(request.form.get("unit_quantity", "1") or 1)
+    except ValueError:
+        product.unit_quantity = 1
+    product.allow_custom_weight = request.form.get("allow_custom_weight") == "1"
     product.stock = stock
     product.stock_alert_threshold = alert
     product.image = request.form.get("image", "").strip() or "placeholder.jpg"

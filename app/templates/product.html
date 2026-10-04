@@ -33,7 +33,7 @@
             {% if product.origin_region %}
             <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product.origin_region }}</span>
             {% endif %}
-            <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product.weight_grams }}g</span>
+            <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product|unit_label }}</span>
         </div>
 
         <p class="font-display text-3xl text-coffee-dark mb-6">

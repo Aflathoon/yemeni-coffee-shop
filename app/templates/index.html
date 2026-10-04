@@ -57,7 +57,7 @@
         <div class="mt-auto p-4 pt-2 flex items-center justify-between border-t border-coffee-dark/8">
             <div>
                 <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p.price) }}</p>
-                <p class="text-[10px] text-coffee-light tracking-wider">{{ p.weight_grams }}g</p>
+                <p class="text-[10px] text-coffee-light tracking-wider">{{ p|unit_label }}</p>
             </div>
             <form method="POST" action="/cart/add/{{ p.slug }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -29,7 +29,7 @@
                 <p class="text-[11px] tracking-widest uppercase text-coffee-light mt-1">
                     {{ item.product.category }}
                     {% if item.product.origin_country %} · {{ item.product.origin_country }}{% endif %}
-                    · {{ item.product.weight_grams }}g
+                    · {{ item.product|unit_label }}
                 </p>
                 <p class="text-sm mt-1.5">${{ "%.2f"|format(item.product.price) }} each</p>
             </div>
