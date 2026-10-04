@@ -1,0 +1,215 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if article %}Edit article{% else %}New article{% endif %} — Admin{% endblock %}
+{% block page_title %}{% if article %}Edit article{% else %}New article{% endif %}{% endblock %}
+{% block page_subtitle %}{% if article %}{{ article.title }}{% else %}Write long-form content{% endif %}{% endblock %}
+
+{% block content %}
+<form method="POST" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="lg:col-span-2 space-y-5">
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5 space-y-4">
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Title *</label>
+                <input type="text" name="title" required
+                       value="{{ (form.title if form else (article.title if article else '')) or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-[15px] focus:outline-none focus:border-coffee-dark">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Slug</label>
+                    <input type="text" name="slug" placeholder="auto-generated"
+                           value="{{ (form.slug if form else (article.slug if article else '')) or '' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                </div>
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Category</label>
+                    <input type="text" name="category" placeholder="coffee, recipes, origins…"
+                           value="{{ (form.category if form else (article.category if article else '')) or '' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Excerpt (short summary)</label>
+                <textarea name="excerpt" rows="2" maxlength="400"
+                          class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">{{ (form.excerpt if form else (article.excerpt if article else '')) or '' }}</textarea>
+            </div>
+
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Tags (comma-separated)</label>
+                <input type="text" name="tags" placeholder="coffee, yemen, brewing"
+                       value="{{ (form.tags if form else (article.tags if article else '')) or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            </div>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h3 class="font-display text-lg text-coffee-dark mb-4">Body</h3>
+            <textarea id="article_body" name="body" rows="20"
+                      class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream font-mono text-xs">{{ (form.body if form else (article.body if article else '')) or '' }}</textarea>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h3 class="font-display text-lg text-coffee-dark mb-4">SEO</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Meta title</label>
+                    <input type="text" name="meta_title" maxlength="250"
+                           value="{{ (form.meta_title if form else (article.meta_title if article else '')) or '' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                </div>
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Meta description</label>
+                    <textarea name="meta_description" rows="2" maxlength="400"
+                              class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">{{ (form.meta_description if form else (article.meta_description if article else '')) or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="space-y-5">
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h3 class="font-display text-lg text-coffee-dark mb-4">Status</h3>
+            <label class="flex items-center gap-2 mb-3 text-sm text-coffee-dark">
+                <input type="checkbox" name="published" value="1"
+                       {% if (form and form.get('published') == '1') or (article and article.published) %}checked{% endif %}
+                       class="accent-coffee-dark">
+                Published (visible on /blog)
+            </label>
+            <label class="flex items-center gap-2 text-sm text-coffee-dark">
+                <input type="checkbox" name="featured" value="1"
+                       {% if (form and form.get('featured') == '1') or (article and article.featured) %}checked{% endif %}
+                       class="accent-coffee-dark">
+                Featured on blog index
+            </label>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h3 class="font-display text-lg text-coffee-dark mb-4">Metadata</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Author</label>
+                    <input type="text" name="author_name"
+                           value="{{ (form.author_name if form else (article.author_name if article else 'The Spice & Roast Co.')) or 'The Spice & Roast Co.' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                </div>
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Reading minutes</label>
+                    <input type="number" min="1" name="reading_minutes"
+                           value="{{ (form.reading_minutes if form else (article.reading_minutes if article else 4)) or 4 }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h3 class="font-display text-lg text-coffee-dark mb-3">Hero image</h3>
+            <div id="hero-preview" class="w-full h-32 bg-parchment rounded-sm mb-3 flex items-center justify-center overflow-hidden">
+                {% if article and article.hero_image %}
+                <img src="{{ article.hero_image|imgurl }}" class="w-full h-full object-cover">
+                {% else %}
+                <span class="text-xs text-coffee-light">No image selected</span>
+                {% endif %}
+            </div>
+            <input type="text" name="hero_image" id="hero-image" placeholder="/static/images/foo.jpg"
+                   value="{{ (form.hero_image if form else (article.hero_image if article else '')) or '' }}"
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-xs mb-2">
+            <button type="button" onclick="openPicker('hero-image')" class="w-full text-[10px] tracking-widest uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-coffee">
+                Pick from library
+            </button>
+        </div>
+    </div>
+
+    <div class="lg:col-span-3 bg-white border border-coffee-dark/8 rounded-lg p-4 flex items-center justify-between sticky bottom-0">
+        <div class="flex gap-2">
+            <a href="{{ url_for('admin.articles') }}" class="text-xs tracking-widest uppercase text-coffee-light hover:text-coffee-dark self-center">Cancel</a>
+            {% if article %}
+            <form method="POST" action="{{ url_for('admin.article_delete', article_id=article.id) }}"
+                  onsubmit="return confirm('Delete this article?')" class="inline ml-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-xs tracking-widest uppercase text-red-700 hover:text-red-900">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+        <button type="submit" class="bg-coffee-dark text-cream px-6 py-2 rounded-sm text-xs tracking-widest uppercase font-semibold hover:bg-coffee">
+            {% if article %}Save changes{% else %}Create article{% endif %}
+        </button>
+    </div>
+</form>
+
+{# Image picker modal — same as product editor #}
+<div id="picker-modal" class="hidden fixed inset-0 bg-black/60 z-50 p-8">
+    <div class="bg-cream rounded-lg max-w-4xl mx-auto max-h-full overflow-hidden flex flex-col">
+        <div class="p-4 border-b border-coffee-dark/10 flex items-center justify-between">
+            <h3 class="font-display text-xl text-coffee-dark">Pick image</h3>
+            <button type="button" onclick="closePicker()" class="text-2xl text-coffee-light hover:text-coffee-dark">×</button>
+        </div>
+        <div class="p-4 border-b border-coffee-dark/10 flex gap-2">
+            {% for k in ["products","posts","originals"] %}
+            <button type="button" onclick="loadPickerKind('{{ k }}')" data-kind="{{ k }}"
+                    class="picker-tab text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-sm border border-coffee-dark/20 hover:bg-parchment">
+                {{ k }}
+            </button>
+            {% endfor %}
+        </div>
+        <div id="picker-grid" class="p-4 grid grid-cols-4 md:grid-cols-6 gap-3 overflow-auto flex-1"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+  tinymce.init({
+    selector: '#article_body',
+    height: 520,
+    menubar: false,
+    plugins: 'lists link image table code fullscreen preview media',
+    toolbar: 'undo redo | styles bold italic underline | h2 h3 | bullist numlist | link image media table | code fullscreen preview',
+    content_style: "body { font-family: 'DM Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.7; color: #1f1a14; background: #faf7f0; padding: 16px; max-width: 720px; margin: 0 auto; }",
+    branding: false,
+  });
+
+  let pickerTarget = null;
+  function openPicker(targetId) {
+    pickerTarget = targetId;
+    document.getElementById('picker-modal').classList.remove('hidden');
+    loadPickerKind('products');
+  }
+  function closePicker() {
+    document.getElementById('picker-modal').classList.add('hidden');
+    pickerTarget = null;
+  }
+  function loadPickerKind(kind) {
+    document.querySelectorAll('.picker-tab').forEach(b => {
+      b.classList.toggle('bg-coffee-dark', b.dataset.kind === kind);
+      b.classList.toggle('text-cream', b.dataset.kind === kind);
+    });
+    const grid = document.getElementById('picker-grid');
+    grid.innerHTML = '<p class="col-span-full text-sm text-coffee-light italic text-center py-8">Loading…</p>';
+    fetch(`/admin/api/uploads?kind=${kind}`, { credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.items || !data.items.length) {
+          grid.innerHTML = '<p class="col-span-full text-sm text-coffee-light italic text-center py-8">No uploads.</p>';
+          return;
+        }
+        grid.innerHTML = data.items.map(it => `
+          <button type="button" onclick="pickImage('${it.url}')"
+                  class="aspect-square rounded overflow-hidden border border-coffee-dark/10 hover:border-spice">
+            <img src="${it.url}" class="w-full h-full object-cover" loading="lazy">
+          </button>`).join('');
+      });
+  }
+  function pickImage(url) {
+    document.getElementById(pickerTarget).value = url;
+    const preview = document.getElementById('hero-preview');
+    if (preview) preview.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+    closePicker();
+  }
+</script>
+{% endblock %}

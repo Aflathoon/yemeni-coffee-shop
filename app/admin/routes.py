@@ -801,3 +801,121 @@ def post_share_telegram(post_id):
     else:
         flash(f"❌ Telegram: {result.get('description', 'Unknown error')}", "error")
     return redirect(url_for("admin.posts"))
+
+
+# ---------- Articles (blog admin) ----------
+
+@bp.route("/articles")
+@admin_required
+def articles():
+    from app.models import Article
+    all_articles = Article.query.order_by(Article.created_at.desc()).all()
+    stats = compute_stats()
+    return render_template("admin/articles.html", articles=all_articles, stats=stats)
+
+
+@bp.route("/articles/new", methods=["GET", "POST"])
+@admin_required
+def article_new():
+    from app.models import Article
+    stats = compute_stats()
+    if request.method == "POST":
+        article, err = _article_from_form(None)
+        if err:
+            flash(err, "error")
+            return render_template("admin/article_edit.html", article=None, stats=stats, form=request.form)
+        db.session.add(article)
+        db.session.commit()
+        flash(f"Article '{article.title}' created", "success")
+        return redirect(url_for("admin.articles"))
+    return render_template("admin/article_edit.html", article=None, stats=stats, form={})
+
+
+@bp.route("/articles/<int:article_id>/edit", methods=["GET", "POST"])
+@admin_required
+def article_edit(article_id):
+    from app.models import Article
+    article = Article.query.get_or_404(article_id)
+    stats = compute_stats()
+    if request.method == "POST":
+        _, err = _article_from_form(article)
+        if err:
+            flash(err, "error")
+            return render_template("admin/article_edit.html", article=article, stats=stats, form=request.form)
+        db.session.commit()
+        flash(f"Article '{article.title}' updated", "success")
+        return redirect(url_for("admin.articles"))
+    return render_template("admin/article_edit.html", article=article, stats=stats, form=None)
+
+
+@bp.route("/articles/<int:article_id>/delete", methods=["POST"])
+@admin_required
+def article_delete(article_id):
+    from app.models import Article
+    a = Article.query.get_or_404(article_id)
+    title = a.title
+    db.session.delete(a)
+    db.session.commit()
+    flash(f"Deleted '{title}'", "success")
+    return redirect(url_for("admin.articles"))
+
+
+@bp.route("/articles/<int:article_id>/toggle-publish", methods=["POST"])
+@admin_required
+def article_toggle_publish(article_id):
+    from app.models import Article
+    a = Article.query.get_or_404(article_id)
+    a.published = not a.published
+    db.session.commit()
+    flash(f"'{a.title}' now {'published' if a.published else 'draft'}", "success")
+    return redirect(url_for("admin.articles"))
+
+
+def _article_from_form(article):
+    from app.models import Article
+    import re
+    title = request.form.get("title", "").strip()
+    if not title:
+        return None, "Title is required"
+
+    def slugify(s):
+        return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+    if article is None:
+        article = Article()
+
+    slug_in = request.form.get("slug", "").strip() or slugify(title)
+
+    # Enforce unique slug
+    base = slug_in
+    n = 1
+    while True:
+        q = Article.query.filter_by(slug=slug_in)
+        if article.id:
+            q = q.filter(Article.id != article.id)
+        if not q.first():
+            break
+        n += 1
+        slug_in = f"{base}-{n}"
+
+    def _int(v, default):
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return default
+
+    article.title = title
+    article.slug = slug_in
+    article.excerpt = request.form.get("excerpt", "").strip() or None
+    article.body = request.form.get("body", "").strip() or None
+    article.hero_image = request.form.get("hero_image", "").strip() or None
+    article.category = request.form.get("category", "").strip() or None
+    article.tags = request.form.get("tags", "").strip() or None
+    article.author_name = request.form.get("author_name", "The Spice & Roast Co.").strip()
+    article.reading_minutes = _int(request.form.get("reading_minutes", "4"), 4)
+    article.meta_title = request.form.get("meta_title", "").strip() or None
+    article.meta_description = request.form.get("meta_description", "").strip() or None
+    article.published = request.form.get("published") == "1"
+    article.featured = request.form.get("featured") == "1"
+
+    return article, None

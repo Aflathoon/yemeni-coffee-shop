@@ -115,6 +115,9 @@
             <a href="/admin/posts" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.post') %}active{% endif %}">
                 <span>📝 Posts</span>
             </a>
+            <a href="/admin/articles" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.article') %}active{% endif %}">
+                <span>📰 Articles</span>
+            </a>
             <a href="/admin/upload" class="sidebar-link {% if request.endpoint == 'admin.upload' %}active{% endif %}">
                 <span>🖼 Media</span>
             </a>

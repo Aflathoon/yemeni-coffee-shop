@@ -1,0 +1,65 @@
+{% extends "admin_base.html" %}
+{% block title %}Articles — Admin{% endblock %}
+{% block page_title %}Journal Articles{% endblock %}
+{% block page_subtitle %}{{ articles|length }} article(s) — long-form blog content{% endblock %}
+
+{% block content %}
+<div class="flex justify-end mb-5">
+    <a href="{{ url_for('admin.article_new') }}"
+       class="bg-coffee-dark text-cream px-4 py-2 rounded-sm text-xs tracking-widest uppercase hover:bg-coffee">
+        + New Article
+    </a>
+</div>
+
+{% if articles %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+    <table class="w-full text-[15px]">
+        <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+            <tr>
+                <th class="text-left px-4 py-3">Title</th>
+                <th class="text-left px-4 py-3">Category</th>
+                <th class="text-left px-4 py-3">Created</th>
+                <th class="text-center px-4 py-3">Published</th>
+                <th class="text-center px-4 py-3">Featured</th>
+                <th class="text-right px-4 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in articles %}
+            <tr class="border-b border-coffee-dark/5 hover:bg-parchment/40">
+                <td class="px-4 py-3">
+                    <a href="{{ url_for('admin.article_edit', article_id=a.id) }}" class="text-coffee-dark hover:text-spice font-medium">{{ a.title }}</a>
+                    <p class="text-[12px] text-coffee-light">{{ a.slug }}</p>
+                </td>
+                <td class="px-4 py-3 text-coffee-light text-[13px]">{{ a.category or '—' }}</td>
+                <td class="px-4 py-3 text-coffee-light text-[13px]">{{ a.created_at.strftime("%b %d, %Y") }}</td>
+                <td class="px-4 py-3 text-center">
+                    <form method="POST" action="{{ url_for('admin.article_toggle_publish', article_id=a.id) }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="text-lg {% if a.published %}text-sage{% else %}text-stone-300{% endif %}">
+                            {% if a.published %}●{% else %}○{% endif %}
+                        </button>
+                    </form>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    {% if a.featured %}<span class="text-gold text-lg">★</span>{% else %}<span class="text-stone-300">☆</span>{% endif %}
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                    <a href="{{ url_for('admin.article_edit', article_id=a.id) }}" class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mr-2">Edit</a>
+                    {% if a.published %}
+                    <a href="{{ url_for('blog.detail', slug=a.slug) }}" target="_blank" class="text-[11px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">View</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="font-display text-2xl text-coffee-dark mb-2">No articles yet</p>
+    <p class="text-coffee-light text-sm mb-6">Write long-form content about coffee, tea, spices, honey, and origins.</p>
+    <a href="{{ url_for('admin.article_new') }}" class="bg-coffee-dark text-cream px-6 py-3 rounded-sm text-xs tracking-widest uppercase inline-block hover:bg-coffee">Write your first article</a>
+</div>
+{% endif %}
+{% endblock %}
