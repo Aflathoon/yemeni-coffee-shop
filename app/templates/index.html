@@ -1,59 +1,78 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Hero -->
-<section class="bg-gradient-to-br from-coffee-dark via-coffee to-coffee-light text-amber-50 rounded-2xl p-8 md:p-12 mb-6">
-    <p class="text-xs uppercase tracking-widest text-amber-300 mb-2">Worldwide Spice · Yemeni Coffee & Honey</p>
-    <h1 class="text-3xl md:text-5xl font-bold mb-3">The World's Pantry, Curated</h1>
-    <p class="text-amber-100/90 max-w-2xl text-sm md:text-base">
-        Yemeni Mokha and Sidr honey. Brazilian and Ethiopian single-origins.
-        Kashmiri saffron, Malabar pepper, Pakistani pink salt, Thai lemongrass.
-        One shop, the whole world's kitchen.
-    </p>
+{# Hero #}
+<section class="relative mb-10 rounded-sm overflow-hidden">
+    <div class="bg-gradient-to-br from-coffee-dark via-coffee to-coffee-light px-8 md:px-16 py-16 md:py-24 text-cream">
+        <p class="text-[10px] tracking-[0.35em] text-gold mb-4 uppercase">A World of Flavor · One Pantry</p>
+        <h1 class="font-display text-4xl md:text-6xl font-semibold leading-[1.05] mb-4 max-w-2xl">
+            Spices, Coffee &amp; Honey<br>from Every Corner of the World
+        </h1>
+        <p class="text-cream/80 max-w-xl text-sm md:text-base leading-relaxed mb-8">
+            Heirloom Yemeni Mokha. Kashmiri saffron. Malabar pepper. Sidr honey from Hadhramaut.
+            Curated from small producers, delivered to your door.
+        </p>
+        <div class="flex gap-3">
+            <a href="/?category=spices" class="btn-primary bg-gold hover:bg-cream hover:text-coffee-dark">Shop Spices</a>
+            <a href="/?country=Yemen" class="btn-outline border-cream text-cream hover:bg-cream hover:text-coffee-dark">Yemeni Collection</a>
+        </div>
+    </div>
 </section>
 
-<!-- Active filter indicator -->
+{# Active filter #}
 {% if active_category or active_country %}
-<div class="mb-4 flex items-center gap-2 text-sm">
-    <span class="text-coffee-light">Filtered by:</span>
-    {% if active_category %}<span class="bg-spice/20 px-2 py-1 rounded">{{ active_category }}</span>{% endif %}
-    {% if active_country %}<span class="bg-spice/20 px-2 py-1 rounded">{{ active_country }}</span>{% endif %}
-    <a href="/" class="text-spice hover:underline ml-2">Clear</a>
+<div class="mb-6 flex items-center gap-3 text-sm">
+    <span class="text-coffee-light tracking-wider text-xs uppercase">Filtered by</span>
+    {% if active_category %}<span class="bg-parchment px-3 py-1 rounded-sm text-coffee-dark">{{ active_category }}</span>{% endif %}
+    {% if active_country %}<span class="bg-parchment px-3 py-1 rounded-sm text-coffee-dark">{{ active_country }}</span>{% endif %}
+    <a href="/" class="text-spice hover:text-coffee-dark text-xs tracking-widest uppercase ml-2">Clear</a>
 </div>
 {% endif %}
 
-<!-- Product grid: 4 across -->
-<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+{# Product grid #}
+<div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
     {% for p in products %}
-    <a href="/product/{{ p.slug }}" class="card shadow-sm hover:shadow-lg transition-shadow duration-200">
-        <div class="relative">
-            <img src="{{ p.image|imgurl }}"
-                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
-                 alt="{{ p.name }}"
-                 class="product-img"
-                 loading="lazy"
-                 width="600" height="600">
-            {% if p.featured %}
-            <span class="absolute top-2 left-2 bg-spice text-white text-[10px] uppercase tracking-wider px-2 py-0.5 rounded">Featured</span>
-            {% endif %}
-            {% if p.origin_country %}
-            <span class="absolute top-2 right-2 bg-cream/90 text-coffee-dark text-[10px] px-2 py-0.5 rounded">{{ p.origin_country }}</span>
-            {% endif %}
-        </div>
-        <div class="p-3">
-            <p class="text-[10px] uppercase tracking-wider text-spice font-bold">{{ p.category }}</p>
-            <h3 class="font-bold text-sm leading-tight mt-0.5 mb-1 line-clamp-2">{{ p.name }}</h3>
-            <p class="text-xs text-coffee-light line-clamp-2 mb-2 h-8">{{ p.short_desc or p.description[:60] }}</p>
-            <div class="flex items-center justify-between">
-                <span class="font-bold">${{ "%.2f"|format(p.price) }}</span>
-                <span class="text-xs text-coffee-light">{{ p.weight_grams }}g</span>
+    <div class="card hover:shadow-md transition-shadow duration-200 flex flex-col">
+        <a href="/product/{{ p.slug }}" class="block">
+            <div class="relative">
+                <img src="{{ p.image|imgurl }}"
+                     onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                     alt="{{ p.name }}"
+                     class="product-img"
+                     loading="lazy"
+                     width="600" height="600">
+                {% if p.featured %}
+                <span class="absolute top-2 left-2 bg-gold text-coffee-dark text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded-sm">Featured</span>
+                {% endif %}
+                {% if p.origin_country %}
+                <span class="absolute top-2 right-2 bg-cream/95 text-coffee-dark text-[9px] tracking-wider uppercase px-2 py-1 rounded-sm">{{ p.origin_country }}</span>
+                {% endif %}
             </div>
+            <div class="p-4 pb-2">
+                <p class="text-[10px] tracking-[0.2em] text-spice uppercase mb-1">{{ p.category }}</p>
+                <h3 class="font-display text-lg text-coffee-dark leading-tight mb-1">{{ p.name }}</h3>
+                <p class="text-xs text-coffee-light leading-relaxed line-clamp-2 min-h-[2.5em]">{{ p.short_desc or p.description[:70] }}</p>
+            </div>
+        </a>
+        <div class="mt-auto p-4 pt-2 flex items-center justify-between border-t border-coffee-dark/8">
+            <div>
+                <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p.price) }}</p>
+                <p class="text-[10px] text-coffee-light tracking-wider">{{ p.weight_grams }}g</p>
+            </div>
+            <form method="POST" action="/cart/add/{{ p.slug }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="quantity" value="1">
+                <button type="submit"
+                        class="text-[10px] tracking-[0.15em] uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-spice transition">
+                    Add
+                </button>
+            </form>
         </div>
-    </a>
+    </div>
     {% else %}
-    <div class="col-span-full text-center py-16 text-coffee-light">
-        <p class="text-lg">No products match this filter.</p>
-        <a href="/" class="text-spice hover:underline">Clear filters</a>
+    <div class="col-span-full text-center py-20">
+        <p class="font-display text-2xl text-coffee-dark mb-3">No products match this filter.</p>
+        <a href="/" class="text-spice hover:text-coffee-dark text-xs tracking-widest uppercase">Clear filter</a>
     </div>
     {% endfor %}
 </div>

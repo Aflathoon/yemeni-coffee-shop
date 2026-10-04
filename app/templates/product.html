@@ -2,69 +2,77 @@
 {% block title %}{{ product.name }} — The Spice & Roast Co.{% endblock %}
 {% block content %}
 
-<nav class="text-xs text-coffee-light mb-4">
-    <a href="/" class="hover:underline">Home</a> ›
-    <a href="/?category={{ product.category }}" class="hover:underline">{{ product.category|capitalize }}</a> ›
-    <span>{{ product.name }}</span>
+<nav class="text-[11px] tracking-widest uppercase text-coffee-light mb-6">
+    <a href="/" class="hover:text-spice">Home</a>
+    <span class="mx-2">/</span>
+    <a href="/?category={{ product.category }}" class="hover:text-spice">{{ product.category }}</a>
+    <span class="mx-2">/</span>
+    <span class="text-coffee-dark">{{ product.name }}</span>
 </nav>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
     <div>
-        <img src="/static/images/{{ product.image }}"
+        <img src="{{ product.image|imgurl }}"
              onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
              alt="{{ product.name }}"
-             class="w-full rounded-2xl shadow-lg bg-parchment"
+             class="w-full rounded-sm bg-parchment"
              width="800" height="800">
     </div>
     <div>
-        <p class="text-xs uppercase tracking-widest text-spice font-bold">{{ product.category }}
-            {% if product.subcategory %} · {{ product.subcategory }}{% endif %}</p>
-        <h1 class="text-3xl md:text-4xl font-bold mt-2 mb-3">{{ product.name }}</h1>
+        <p class="text-[10px] tracking-[0.25em] text-spice uppercase mb-3">
+            {{ product.category }}{% if product.subcategory %} · {{ product.subcategory }}{% endif %}
+        </p>
+        <h1 class="font-display text-4xl md:text-5xl font-semibold text-coffee-dark leading-tight mb-4">
+            {{ product.name }}
+        </h1>
 
-        <div class="flex flex-wrap items-center gap-3 text-sm mb-4">
+        <div class="flex flex-wrap gap-2 text-[11px] tracking-wider uppercase mb-6">
             {% if product.origin_country %}
-            <span class="bg-parchment px-3 py-1 rounded-full">🌍 {{ product.origin_country }}</span>
+            <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product.origin_country }}</span>
             {% endif %}
             {% if product.origin_region %}
-            <span class="bg-parchment px-3 py-1 rounded-full">📍 {{ product.origin_region }}</span>
+            <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product.origin_region }}</span>
             {% endif %}
-            <span class="bg-parchment px-3 py-1 rounded-full">{{ product.weight_grams }}g</span>
+            <span class="bg-parchment px-3 py-1.5 rounded-sm text-coffee-dark">{{ product.weight_grams }}g</span>
         </div>
 
-        <p class="text-3xl font-bold mb-6">${{ "%.2f"|format(product.price) }}</p>
-        <p class="text-coffee-dark/80 mb-6 leading-relaxed">{{ product.description }}</p>
+        <p class="font-display text-3xl text-coffee-dark mb-6">${{ "%.2f"|format(product.price) }}</p>
 
-        <div class="bg-parchment rounded-xl p-5 mb-6 border-l-4 border-spice">
-            <h3 class="font-bold mb-3">🤖 AI Agent Insights</h3>
-            <div class="space-y-3 text-sm">
-                <p><strong>Origin:</strong> {{ explanation.origin }}</p>
-                <p><strong>Recommended Use:</strong> {{ explanation.recommended_use }}</p>
-                <p><strong>Flavor Notes:</strong> {{ explanation.flavor_notes }}</p>
-            </div>
-        </div>
+        <p class="text-coffee-dark/85 leading-relaxed mb-8">{{ product.description }}</p>
 
-        <div class="flex gap-3 mb-4">
-            <input type="number" min="1" value="1" class="w-20 border border-coffee-light/30 rounded-lg px-3 py-3 text-center bg-white">
-            <button class="flex-1 bg-coffee-dark text-amber-50 py-3 rounded-xl font-bold hover:bg-coffee transition">
+        <form method="POST" action="/cart/add/{{ product.slug }}" class="flex gap-3 mb-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="number" name="quantity" min="1" value="1"
+                   class="w-20 border border-coffee-dark/20 rounded-sm px-3 py-3 text-center bg-white focus:outline-none focus:border-coffee-dark">
+            <button type="submit" class="flex-1 btn-primary">
                 Add to Cart
             </button>
+        </form>
+        <p class="text-xs text-coffee-light tracking-wider">Free shipping over $75 · Ships within 1–2 business days</p>
+
+        <div class="mt-8 border-t border-coffee-dark/10 pt-6">
+            <h3 class="font-display text-lg text-coffee-dark mb-3">The Story</h3>
+            <div class="space-y-2 text-sm text-coffee-dark/85 leading-relaxed">
+                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">Origin</span> {{ explanation.origin }}</p>
+                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">Use</span> {{ explanation.recommended_use }}</p>
+                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">Flavor</span> {{ explanation.flavor_notes }}</p>
+            </div>
         </div>
-        <p class="text-xs text-coffee-light">Free shipping over $75 · Ships in 1–2 business days</p>
     </div>
 </div>
 
 {% if related %}
-<section>
-    <h2 class="text-xl font-bold mb-4">More {{ product.category }}</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<section class="border-t border-coffee-dark/10 pt-10">
+    <h2 class="font-display text-2xl text-coffee-dark mb-6">More from this collection</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
         {% for p in related %}
-        <a href="/product/{{ p.slug }}" class="card shadow-sm hover:shadow-lg transition">
+        <a href="/product/{{ p.slug }}" class="card hover:shadow-md transition-shadow group">
             <img src="{{ p.image|imgurl }}"
                  onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
                  alt="{{ p.name }}" class="product-img" loading="lazy">
-            <div class="p-3">
-                <h3 class="font-semibold text-sm line-clamp-2">{{ p.name }}</h3>
-                <p class="font-bold text-sm mt-1">${{ "%.2f"|format(p.price) }}</p>
+            <div class="p-4">
+                <h3 class="font-display text-base text-coffee-dark group-hover:text-spice leading-tight mb-1">{{ p.name }}</h3>
+                <p class="text-sm text-coffee-dark mt-2">${{ "%.2f"|format(p.price) }}</p>
             </div>
         </a>
         {% endfor %}

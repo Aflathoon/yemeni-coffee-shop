@@ -3,6 +3,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
 
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
@@ -17,19 +18,20 @@ class User(UserMixin, db.Model):
     def check_password(self, pw):
         return check_password_hash(self.password_hash, pw)
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     slug = db.Column(db.String(200), unique=True, index=True)
     category = db.Column(db.String(50), nullable=False, index=True)
-    # category ∈ coffee, tea, herbs, spices, honey, blends
-    subcategory = db.Column(db.String(100))       # e.g. "ground", "whole", "single-origin"
-    origin_country = db.Column(db.String(100), index=True)   # Yemen, India, Pakistan, Brazil...
-    origin_region = db.Column(db.String(200))     # "Haraz", "Kerala", "Sidr Valley"
+    subcategory = db.Column(db.String(100))
+    origin_country = db.Column(db.String(100), index=True)
+    origin_region = db.Column(db.String(200))
     description = db.Column(db.Text, nullable=False)
     short_desc = db.Column(db.String(300))
     price = db.Column(db.Float, nullable=False)
@@ -39,12 +41,49 @@ class Product(db.Model):
     featured = db.Column(db.Boolean, default=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+class CartItem(db.Model):
+    """A line in the cart. Tied to a session_id (anonymous) OR a user_id."""
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(64), index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
+    quantity = db.Column(db.Integer, default=1, nullable=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship("Product")
+
+
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(50), default="pending")
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    email = db.Column(db.String(120), nullable=False)
+    full_name = db.Column(db.String(200), nullable=False)
+    address_line = db.Column(db.String(300), nullable=False)
+    city = db.Column(db.String(100), nullable=False)
+    postal_code = db.Column(db.String(30), nullable=False)
+    country = db.Column(db.String(100), nullable=False)
+    notes = db.Column(db.Text)
+    status = db.Column(db.String(50), default="pending", index=True)
+    subtotal = db.Column(db.Float, default=0.0)
+    shipping = db.Column(db.Float, default=0.0)
     total = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    items = db.relationship("OrderItem", backref="order", cascade="all, delete-orphan")
+
+
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("order.id"), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
+    product_name = db.Column(db.String(200), nullable=False)      # snapshot
+    product_price = db.Column(db.Float, nullable=False)            # snapshot
+    quantity = db.Column(db.Integer, nullable=False)
+    line_total = db.Column(db.Float, nullable=False)
+
+    product = db.relationship("Product")
+
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)

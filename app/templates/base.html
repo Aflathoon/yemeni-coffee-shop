@@ -4,98 +4,152 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}The Spice & Roast Co.{% endblock %}</title>
-    <!-- Tailwind (dev). For production, compile locally. -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+              body:    ['"Inter"', 'system-ui', 'sans-serif'],
+            },
             colors: {
-              cream: "#faf5ec",
-              parchment: "#f2e9d8",
-              coffee: { DEFAULT: "#4a2c17", dark: "#2d1b0e", light: "#6b4423" },
-              spice:  { DEFAULT: "#b8621b", warm: "#d97e2c" },
-              sage:   "#7a8b6f",
+              cream:     "#faf7f0",
+              parchment: "#f2ebdc",
+              ink:       "#1f1a14",
+              coffee:    { DEFAULT: "#5a3a24", dark: "#2e1d12", light: "#8b6a4a" },
+              spice:     { DEFAULT: "#a0522d", warm: "#c26a2e" },
+              sage:      "#7a8b6f",
+              gold:      "#b8935a",
             }
           }
         }
       }
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-      /* Inline critical CSS — prevents flash before Tailwind loads */
-      body { background: #faf5ec; color: #2d1b0e; font-family: system-ui, -apple-system, sans-serif; margin: 0; }
-      .product-img { background: #f2e9d8; width: 100%; height: 200px; object-fit: cover; display: block; }
-      .card { background: #fff; border-radius: 0.75rem; overflow: hidden; }
-      /* Prevent layout shift while images load */
+      body { background: #faf7f0; color: #1f1a14; font-family: 'Inter', system-ui, sans-serif; margin: 0; }
+      .font-display { font-family: 'Cormorant Garamond', Georgia, serif; }
+      .product-img { background: #f2ebdc; width: 100%; height: 220px; object-fit: cover; display: block; }
+      .card { background: #fff; border-radius: 4px; overflow: hidden; border: 1px solid rgba(46,29,18,0.08); }
       img { max-width: 100%; display: block; }
       a { text-decoration: none; color: inherit; }
+      .btn-primary {
+        background: #2e1d12; color: #faf7f0;
+        padding: 0.75rem 1.5rem; border-radius: 2px;
+        font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase;
+        font-size: 0.75rem; transition: background 0.2s;
+      }
+      .btn-primary:hover { background: #5a3a24; }
+      .btn-outline {
+        border: 1px solid #2e1d12; color: #2e1d12;
+        padding: 0.65rem 1.4rem; border-radius: 2px;
+        font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase;
+        font-size: 0.75rem; transition: all 0.2s;
+      }
+      .btn-outline:hover { background: #2e1d12; color: #faf7f0; }
+      .nav-link {
+        font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+        font-weight: 500; padding: 0.4rem 0;
+      }
+      .nav-link:hover { color: #b8935a; }
     </style>
     {% block head %}{% endblock %}
 </head>
-<body class="bg-cream text-coffee-dark">
+<body>
 
-<!-- ===== TOP NAVBAR ===== -->
-<header class="bg-coffee-dark text-amber-50 sticky top-0 z-50 shadow-lg">
-    <div class="px-4 py-3 flex items-center justify-between gap-4">
-        <!-- Left: logo + burger -->
-        <div class="flex items-center gap-4">
-            <button id="sidebar-toggle" class="lg:hidden text-2xl" aria-label="Menu">☰</button>
-            <a href="/" class="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">
-                🌿 The Spice & Roast Co.
-            </a>
-        </div>
+{# ---------- Announcement bar ---------- #}
+<div class="bg-coffee-dark text-cream text-center py-2 px-4 text-xs tracking-widest">
+    FREE SHIPPING ON ORDERS OVER $75 &nbsp;·&nbsp; HAND-SOURCED FROM SMALL PRODUCERS WORLDWIDE
+</div>
 
-        <!-- Center: search -->
-        <form action="/" method="get" class="hidden md:flex flex-1 max-w-md mx-4">
-            <input type="search" name="q" placeholder="Search spices, coffee, honey…"
-                   class="w-full px-4 py-2 rounded-l-lg text-coffee-dark focus:outline-none">
-            <button class="bg-spice text-white px-4 rounded-r-lg hover:bg-spice-warm">🔍</button>
-        </form>
+{# ---------- Header ---------- #}
+<header class="bg-cream border-b border-coffee-dark/10 sticky top-0 z-50">
+    <div class="max-w-[1400px] mx-auto px-4 md:px-8 py-5">
+        <div class="flex items-center justify-between gap-6">
 
-        <!-- Right: menu + language -->
-        <div class="flex items-center gap-3">
-            <a href="/admin/login" class="hidden md:inline text-sm hover:text-amber-300">Admin</a>
+            {# Left: nav (hidden on mobile, burger shown) #}
+            <nav class="hidden lg:flex items-center gap-6 text-coffee-dark">
+                <button id="sidebar-toggle" class="nav-link">Shop</button>
+                <a href="/?category=coffee" class="nav-link">Coffee</a>
+                <a href="/?category=spices" class="nav-link">Spices</a>
+                <a href="/?category=honey" class="nav-link">Honey</a>
+                <a href="/?category=tea" class="nav-link">Tea</a>
+            </nav>
 
-            <!-- Language selector -->
-            <div class="relative group">
-                <button class="flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-coffee-light">
-                    🌐 {{ languages[current_lang] }}
-                </button>
-                <div class="absolute right-0 top-full mt-1 bg-white text-coffee-dark rounded-lg shadow-lg py-1 min-w-[140px] hidden group-hover:block z-50">
-                    {% for code, label in languages.items() %}
-                    <a href="{{ url_for('set_language', code=code) }}"
-                       class="block px-4 py-2 text-sm hover:bg-parchment {% if code == current_lang %}font-bold{% endif %}">
-                        {{ label }}
-                    </a>
-                    {% endfor %}
+            <button id="sidebar-toggle-mobile" class="lg:hidden text-2xl text-coffee-dark" aria-label="Menu">☰</button>
+
+            {# Center: logo #}
+            <a href="/" class="flex-1 text-center">
+                <div class="font-display text-2xl md:text-3xl font-semibold text-coffee-dark leading-none tracking-wide">
+                    The Spice &amp; Roast Co.
                 </div>
-            </div>
+                <div class="text-[10px] tracking-[0.3em] text-coffee-light mt-1 hidden md:block">
+                    SINCE MMXXVI · WORLDWIDE
+                </div>
+            </a>
 
-            <a href="#" class="relative">🛒 <span class="absolute -top-1 -right-1 bg-spice text-xs rounded-full px-1">0</span></a>
+            {# Right: search, account, cart #}
+            <div class="flex items-center gap-5 text-coffee-dark">
+
+                <form action="/" method="get" class="hidden md:flex items-center">
+                    <input type="search" name="q" placeholder="Search…"
+                           class="w-40 lg:w-52 bg-transparent border-b border-coffee-dark/30 focus:border-coffee-dark outline-none text-sm py-1 px-1 placeholder:text-coffee-light">
+                </form>
+
+                <div class="relative group">
+                    <button class="nav-link flex items-center gap-1">
+                        🌐 {{ languages[current_lang].split()[0] if languages[current_lang] else 'EN' }}
+                    </button>
+                    <div class="absolute right-0 top-full mt-2 bg-cream border border-coffee-dark/10 shadow-lg py-2 min-w-[160px] hidden group-hover:block z-50">
+                        {% for code, label in languages.items() %}
+                        <a href="{{ url_for('set_language', code=code) }}"
+                           class="block px-4 py-1.5 text-sm hover:bg-parchment {% if code == current_lang %}font-bold{% endif %}">
+                            {{ label }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <a href="/admin/login" class="nav-link hidden md:inline">Admin</a>
+
+                <a href="{{ url_for('main.cart_view') }}" class="nav-link relative flex items-center gap-1">
+                    Cart
+                    <span id="cart-badge"
+                          class="inline-flex items-center justify-center bg-coffee-dark text-cream text-[10px] rounded-full min-w-[18px] h-[18px] px-1
+                                 {% if not cart_count %}hidden{% endif %}">
+                        {{ cart_count }}
+                    </span>
+                </a>
+            </div>
         </div>
     </div>
 </header>
 
-<div class="flex min-h-screen">
+<div class="flex min-h-screen max-w-[1400px] mx-auto">
 
-    <!-- ===== LEFT SIDEBAR ===== -->
+    {# ---------- LEFT SIDEBAR ---------- #}
     <aside id="sidebar"
-           class="w-64 bg-parchment border-r border-coffee-light/20 p-4 hidden lg:block shrink-0">
-        <nav class="space-y-6 sticky top-20">
+           class="w-60 bg-cream border-r border-coffee-dark/8 p-6 hidden lg:block shrink-0">
+        <nav class="space-y-8 sticky top-28">
             <div>
-                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">Categories</h3>
-                <ul class="space-y-1">
+                <h3 class="font-display text-lg text-coffee-dark mb-3">Categories</h3>
+                <ul class="space-y-1.5">
                     <li>
-                        <a href="/" class="block px-3 py-1.5 rounded hover:bg-cream {% if not active_category %}bg-cream font-semibold{% endif %}">
+                        <a href="/" class="block text-sm py-1 {% if not active_category %}font-semibold text-spice{% else %}text-coffee-dark hover:text-spice{% endif %}">
                             All Products
                         </a>
                     </li>
                     {% for c in categories %}
                     <li>
                         <a href="/?category={{ c.name }}"
-                           class="block px-3 py-1.5 rounded hover:bg-cream flex justify-between {% if active_category == c.name %}bg-cream font-semibold{% endif %}">
+                           class="flex justify-between text-sm py-1 {% if active_category == c.name %}font-semibold text-spice{% else %}text-coffee-dark hover:text-spice{% endif %}">
                             <span>{{ c.name|capitalize }}</span>
-                            <span class="text-xs text-coffee-light">{{ c.count }}</span>
+                            <span class="text-coffee-light text-xs">{{ c.count }}</span>
                         </a>
                     </li>
                     {% endfor %}
@@ -103,87 +157,135 @@
             </div>
 
             <div>
-                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">Origin</h3>
-                <ul class="space-y-1 max-h-64 overflow-auto">
+                <h3 class="font-display text-lg text-coffee-dark mb-3">Origin</h3>
+                <ul class="space-y-1 max-h-72 overflow-auto pr-1">
                     {% for c in countries %}
                     <li>
                         <a href="/?country={{ c.name }}"
-                           class="block px-3 py-1.5 rounded hover:bg-cream flex justify-between text-sm {% if active_country == c.name %}bg-cream font-semibold{% endif %}">
+                           class="flex justify-between text-sm py-0.5 {% if active_country == c.name %}font-semibold text-spice{% else %}text-coffee-dark hover:text-spice{% endif %}">
                             <span>{{ c.name }}</span>
-                            <span class="text-xs text-coffee-light">{{ c.count }}</span>
+                            <span class="text-coffee-light text-xs">{{ c.count }}</span>
                         </a>
                     </li>
                     {% endfor %}
                 </ul>
             </div>
 
-            <div class="bg-cream rounded-lg p-3 text-sm">
-                <p class="font-bold mb-1">🌍 Worldwide Shipping</p>
-                <p class="text-coffee-light text-xs">Free over $75. Flat $8 otherwise.</p>
+            <div class="border-t border-coffee-dark/10 pt-5">
+                <p class="font-display text-base text-coffee-dark mb-1">Worldwide Shipping</p>
+                <p class="text-xs text-coffee-light leading-relaxed">Free over $75.<br>Flat $8 otherwise.</p>
             </div>
         </nav>
     </aside>
 
-    <!-- ===== MAIN CONTENT ===== -->
-    <main class="flex-1 min-w-0 p-4 md:p-6">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="mb-4 bg-spice/20 border border-spice text-coffee-dark px-4 py-2 rounded">{{ messages[0] }}</div>
-            {% endif %}
+    {# ---------- MAIN ---------- #}
+    <main class="flex-1 min-w-0 px-4 md:px-8 py-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for cat, msg in messages %}
+                <div class="mb-4 px-4 py-3 rounded text-sm border
+                            {% if cat == 'error' %}bg-red-50 border-red-200 text-red-800
+                            {% elif cat == 'warning' %}bg-amber-50 border-amber-200 text-amber-900
+                            {% else %}bg-sage/15 border-sage/40 text-coffee-dark{% endif %}">
+                    {{ msg }}
+                </div>
+            {% endfor %}
         {% endwith %}
         {% block content %}{% endblock %}
     </main>
 
-    <!-- ===== RIGHT SIDEBAR ===== -->
-    <aside class="w-64 hidden xl:block shrink-0 p-4 border-l border-coffee-light/20 bg-parchment/50">
-        <div class="space-y-6 sticky top-20">
+    {# ---------- RIGHT SIDEBAR ---------- #}
+    <aside class="w-64 hidden xl:block shrink-0 bg-cream border-l border-coffee-dark/8 p-6">
+        <div class="space-y-8 sticky top-28">
             <div>
-                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">⭐ Featured</h3>
+                <h3 class="font-display text-lg text-coffee-dark mb-3">Featured</h3>
                 <div class="space-y-3">
                     {% for p in featured %}
                     <a href="/product/{{ p.slug }}" class="flex gap-3 items-center group">
                         <img src="{{ p.image|imgurl }}"
                              onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
                              alt="{{ p.name }}"
-                             class="w-12 h-12 rounded object-cover bg-parchment shrink-0">
+                             class="w-14 h-14 rounded object-cover bg-parchment shrink-0"
+                             loading="lazy">
                         <div class="min-w-0">
-                            <p class="text-sm font-semibold truncate group-hover:text-spice">{{ p.name }}</p>
-                            <p class="text-xs text-coffee-light">{{ p.origin_country }}</p>
+                            <p class="text-sm font-medium text-coffee-dark group-hover:text-spice leading-tight">{{ p.name }}</p>
+                            <p class="text-xs text-coffee-light mt-0.5">{{ p.origin_country }}</p>
                         </div>
                     </a>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="bg-coffee-dark text-amber-50 rounded-lg p-4">
-                <p class="font-bold mb-1">🤖 AI Concierge</p>
-                <p class="text-xs mb-3">Ask about any spice or origin.</p>
-                <a href="#" class="block text-center bg-spice hover:bg-spice-warm py-2 rounded text-sm font-semibold">Open Chat</a>
+            <div class="border-t border-coffee-dark/10 pt-6">
+                <p class="font-display text-lg text-coffee-dark mb-1">Need help?</p>
+                <p class="text-xs text-coffee-light mb-3 leading-relaxed">Ask about any spice, origin, or brewing method.</p>
+                <a href="#" class="btn-outline block text-center">AI Concierge</a>
             </div>
 
-            <div>
-                <h3 class="text-xs uppercase tracking-wider text-coffee-light font-bold mb-2">🍯 Yemeni Flagship</h3>
-                <p class="text-xs text-coffee-light mb-2">Our most treasured lots.</p>
-                <a href="/?country=Yemen" class="text-sm text-spice hover:underline">View all Yemeni →</a>
+            <div class="border-t border-coffee-dark/10 pt-6">
+                <p class="font-display text-lg text-coffee-dark mb-1">Yemeni Flagship</p>
+                <p class="text-xs text-coffee-light mb-3 leading-relaxed">Our most treasured lots.</p>
+                <a href="/?country=Yemen" class="text-xs tracking-widest uppercase text-spice hover:text-coffee-dark">
+                    View all →
+                </a>
             </div>
         </div>
     </aside>
 
 </div>
 
-<footer class="bg-coffee-dark text-amber-100/70 py-6 px-6 text-sm text-center">
-    © 2026 The Spice & Roast Co. · Sourced worldwide · Roasted with intent
+{# ---------- Footer ---------- #}
+<footer class="bg-coffee-dark text-cream mt-16">
+    <div class="max-w-[1400px] mx-auto px-8 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+        <div>
+            <h4 class="font-display text-xl mb-3">The Spice &amp; Roast Co.</h4>
+            <p class="text-cream/60 text-xs leading-relaxed">
+                Sourced from small producers across Yemen, India, Pakistan, Brazil, Thailand, and beyond.
+            </p>
+        </div>
+        <div>
+            <h5 class="text-xs tracking-widest mb-3 text-gold">SHOP</h5>
+            <ul class="space-y-1.5 text-cream/80">
+                <li><a href="/?category=coffee" class="hover:text-gold">Coffee</a></li>
+                <li><a href="/?category=spices" class="hover:text-gold">Spices</a></li>
+                <li><a href="/?category=honey" class="hover:text-gold">Honey</a></li>
+                <li><a href="/?category=herbs" class="hover:text-gold">Herbs</a></li>
+                <li><a href="/?category=tea" class="hover:text-gold">Tea</a></li>
+            </ul>
+        </div>
+        <div>
+            <h5 class="text-xs tracking-widest mb-3 text-gold">HELP</h5>
+            <ul class="space-y-1.5 text-cream/80">
+                <li><a href="#" class="hover:text-gold">Shipping &amp; Returns</a></li>
+                <li><a href="#" class="hover:text-gold">Contact</a></li>
+                <li><a href="#" class="hover:text-gold">About</a></li>
+            </ul>
+        </div>
+        <div>
+            <h5 class="text-xs tracking-widest mb-3 text-gold">FOLLOW</h5>
+            <ul class="space-y-1.5 text-cream/80">
+                <li><a href="#" class="hover:text-gold">Instagram</a></li>
+                <li><a href="#" class="hover:text-gold">Telegram</a></li>
+                <li><a href="#" class="hover:text-gold">WhatsApp</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="border-t border-cream/10 py-4 text-center text-xs text-cream/50">
+        © 2026 The Spice &amp; Roast Co. · All rights reserved.
+    </div>
 </footer>
 
 <script>
-  // Mobile sidebar toggle
   document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('hidden');
-    document.getElementById('sidebar').classList.toggle('absolute');
-    document.getElementById('sidebar').classList.toggle('z-40');
   });
-
-  // Prevent image flicker: only set fallback once per image
+  document.getElementById('sidebar-toggle-mobile')?.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('hidden');
+    document.getElementById('sidebar').classList.toggle('fixed');
+    document.getElementById('sidebar').classList.toggle('inset-y-0');
+    document.getElementById('sidebar').classList.toggle('left-0');
+    document.getElementById('sidebar').classList.toggle('z-40');
+    document.getElementById('sidebar').classList.toggle('bg-cream');
+  });
   document.querySelectorAll('img').forEach(img => {
     img.addEventListener('error', function handler() {
       this.removeEventListener('error', handler);

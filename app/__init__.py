@@ -67,13 +67,19 @@ def create_app():
             session["lang"] = code
         return request.referrer or "/"
 
+    
     @app.context_processor
     def inject_globals():
+        try:
+            from app.main.routes import cart_count
+            count = cart_count()
+        except Exception:
+            count = 0
         return {
             "languages": LANGUAGES,
             "current_lang": session.get("lang", "en"),
+            "cart_count": count,
         }
-
     # --- Seed only when the server actually starts ---
     if _is_server_run():
         with app.app_context():
