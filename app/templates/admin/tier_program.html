@@ -1,0 +1,197 @@
+{% extends "admin_base.html" %}
+{% block title %}Tier Program — Admin{% endblock %}
+{% block page_title %}Tier Program{% endblock %}
+{% block page_subtitle %}{{ rows|length }} approved · {{ at_risk|length }} at risk{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Approved</p>
+        <p class="font-display text-2xl text-navy">{{ rows|length }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Healthy</p>
+        <p class="font-display text-2xl text-sage">{{ healthy|length }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">At risk</p>
+        <p class="font-display text-2xl text-spice">{{ at_risk|length }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Locked</p>
+        <p class="font-display text-2xl text-coffee-light">{{ rows|selectattr('acct.tier_locked')|list|length }}</p>
+    </div>
+</div>
+
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div>
+        <h2 class="font-display text-lg text-coffee-dark">Monthly evaluation</h2>
+        <p class="text-sm text-coffee-light mt-1 max-w-xl">
+            Re-evaluates each partner's trailing revenue against their tier target.
+            Updates state flags (warn / grace / downgrade). Does not change tiers automatically.
+        </p>
+    </div>
+    <div class="flex gap-2">
+        <form method="POST" action="{{ url_for('admin.tier_program_evaluate') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="dry_run" value="1">
+            <button class="text-[11px] tracking-widest uppercase border border-coffee-dark/20 px-4 py-2 rounded-sm hover:bg-parchment">
+                Dry run
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('admin.tier_program_evaluate') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="bg-navy text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light"
+                    onclick="return confirm('Run evaluation on all partners?')">
+                Run evaluation
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="bg-cream border border-coffee-dark/10 rounded-lg p-4 mb-6 text-sm">
+    <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-2">Tier targets</p>
+    <div class="flex flex-wrap gap-4">
+        {% for tier, req in requirements.items() %}
+        {% if req.amount > 0 %}
+        <span class="text-coffee-dark"><strong>{{ tier|capitalize }}</strong>: ${{ "%.0f"|format(req.amount) }} / {{ req.months }} mo</span>
+        {% endif %}
+        {% endfor %}
+    </div>
+    <p class="text-[12px] text-coffee-light mt-2">
+        Edit in <a href="{{ url_for('admin.settings') }}" class="text-spice hover:text-coffee-dark underline">Settings</a>.
+    </p>
+</div>
+
+{% if at_risk %}
+<section class="mb-8">
+    <h2 class="font-display text-2xl text-coffee-dark mb-4">⚠ At risk ({{ at_risk|length }})</h2>
+    <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+        <table class="w-full text-[15px]">
+            <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+                <tr>
+                    <th class="text-left px-4 py-3">Partner</th>
+                    <th class="text-left px-4 py-3">Tier</th>
+                    <th class="text-left px-4 py-3">State</th>
+                    <th class="text-right px-4 py-3">Revenue</th>
+                    <th class="text-right px-4 py-3">Target</th>
+                    <th class="text-right px-4 py-3">Missed</th>
+                    <th class="text-right px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in at_risk %}
+                <tr class="border-b border-coffee-dark/5">
+                    <td class="px-4 py-3">
+                        <p class="font-medium text-coffee-dark">{{ r.acct.company_name }}</p>
+                        <p class="text-[12px] text-coffee-light">{{ r.acct.email }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded
+                                     {% if r.acct.tier == 'gold' %}bg-gold/20 text-coffee-dark
+                                     {% elif r.acct.tier == 'silver' %}bg-stone-200 text-stone-700
+                                     {% elif r.acct.tier == 'bronze' %}bg-amber-100 text-amber-800
+                                     {% else %}bg-stone-100 text-stone-600{% endif %}">{{ r.acct.tier }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded font-medium
+                                     {% if r.acct.tier_state == 'warn' %}bg-amber-100 text-amber-800
+                                     {% elif r.acct.tier_state == 'grace' %}bg-spice/20 text-spice
+                                     {% elif r.acct.tier_state == 'downgrade' %}bg-red-100 text-red-800
+                                     {% elif r.acct.tier_state == 'terminate' %}bg-red-200 text-red-900
+                                     {% else %}bg-stone-100 text-stone-600{% endif %}">{{ r.acct.tier_state }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">${{ "%.2f"|format(r.trailing_revenue) }}</td>
+                    <td class="px-4 py-3 text-right text-coffee-light">${{ "%.0f"|format(r.eval.requirement.amount) }}</td>
+                    <td class="px-4 py-3 text-right">{{ r.acct.tier_missed_months or 0 }}</td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                        {% if r.acct.tier_locked %}
+                        <form method="POST" action="{{ url_for('admin.tier_program_unlock', acct_id=r.acct.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="text-[10px] tracking-widest uppercase text-sage hover:text-coffee-dark">Unlock</button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('admin.tier_program_lock', acct_id=r.acct.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="reason" value="Retained by admin">
+                            <button class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">Lock</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('admin.tier_program_reset_state', acct_id=r.acct.id) }}" class="inline ml-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">Reset</button>
+                        </form>
+                        <a href="{{ url_for('admin.wholesale_account_detail', acct_id=r.acct.id) }}"
+                           class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark ml-2">View →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+<section>
+    <h2 class="font-display text-2xl text-coffee-dark mb-4">Healthy ({{ healthy|length }})</h2>
+    {% if healthy %}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+        <table class="w-full text-[15px]">
+            <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+                <tr>
+                    <th class="text-left px-4 py-3">Partner</th>
+                    <th class="text-left px-4 py-3">Tier</th>
+                    <th class="text-right px-4 py-3">Revenue</th>
+                    <th class="text-right px-4 py-3">Target</th>
+                    <th class="text-right px-4 py-3">Last eval</th>
+                    <th class="text-right px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in healthy %}
+                <tr class="border-b border-coffee-dark/5">
+                    <td class="px-4 py-3 font-medium text-coffee-dark">
+                        {{ r.acct.company_name }}
+                        {% if r.acct.tier_locked %}
+                        <span class="ml-2 text-[9px] tracking-widest uppercase bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded"
+                              title="{{ r.acct.tier_locked_reason or 'Locked' }}">🔒 Locked</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded bg-sage/20 text-sage">{{ r.acct.tier }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">${{ "%.2f"|format(r.trailing_revenue) }}</td>
+                    <td class="px-4 py-3 text-right text-coffee-light">
+                        {% if r.eval.requirement.amount > 0 %}${{ "%.0f"|format(r.eval.requirement.amount) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right text-[12px] text-coffee-light">
+                        {{ r.acct.tier_last_evaluated_at.strftime("%b %d, %Y") if r.acct.tier_last_evaluated_at else '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                        {% if r.acct.tier_locked %}
+                        <form method="POST" action="{{ url_for('admin.tier_program_unlock', acct_id=r.acct.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="text-[10px] tracking-widest uppercase text-sage hover:text-coffee-dark">Unlock</button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('admin.tier_program_lock', acct_id=r.acct.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="reason" value="Retained by admin">
+                            <button class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">Lock</button>
+                        </form>
+                        {% endif %}
+                        <a href="{{ url_for('admin.wholesale_account_detail', acct_id=r.acct.id) }}"
+                           class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark ml-3">View →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-coffee-light italic">No healthy partners yet.</p>
+    {% endif %}
+</section>
+
+{% endblock %}
