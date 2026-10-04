@@ -76,6 +76,21 @@
       }
       .task-row:last-child { border-bottom: none; }
     </style>
+    <style>
+      /* Shift the global back-to-top button left of the AI drawer on admin pages */
+      #back-to-top {
+        right: 6.5rem !important;
+      }
+      @media (max-width: 640px) {
+        #back-to-top {
+          /* On mobile, collapse to icon-only to save space */
+          right: 5rem !important;
+        }
+        #back-to-top span:not(:first-child) {
+          display: none;
+        }
+      }
+    </style>
 </head>
 <body>
 

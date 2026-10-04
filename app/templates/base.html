@@ -46,7 +46,7 @@
         font-weight: 700;
         letter-spacing: -0.01em;
       }
-      .product-img { background: #f2ebdc; width: 100%; height: 220px; object-fit: cover; display: block; }
+      .product-img { background: #f2ebdc; width: 100%; height: 255px; object-fit: cover; display: block; }
       .card { background: #fff; border-radius: 4px; overflow: hidden; border: 1px solid rgba(46,29,18,0.08); }
       img { max-width: 100%; display: block; }
       a { text-decoration: none; color: inherit; }
@@ -378,5 +378,49 @@
   });
 </script>
 {% block scripts %}{% endblock %}
+{# ---------- Back to top button ---------- #}
+<button type="button" id="back-to-top"
+        aria-label="Back to top"
+        class="fixed bottom-6 right-6 z-40 px-4 py-3 rounded-full bg-coffee-dark text-cream shadow-lg hover:bg-spice transition-all duration-300 flex items-center gap-2 opacity-0 pointer-events-none">
+    <span class="text-lg leading-none">↑</span>
+    <span class="text-[11px] tracking-widest uppercase font-medium whitespace-nowrap">Back to top</span>
+</button>
+
+<script>
+(function() {
+    const btn = document.getElementById('back-to-top');
+    if (!btn) return;
+
+    function toggle() {
+        if (window.scrollY > 400) {
+            btn.classList.remove('opacity-0', 'pointer-events-none');
+            btn.classList.add('opacity-90');
+        } else {
+            btn.classList.add('opacity-0', 'pointer-events-none');
+            btn.classList.remove('opacity-90');
+        }
+    }
+
+    btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Throttle scroll handler
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                toggle();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+
+    // Initial state
+    toggle();
+})();
+</script>
+
 </body>
 </html>

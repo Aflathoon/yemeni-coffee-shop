@@ -52,49 +52,117 @@ def index():
     category = request.args.get("category")
     country = request.args.get("country")
     search = request.args.get("q", "").strip()
+    sort = request.args.get("sort", "newest").strip()
 
-    q = Product.query.filter_by(active=True)
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (ValueError, TypeError):
+        page = 1
+
+    try:
+        per_page = int(request.args.get("per_page", 24))
+        if per_page not in (12, 24, 48, 96, 200):
+            per_page = 24
+    except (ValueError, TypeError):
+        per_page = 24
+
+    base_q = Product.query.filter_by(active=True)
     if category:
-        q = q.filter_by(category=category)
+        base_q = base_q.filter_by(category=category)
     if country:
-        q = q.filter_by(origin_country=country)
+        base_q = base_q.filter_by(origin_country=country)
     if search:
         like = f"%{search}%"
-        q = q.filter(
+        base_q = base_q.filter(
             (Product.name.ilike(like))
             | (Product.short_desc.ilike(like))
             | (Product.description.ilike(like))
             | (Product.origin_country.ilike(like))
+            | (Product.tags.ilike(like))
         )
-    products = q.order_by(Product.created_at.desc()).all()
 
-    categories = db_categories()
-    countries = db_countries()
+    total_count = base_q.count()
+
+    if sort == "price_asc":
+        base_q = base_q.order_by(Product.price.asc())
+    elif sort == "price_desc":
+        base_q = base_q.order_by(Product.price.desc())
+    elif sort == "name":
+        base_q = base_q.order_by(Product.name.asc())
+    elif sort == "featured":
+        base_q = base_q.order_by(Product.featured.desc(), Product.created_at.desc())
+    else:
+        sort = "newest"
+        base_q = base_q.order_by(Product.created_at.desc())
+
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+
+    offset = (page - 1) * per_page
+    products = base_q.offset(offset).limit(per_page).all()
+
+    categories = db_categories(country_filter=country)
+    countries = db_countries(category_filter=category)
     featured = Product.query.filter_by(featured=True).limit(5).all()
+
+    page_numbers = _build_page_numbers(page, total_pages)
+    is_unfiltered = not (category or country or search)
 
     return render_template(
         "index.html",
-        products=products, categories=categories, countries=countries,
-        featured=featured, active_category=category, active_country=country,
-        hero_products=hero_products(limit=6) if not category and not country and not search else [],
-        strip_products=strip_products(per_category=3) if not category and not country and not search else [],
+        products=products,
+        categories=categories,
+        countries=countries,
+        featured=featured,
+        active_category=category,
+        active_country=country,
+        search=search,
+        sort=sort,
+        page=page,
+        per_page=per_page,
+        total_count=total_count,
+        total_pages=total_pages,
+        page_numbers=page_numbers,
+        hero_products=hero_products(limit=6) if is_unfiltered and page == 1 else [],
+        strip_products=strip_products(per_category=3) if is_unfiltered and page == 1 else [],
     )
 
 
-def db_categories():
-    rows = (
-        db.session.query(Product.category, func.count(Product.id))
-        .group_by(Product.category).order_by(Product.category).all()
-    )
+def _build_page_numbers(current, total, window=2):
+    """Return [1, '…', 4, 5, 6, '…', 124] for a pagination bar."""
+    if total <= 1:
+        return []
+    if total <= 9:
+        return list(range(1, total + 1))
+    pages = {1, total}
+    for p in range(max(2, current - window), min(total, current + window) + 1):
+        pages.add(p)
+    sorted_pages = sorted(pages)
+    out = []
+    last = 0
+    for p in sorted_pages:
+        if last and p - last > 1:
+            out.append("…")
+        out.append(p)
+        last = p
+    return out
+
+def db_categories(country_filter=None):
+    q = db.session.query(Product.category, func.count(Product.id)).filter(Product.active == True)
+    if country_filter:
+        q = q.filter(Product.origin_country == country_filter)
+    rows = q.group_by(Product.category).order_by(Product.category).all()
     return [{"name": c, "count": n} for c, n in rows]
 
 
-def db_countries():
-    rows = (
-        db.session.query(Product.origin_country, func.count(Product.id))
-        .filter(Product.origin_country.isnot(None))
-        .group_by(Product.origin_country).order_by(Product.origin_country).all()
-    )
+def db_countries(category_filter=None):
+    q = db.session.query(Product.origin_country, func.count(Product.id))
+    q = q.filter(Product.origin_country.isnot(None))
+    q = q.filter(Product.active == True)
+    if category_filter:
+        q = q.filter(Product.category == category_filter)
+    rows = q.group_by(Product.origin_country).order_by(Product.origin_country).all()
     return [{"name": c, "count": n} for c, n in rows]
 
 

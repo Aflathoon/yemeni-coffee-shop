@@ -215,8 +215,72 @@
 </div>
 {% endif %}
 
+{# ---------- Sort + per-page bar ---------- #}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-4 border-b border-coffee-dark/10">
+    <p class="text-sm text-coffee-light">
+        Showing <strong class="text-coffee-dark">{{ products|length }}</strong> of
+        <strong class="text-coffee-dark">{{ total_count }}</strong> product(s)
+        {% if total_pages > 1 %} · page {{ page }} of {{ total_pages }}{% endif %}
+    </p>
+    <form method="GET" class="flex items-center gap-2 text-sm">
+        {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+        {% if active_country %}<input type="hidden" name="country" value="{{ active_country }}">{% endif %}
+        {% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}
+
+        <label class="text-coffee-light text-[11px] tracking-widest uppercase">Sort</label>
+        <select name="sort" onchange="this.form.submit()"
+                class="border border-coffee-dark/20 rounded-sm px-2 py-1.5 bg-cream text-[13px]">
+            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
+            <option value="featured" {% if sort == 'featured' %}selected{% endif %}>Featured first</option>
+            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
+            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
+            <option value="name" {% if sort == 'name' %}selected{% endif %}>Name A→Z</option>
+        </select>
+
+        <label class="text-coffee-light text-[11px] tracking-widest uppercase ml-2">Per page</label>
+        <select name="per_page" onchange="this.form.submit()"
+                class="border border-coffee-dark/20 rounded-sm px-2 py-1.5 bg-cream text-[13px]">
+            {% for n in [12, 24, 48, 96, 200] %}
+            <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="hidden" name="page" value="1">
+    </form>
+</div>
+
+{# ---------- Top pagination ---------- #}
+{% if total_pages > 1 %}
+<nav class="flex items-center justify-center gap-1 mb-6 text-sm flex-wrap">
+    {% if page > 1 %}
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">« First</a>
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page-1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">‹ Prev</a>
+    {% endif %}
+
+    {% for n in page_numbers %}
+        {% if n == '…' %}
+        <span class="px-2 text-coffee-light">…</span>
+        {% elif n == page %}
+        <span class="px-3 py-1.5 rounded-sm bg-coffee-dark text-cream font-semibold">{{ n }}</span>
+        {% else %}
+        <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=n) }}"
+           class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ n }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page+1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Next ›</a>
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=total_pages) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Last »</a>
+    {% endif %}
+</nav>
+{% endif %}
+
 {# ---------- Product grid ---------- #}
-<div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
     {% for p in products %}
     <div class="card hover:shadow-md transition-shadow duration-200 flex flex-col">
         <a href="/product/{{ p.slug }}" class="block">
@@ -276,5 +340,35 @@
     </div>
     {% endfor %}
 </div>
+
+{# ---------- Bottom pagination ---------- #}
+{% if total_pages > 1 %}
+<nav class="flex items-center justify-center gap-1 mt-10 text-sm flex-wrap">
+    {% if page > 1 %}
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">« First</a>
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page-1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">‹ Prev</a>
+    {% endif %}
+
+    {% for n in page_numbers %}
+        {% if n == '…' %}
+        <span class="px-2 text-coffee-light">…</span>
+        {% elif n == page %}
+        <span class="px-3 py-1.5 rounded-sm bg-coffee-dark text-cream font-semibold">{{ n }}</span>
+        {% else %}
+        <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=n) }}"
+           class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ n }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page+1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Next ›</a>
+    <a href="{{ url_for('main.index', category=active_category, country=active_country, q=search or None, sort=sort, per_page=per_page, page=total_pages) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Last »</a>
+    {% endif %}
+</nav>
+{% endif %}
 
 {% endblock %}
