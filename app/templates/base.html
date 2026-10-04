@@ -97,7 +97,7 @@
 
 {# ---------- Announcement bar ---------- #}
 <div class="bg-coffee-dark text-cream text-center py-2 px-4 text-xs tracking-widest">
-    FREE SHIPPING ON ORDERS OVER $75 &nbsp;·&nbsp; HAND-SOURCED FROM SMALL PRODUCERS WORLDWIDE
+    {{ _("FREE SHIPPING ON ORDERS OVER $75 · HAND-SOURCED FROM SMALL PRODUCERS WORLDWIDE") }}
 </div>
 
 {# ---------- Header ---------- #}
@@ -107,15 +107,15 @@
 
             {# Left: nav (hidden on mobile, burger shown) #}
             <nav class="hidden lg:flex items-center gap-6 text-coffee-dark">
-                <a href="/" class="nav-link">Shop</a>
-                <a href="{{ url_for('main.category_page', category_slug='coffee') }}" class="nav-link">Coffee</a>
-                <a href="{{ url_for('main.category_page', category_slug='spices') }}" class="nav-link">Spices</a>
-                <a href="{{ url_for('main.category_page', category_slug='honey') }}" class="nav-link">Honey</a>
-                <a href="{{ url_for('main.category_page', category_slug='tea') }}" class="nav-link">Tea</a>
-                <a href="{{ url_for('main.category_page', category_slug='accessories') }}" class="nav-link">Accessories</a>
-                <a href="{{ url_for('blog.index') }}" class="nav-link">Journal</a>
-                <a href="{{ url_for('main.offers') }}" class="nav-link">Offers</a>
-                <a href="{{ url_for('wholesale.landing') }}" class="nav-link text-gold hover:text-coffee-dark">Trade</a>
+                <a href="/" class="nav-link">{{ _("Shop") }}</a>
+                <a href="{{ url_for('main.category_page', category_slug='coffee') }}" class="nav-link">{{ _("Coffee") }}</a>
+                <a href="{{ url_for('main.category_page', category_slug='spices') }}" class="nav-link">{{ _("Spices") }}</a>
+                <a href="{{ url_for('main.category_page', category_slug='honey') }}" class="nav-link">{{ _("Honey") }}</a>
+                <a href="{{ url_for('main.category_page', category_slug='tea') }}" class="nav-link">{{ _("Tea") }}</a>
+                <a href="{{ url_for('main.category_page', category_slug='accessories') }}" class="nav-link">{{ _("Accessories") }}</a>
+                <a href="{{ url_for('blog.index') }}" class="nav-link">{{ _("Journal") }}</a>
+                <a href="{{ url_for('main.offers') }}" class="nav-link">{{ _("Offers") }}</a>
+                <a href="{{ url_for('wholesale.landing') }}" class="nav-link text-gold hover:text-coffee-dark">{{ _("Trade") }}</a>
             </nav>
 
             <button id="sidebar-toggle-mobile" class="lg:hidden text-2xl text-coffee-dark" aria-label="Menu">☰</button>
@@ -134,7 +134,7 @@
             <div class="flex items-center gap-5 text-coffee-dark">
 
                 <form action="/" method="get" class="hidden md:flex items-center">
-                    <input type="search" name="q" placeholder="Search…"
+                    <input type="search" name="q" placeholder="{{ _('Search…') }}"
                            class="w-40 lg:w-52 bg-transparent border-b border-coffee-dark/30 focus:border-coffee-dark outline-none text-sm py-1 px-1 placeholder:text-coffee-light">
                 </form>
 
@@ -160,24 +160,24 @@
                     </button>
                     <div id="account-menu-panel"
                          class="hidden absolute right-0 top-full mt-1 bg-cream border border-coffee-dark/10 shadow-lg py-2 min-w-[180px] z-50">
-                        <a href="{{ url_for('auth.account') }}" class="block px-4 py-2 text-sm hover:bg-parchment">My account</a>
-                        <a href="{{ url_for('auth.account_orders') }}" class="block px-4 py-2 text-sm hover:bg-parchment">My orders</a>
+                        <a href="{{ url_for('auth.account') }}" class="block px-4 py-2 text-sm hover:bg-parchment">{{ _("My account") }}</a>
+                        <a href="{{ url_for('auth.account_orders') }}" class="block px-4 py-2 text-sm hover:bg-parchment">{{ _("My orders") }}</a>
                         {% if current_user.is_admin %}
-                        <a href="{{ url_for('admin.dashboard') }}" class="block px-4 py-2 text-sm hover:bg-parchment border-t border-coffee-dark/10 mt-1 pt-2">Admin dashboard</a>
+                        <a href="{{ url_for('admin.dashboard') }}" class="block px-4 py-2 text-sm hover:bg-parchment border-t border-coffee-dark/10 mt-1 pt-2">{{ _("Admin dashboard") }}</a>
                         {% endif %}
                         <form method="POST" action="{{ url_for('auth.logout') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm hover:bg-parchment text-coffee-light hover:text-red-700">Sign out</button>
+                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm hover:bg-parchment text-coffee-light hover:text-red-700">{{ _("Sign out") }}</button>
                         </form>
                     </div>
                 </div>
                 {% else %}
-                <a href="{{ url_for('auth.login') }}" class="nav-link hidden md:inline">Sign in</a>
-                <a href="{{ url_for('auth.register') }}" class="hidden md:inline text-[10px] tracking-widest uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-coffee">Register</a>
+                <a href="{{ url_for('auth.login') }}" class="nav-link hidden md:inline">{{ _("Sign in") }}</a>
+                <a href="{{ url_for('auth.register') }}" class="hidden md:inline text-[10px] tracking-widest uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-coffee">{{ _("Register") }}</a>
                 {% endif %}
 
                 <a href="{{ url_for('main.cart_view') }}" class="nav-link relative flex items-center gap-1">
-                    Cart
+                    {{ _("Cart") }}
                     <span id="cart-badge"
                           class="inline-flex items-center justify-center bg-coffee-dark text-cream text-[10px] rounded-full min-w-[18px] h-[18px] px-1
                                  {% if not cart_count %}hidden{% endif %}">
@@ -196,11 +196,11 @@
            class="w-60 bg-cream border-r border-coffee-dark/8 p-6 hidden lg:block shrink-0">
         <nav class="space-y-8 sticky top-28">
             <div>
-                <h3 class="font-display text-lg text-coffee-dark mb-3">Categories</h3>
+                <h3 class="font-display text-lg text-coffee-dark mb-3">{{ _("Categories") }}</h3>
                 <ul class="space-y-1.5">
                     <li>
                         <a href="/" class="block text-sm py-1 {% if not active_category %}font-semibold text-spice{% else %}text-coffee-dark hover:text-spice{% endif %}">
-                            All Products
+                            {{ _("All Products") }}
                         </a>
                     </li>
                     {% for c in categories or [] %}
@@ -216,7 +216,7 @@
             </div>
 
             <div>
-                <h3 class="font-display text-lg text-coffee-dark mb-3">Origin</h3>
+                <h3 class="font-display text-lg text-coffee-dark mb-3">{{ _("Origin") }}</h3>
                 <ul class="space-y-1 max-h-72 overflow-auto pr-1">
                     {% for c in countries or [] %}
                     <li>
@@ -231,8 +231,8 @@
             </div>
 
             <div class="border-t border-coffee-dark/10 pt-5">
-                <p class="font-display text-base text-coffee-dark mb-1">Worldwide Shipping</p>
-                <p class="text-xs text-coffee-light leading-relaxed">Free over $75.<br>Flat $8 otherwise.</p>
+                <p class="font-display text-base text-coffee-dark mb-1">{{ _("Worldwide Shipping") }}</p>
+                <p class="text-xs text-coffee-light leading-relaxed">{{ _("Free over $75. Flat $8 otherwise.") }}</p>
             </div>
         </nav>
     </aside>
@@ -256,7 +256,7 @@
     <aside class="w-64 hidden xl:block shrink-0 bg-cream border-l border-coffee-dark/8 p-6">
         <div class="space-y-8 sticky top-28">
             <div>
-                <h3 class="font-display text-lg text-coffee-dark mb-3">Featured</h3>
+                <h3 class="font-display text-lg text-coffee-dark mb-3">{{ _("Featured") }}</h3>
                 <div class="space-y-3">
                     {% for p in featured or [] %}
                     <a href="/product/{{ p.slug }}" class="flex gap-3 items-center group">
@@ -275,16 +275,16 @@
             </div>
 
             <div class="border-t border-coffee-dark/10 pt-6">
-                <p class="font-display text-lg text-coffee-dark mb-1">Need help?</p>
-                <p class="text-xs text-coffee-light mb-3 leading-relaxed">Ask about any spice, origin, or brewing method.</p>
-                <a href="#" class="btn-outline block text-center">AI Concierge</a>
+                <p class="font-display text-lg text-coffee-dark mb-1">{{ _("Need help?") }}</p>
+                <p class="text-xs text-coffee-light mb-3 leading-relaxed">{{ _("Ask about any spice, origin, or brewing method.") }}</p>
+                <a href="#" class="btn-outline block text-center">{{ _("AI Concierge") }}</a>
             </div>
 
             <div class="border-t border-coffee-dark/10 pt-6">
-                <p class="font-display text-lg text-coffee-dark mb-1">Yemeni Flagship</p>
-                <p class="text-xs text-coffee-light mb-3 leading-relaxed">Our most treasured lots.</p>
+                <p class="font-display text-lg text-coffee-dark mb-1">{{ _("Yemeni Flagship") }}</p>
+                <p class="text-xs text-coffee-light mb-3 leading-relaxed">{{ _("Our most treasured lots.") }}</p>
                 <a href="/?country=Yemen" class="text-xs tracking-widest uppercase text-spice hover:text-coffee-dark">
-                    View all →
+                    {{ _("View all") }} →
                 </a>
             </div>
         </div>
@@ -298,11 +298,11 @@
         <div>
             <h4 class="font-display text-xl mb-3">The Spice &amp; Roast Co.</h4>
             <p class="text-cream/60 text-xs leading-relaxed">
-                Sourced from small producers across Yemen, India, Pakistan, Brazil, Thailand, and beyond.
+                {{ _("Sourced from small producers across Yemen, India, Pakistan, Brazil, Thailand, and beyond.") }}
             </p>
         </div>
         <div>
-            <h5 class="text-xs tracking-widest mb-3 text-gold">SHOP</h5>
+            <h5 class="text-xs tracking-widest mb-3 text-gold">{{ _("SHOP") }}</h5>
             <ul class="space-y-1.5 text-cream/80">
                 <li><a href="/?category=coffee" class="hover:text-gold">Coffee</a></li>
                 <li><a href="/?category=spices" class="hover:text-gold">Spices</a></li>
@@ -312,25 +312,25 @@
             </ul>
         </div>
         <div>
-            <h5 class="text-xs tracking-widest mb-3 text-gold">HELP</h5>
+            <h5 class="text-xs tracking-widest mb-3 text-gold">{{ _("HELP") }}</h5>
             <ul class="space-y-1.5 text-cream/80">
-                <li><a href="#" class="hover:text-gold">Shipping &amp; Returns</a></li>
-                <li><a href="{{ url_for('auth.wholesale_landing') }}" class="hover:text-gold">Wholesale &amp; Partnerships</a></li>
-                <li><a href="{{ url_for('blog.index') }}" class="hover:text-gold">The Journal</a></li>
-                <li><a href="#" class="hover:text-gold">Contact</a></li>
+                <li><a href="#" class="hover:text-gold">{{ _("Shipping & Returns") }}</a></li>
+                <li><a href="{{ url_for('auth.wholesale_landing') }}" class="hover:text-gold">{{ _("Wholesale & Partnerships") }}</a></li>
+                <li><a href="{{ url_for('blog.index') }}" class="hover:text-gold">{{ _("The Journal") }}</a></li>
+                <li><a href="#" class="hover:text-gold">{{ _("Contact") }}</a></li>
             </ul>
         </div>
         <div>
-            <h5 class="text-xs tracking-widest mb-3 text-gold">FOLLOW</h5>
+            <h5 class="text-xs tracking-widest mb-3 text-gold">{{ _("FOLLOW") }}</h5>
             <ul class="space-y-1.5 text-cream/80">
-                <li><a href="#" class="hover:text-gold">Instagram</a></li>
-                <li><a href="#" class="hover:text-gold">Telegram</a></li>
-                <li><a href="#" class="hover:text-gold">WhatsApp</a></li>
+                <li><a href="#" class="hover:text-gold">{{ _("Instagram") }}</a></li>
+                <li><a href="#" class="hover:text-gold">{{ _("Telegram") }}</a></li>
+                <li><a href="#" class="hover:text-gold">{{ _("WhatsApp") }}</a></li>
             </ul>
         </div>
     </div>
     <div class="border-t border-cream/10 py-4 text-center text-xs text-cream/50">
-        © 2026 The Spice &amp; Roast Co. · All rights reserved.
+        {{ _("© 2026 The Spice & Roast Co. · All rights reserved.") }}
     </div>
 </footer>
 
@@ -388,7 +388,7 @@
         aria-label="Back to top"
         class="fixed bottom-6 right-6 z-40 px-4 py-3 rounded-full bg-coffee-dark text-cream shadow-lg hover:bg-spice transition-all duration-300 flex items-center gap-2 opacity-0 pointer-events-none">
     <span class="text-lg leading-none">↑</span>
-    <span class="text-[11px] tracking-widest uppercase font-medium whitespace-nowrap">Back to top</span>
+    <span class="text-[11px] tracking-widest uppercase font-medium whitespace-nowrap">{{ _("Back to top") }}</span>
 </button>
 
 <script>

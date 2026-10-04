@@ -105,93 +105,93 @@
         <div class="p-5 border-b border-coffee-dark/10">
             <a href="/admin/dashboard" class="block">
                 <div class="font-display text-xl text-coffee-dark leading-none">The Spice &amp; Roast Co.</div>
-                <div class="text-[10px] tracking-[0.25em] text-coffee-light mt-1">ADMIN · v1</div>
+                <div class="text-[10px] tracking-[0.25em] text-coffee-light mt-1">{{ _("ADMIN · v1") }}</div>
             </a>
         </div>
 
         <nav class="flex-1 py-4">
-            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mb-2 uppercase">Store</p>
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mb-2 uppercase">{{ _("Store") }}</p>
 
             <a href="/admin/dashboard" class="sidebar-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
-                <span>📊 Overview</span>
+                <span>📊 {{ _("Overview") }}</span>
             </a>
             <a href="/admin/orders" class="sidebar-link {% if request.endpoint == 'admin.orders' %}active{% endif %}">
-                <span>🛒 Orders</span>
+                <span>🛒 {{ _("Orders") }}</span>
                 {% if stats and stats.new_orders %}<span class="badge">{{ stats.new_orders }}</span>{% endif %}
             </a>
             <a href="/admin/products" class="sidebar-link {% if request.endpoint == 'admin.products' %}active{% endif %}">
-                <span>📦 Products</span>
+                <span>📦 {{ _("Products") }}</span>
                 {% if stats and stats.products %}<span class="text-coffee-light text-xs">{{ stats.products }}</span>{% endif %}
             </a>
             <a href="/admin/products/duplicates" class="sidebar-link {% if 'duplicates' in (request.endpoint or '') %}active{% endif %}">
-                <span>🧹 Duplicates</span>
+                <span>🧹 {{ _("Duplicates") }}</span>
             </a>
             <a href="/admin/import/uploads" class="sidebar-link {% if request.endpoint == 'admin.import_uploads' %}active{% endif %}">
-                <span>⬆️ Import</span>
+                <span>⬆️ {{ _("Import") }}</span>
             </a>
             <a href="/admin/customers" class="sidebar-link {% if request.endpoint == 'admin.customers' %}active{% endif %}">
-                <span>👥 Customers</span>
+                <span>👥 {{ _("Customers") }}</span>
             </a>
             <a href="/admin/wholesale" class="sidebar-link {% if request.endpoint == 'admin.wholesale_list' %}active{% endif %}">
-                <span>🏪 Retail applicants</span>
+                <span>🏪 {{ _("Retail applicants") }}</span>
             </a>
             <a href="/admin/wholesale-accounts" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.wholesale_account') %}active{% endif %}">
-                <span>🏢 Trade accounts</span>
+                <span>🏢 {{ _("Trade accounts") }}</span>
                 {% if stats and stats.new_wholesale_accounts %}<span class="badge">{{ stats.new_wholesale_accounts }}</span>{% endif %}
             </a>
             <a href="/admin/tier-program" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.tier_program') %}active{% endif %}">
-                <span>📊 Tier program</span>
+                <span>📊 {{ _("Tier program") }}</span>
             </a>
 
-            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Content</p>
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">{{ _("Content") }}</p>
 
             <a href="/admin/posts" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.post') and 'campaign' not in request.endpoint %}active{% endif %}">
-                <span>📝 Posts</span>
+                <span>📝 {{ _("Posts") }}</span>
             </a>
             <a href="/admin/campaigns" class="sidebar-link {% if request.endpoint and 'campaign' in request.endpoint %}active{% endif %}">
-                <span>🎯 Campaigns</span>
+                <span>🎯 {{ _("Campaigns") }}</span>
                 {% if stats and stats.live_campaigns %}<span class="badge">{{ stats.live_campaigns }}</span>{% endif %}
             </a>
             <a href="/admin/articles" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.article') %}active{% endif %}">
-                <span>📰 Articles</span>
+                <span>📰 {{ _("Articles") }}</span>
             </a>
             <a href="/admin/upload" class="sidebar-link {% if request.endpoint == 'admin.upload' %}active{% endif %}">
-                <span>🖼 Media</span>
+                <span>🖼 {{ _("Media") }}</span>
             </a>
 
-            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Integrations</p>
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">{{ _("Integrations") }}</p>
 
             <a href="/admin/social" class="sidebar-link {% if request.endpoint == 'admin.social' %}active{% endif %}">
-                <span>🔗 Social</span>
+                <span>🔗 {{ _("Social") }}</span>
             </a>
             <a href="/admin/settings" class="sidebar-link {% if request.endpoint == 'admin.settings' %}active{% endif %}">
-                <span>⚙️ Settings</span>
+                <span>⚙️ {{ _("Settings") }}</span>
             </a>
             <a href="/admin/i18n/status" class="sidebar-link {% if request.endpoint == 'admin.i18n_status' %}active{% endif %}">
-                <span>🌐 Translations</span>
+                <span>🌐 {{ _("Translations") }}</span>
             </a>
 
-            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Assistant</p>
+            <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">{{ _("Assistant") }}</p>
             <a href="/admin/assistant" class="sidebar-link {% if request.endpoint == 'admin.assistant_hub' %}active{% endif %}">
-                <span>🤖 Hub</span>
+                <span>🤖 {{ _("Hub") }}</span>
             </a>
             <a href="/admin/assistant/health" class="sidebar-link {% if 'assistant_health' in (request.endpoint or '') %}active{% endif %}">
-                <span>🩺 Site Health</span>
+                <span>🩺 {{ _("Site Health") }}</span>
                 {% if stats and stats.open_alerts %}<span class="badge">{{ stats.open_alerts }}</span>{% endif %}
             </a>
             <a href="/admin/assistant/content" class="sidebar-link {% if 'assistant_content' in (request.endpoint or '') %}active{% endif %}">
-                <span>✍️ Content Studio</span>
+                <span>✍️ {{ _("Content Studio") }}</span>
             </a>
             <a href="/admin/assistant/code" class="sidebar-link {% if 'assistant_code' in (request.endpoint or '') %}active{% endif %}">
-                <span>🛠 Code Assistant</span>
+                <span>🛠 {{ _("Code Assistant") }}</span>
             </a>
         </nav>
 
         <div class="border-t border-coffee-dark/10 p-4">
-            <a href="/" class="block text-xs text-coffee-light hover:text-spice mb-2">← View store</a>
+            <a href="/" class="block text-xs text-coffee-light hover:text-spice mb-2">← {{ _("View store") }}</a>
             <form method="POST" action="/admin/logout">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="text-xs text-coffee-light hover:text-red-600">Sign out</button>
+                <button class="text-xs text-coffee-light hover:text-red-600">{{ _("Sign out") }}</button>
             </form>
         </div>
     </aside>
@@ -204,7 +204,7 @@
                 <p class="text-xs text-coffee-light">{% block page_subtitle %}{% endblock %}</p>
             </div>
             <div class="flex items-center gap-4 text-xs text-coffee-light">
-                <span>Signed in as <strong class="text-coffee-dark">{{ current_user.email }}</strong></span>
+                <span>{{ _("Signed in as") }} <strong class="text-coffee-dark">{{ current_user.email }}</strong></span>
             </div>
         </header>
 
