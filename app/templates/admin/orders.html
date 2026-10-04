@@ -4,12 +4,23 @@
 {% block page_subtitle %}{{ orders|length }} order(s) shown{% endblock %}
 
 {% block content %}
-<div class="flex gap-2 mb-5">
+<div class="flex gap-2 mb-3">
     {% for s in ["all", "pending", "paid", "shipped", "delivered", "cancelled"] %}
-    <a href="{{ url_for('admin.orders', status=None if s == 'all' else s) }}"
+    <a href="{{ url_for('admin.orders', status=None if s == 'all' else s, channel=channel or None) }}"
        class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm
               {% if (s == 'all' and not status_filter) or status_filter == s %}bg-coffee-dark text-cream{% else %}bg-white border border-coffee-dark/15 text-coffee-dark hover:bg-parchment{% endif %}">
         {{ s }}
+    </a>
+    {% endfor %}
+</div>
+
+<div class="flex gap-2 mb-5 pb-4 border-b border-coffee-dark/10">
+    <span class="text-[10px] tracking-widest uppercase text-coffee-light self-center">Channel:</span>
+    {% for val, label in [('','All'),('retail','Retail'),('wholesale','Wholesale')] %}
+    <a href="{{ url_for('admin.orders', status=status_filter or None, channel=val or None) }}"
+       class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm
+              {% if (not channel and not val) or channel == val %}bg-navy text-cream{% else %}bg-white border border-coffee-dark/15 text-coffee-dark hover:bg-parchment{% endif %}">
+        {{ label }}
     </a>
     {% endfor %}
 </div>
@@ -43,9 +54,16 @@
                                  {% elif o.status == 'paid' %}bg-blue-100 text-blue-800
                                  {% elif o.status == 'shipped' %}bg-sage/20 text-sage
                                  {% elif o.status == 'delivered' %}bg-green-100 text-green-800
-                                 {% else %}bg-stone-100 text-stone-600{% endif %}">
-                        {{ o.status }}
+                                 {% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ o.status_label() }}
                     </span>
+                    {% if o.status == 'pending' %}
+                    <p class="text-[10px] text-coffee-light mt-1">→ next: mark paid</p>
+                    {% elif o.status == 'paid' %}
+                    <p class="text-[10px] text-coffee-light mt-1">→ next: ship</p>
+                    {% elif o.status == 'shipped' %}
+                    <p class="text-[10px] text-coffee-light mt-1">→ next: delivered</p>
+                    {% endif %}
                 </td>
                 <td class="px-4 py-3 text-right">
                     <a href="{{ url_for('admin.order_detail', order_id=o.id) }}"

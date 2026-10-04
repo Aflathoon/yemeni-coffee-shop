@@ -176,13 +176,19 @@ def dashboard():
 @admin_required
 def orders():
     status_filter = request.args.get("status")
+    channel = request.args.get("channel")  # retail | wholesale
     q = Order.query
     if status_filter:
         q = q.filter_by(status=status_filter)
+    if channel == "wholesale":
+        q = q.filter(Order.wholesale_id.isnot(None))
+    elif channel == "retail":
+        q = q.filter(Order.wholesale_id.is_(None))
     all_orders = q.order_by(Order.created_at.desc()).all()
     stats = compute_stats()
     return render_template("admin/orders.html",
-                           orders=all_orders, stats=stats, status_filter=status_filter)
+                           orders=all_orders, stats=stats,
+                           status_filter=status_filter, channel=channel)
 
 
 @bp.route("/orders/<int:order_id>")
@@ -196,14 +202,30 @@ def order_detail(order_id):
 @bp.route("/orders/<int:order_id>/status", methods=["POST"])
 @admin_required
 def order_set_status(order_id):
+    """Transition order status with validation + audit log."""
+    from app.orders import change_order_status
     order = Order.query.get_or_404(order_id)
-    new_status = request.form.get("status", "").strip()
-    if new_status not in ("pending", "paid", "shipped", "delivered", "cancelled"):
-        flash("Invalid status", "error")
+    new_status = (request.form.get("status") or "").strip().lower()
+
+    tracking_number = request.form.get("tracking_number", "").strip() or None
+    courier = request.form.get("courier", "").strip() or None
+    note = request.form.get("note", "").strip() or None
+    cancellation_reason = request.form.get("cancellation_reason", "").strip() or None
+
+    ok, err = change_order_status(
+        order, new_status,
+        actor_email=current_user.email if current_user and current_user.is_authenticated else None,
+        actor_role="admin",
+        note=note,
+        tracking_number=tracking_number,
+        courier=courier,
+        cancellation_reason=cancellation_reason,
+    )
+    if not ok:
+        flash(err or "Could not update status.", "error")
     else:
-        order.status = new_status
-        db.session.commit()
         flash(f"Order #{order.id} → {new_status}", "success")
+
     return redirect(url_for("admin.order_detail", order_id=order.id))
 
 

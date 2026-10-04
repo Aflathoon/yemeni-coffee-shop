@@ -4,11 +4,19 @@
 {% block page_subtitle %}{{ order.created_at.strftime("%B %d, %Y · %H:%M") }}{% endblock %}
 
 {% block content %}
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
+    {# ---------- LEFT: items + shipping ---------- #}
     <div class="lg:col-span-2 space-y-4">
+
         <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
-            <h2 class="font-display text-lg text-coffee-dark mb-4">Items</h2>
+            <div class="flex items-baseline justify-between mb-4">
+                <h2 class="font-display text-lg text-coffee-dark">Items</h2>
+                {% if order.wholesale_id %}
+                <span class="badge-tier bg-navy text-cream">Wholesale · ID {{ order.wholesale_id }}</span>
+                {% endif %}
+            </div>
             <table class="w-full text-sm">
                 <thead class="text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
                     <tr>
@@ -45,30 +53,186 @@
                 {{ order.country }}
             </p>
             {% if order.notes %}<p class="text-sm text-coffee-light mt-3"><strong class="text-coffee-dark">Notes:</strong> {{ order.notes }}</p>{% endif %}
+            {% if order.po_number %}<p class="text-sm text-coffee-light mt-2"><strong class="text-coffee-dark">PO:</strong> <span class="font-mono">{{ order.po_number }}</span></p>{% endif %}
         </div>
+
+        {# ---------- Timeline ---------- #}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-4">Order timeline</h2>
+            <ol class="relative border-l-2 border-coffee-dark/10 ml-3 pl-6 space-y-5">
+                {% for e in order.events %}
+                <li class="relative">
+                    <span class="absolute -left-[31px] top-0 w-4 h-4 rounded-full border-2 border-cream
+                                 {% if e.to_status == 'cancelled' %}bg-red-500
+                                 {% elif e.to_status == 'delivered' %}bg-green-600
+                                 {% elif e.to_status == 'shipped' %}bg-sage
+                                 {% elif e.to_status == 'paid' %}bg-blue-500
+                                 {% else %}bg-coffee-dark{% endif %}">
+                    </span>
+                    <div class="text-sm">
+                        <p class="text-coffee-dark font-medium">
+                            {% if e.from_status %}
+                            {{ e.from_status|capitalize }} → {{ e.to_status|capitalize }}
+                            {% else %}
+                            {{ e.to_status|capitalize }}
+                            {% endif %}
+                        </p>
+                        <p class="text-[11px] text-coffee-light">
+                            {{ e.created_at.strftime("%b %d, %Y · %H:%M") }}
+                            {% if e.actor_email %} · {{ e.actor_email }} ({{ e.actor_role }}){% endif %}
+                        </p>
+                        {% if e.note %}<p class="text-[13px] text-coffee-dark/80 mt-1 italic">{{ e.note }}</p>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+
     </div>
 
+    {# ---------- RIGHT: status + actions ---------- #}
     <div class="lg:col-span-1 space-y-4">
+
+        {# Current status card #}
         <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
             <h2 class="font-display text-lg text-coffee-dark mb-3">Status</h2>
-            <p class="text-xs text-coffee-light mb-3">Current: <strong class="text-coffee-dark">{{ order.status }}</strong></p>
-            <form method="POST" action="{{ url_for('admin.order_set_status', order_id=order.id) }}" class="space-y-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <select name="status" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
-                    {% for s in ["pending", "paid", "shipped", "delivered", "cancelled"] %}
-                    <option value="{{ s }}" {% if s == order.status %}selected{% endif %}>{{ s }}</option>
-                    {% endfor %}
-                </select>
-                <button class="w-full bg-coffee-dark text-cream py-2 rounded-sm text-xs tracking-widest uppercase hover:bg-coffee">Update</button>
-            </form>
+            <p class="mb-4">
+                <span class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded
+                             {% if order.status == 'pending' %}bg-spice/15 text-spice
+                             {% elif order.status == 'paid' %}bg-blue-100 text-blue-800
+                             {% elif order.status == 'shipped' %}bg-sage/20 text-sage
+                             {% elif order.status == 'delivered' %}bg-green-100 text-green-800
+                             {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ order.status_label() }}
+                </span>
+            </p>
+
+            {% set stamps = [
+                ('Placed', order.created_at),
+                ('Paid', order.paid_at),
+                ('Shipped', order.shipped_at),
+                ('Delivered', order.delivered_at),
+                ('Cancelled', order.cancelled_at),
+            ] %}
+            <dl class="space-y-1.5 text-sm">
+                {% for label, ts in stamps %}
+                {% if ts %}
+                <div class="flex justify-between">
+                    <dt class="text-coffee-light">{{ label }}</dt>
+                    <dd class="text-coffee-dark">{{ ts.strftime("%b %d · %H:%M") }}</dd>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </dl>
+
+            {% if order.tracking_number %}
+            <p class="text-sm mt-4 pt-3 border-t border-coffee-dark/10">
+                <span class="text-coffee-light text-[11px] uppercase tracking-widest block mb-1">Tracking</span>
+                <span class="font-mono text-coffee-dark">{{ order.courier or '—' }} · {{ order.tracking_number }}</span>
+            </p>
+            {% endif %}
+
+            {% if order.cancellation_reason %}
+            <p class="text-sm mt-4 pt-3 border-t border-coffee-dark/10">
+                <span class="text-red-700 text-[11px] uppercase tracking-widest block mb-1">Cancelled by {{ order.cancelled_by or 'unknown' }}</span>
+                <span class="text-coffee-dark italic">{{ order.cancellation_reason }}</span>
+            </p>
+            {% endif %}
         </div>
 
+        {# Transitions #}
+        {% if not order.is_terminal %}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-3">Actions</h2>
+
+            {% if order.status == 'pending' %}
+            <form method="POST" action="{{ url_for('admin.order_set_status', order_id=order.id) }}" class="space-y-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="paid">
+                <input type="text" name="note" placeholder="Note (e.g. bank transfer received)" 
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                <button class="w-full bg-blue-600 text-white py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-blue-700">
+                    Mark as paid
+                </button>
+            </form>
+            {% endif %}
+
+            {% if order.status == 'paid' %}
+            <form method="POST" action="{{ url_for('admin.order_set_status', order_id=order.id) }}" class="space-y-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="shipped">
+                <input type="text" name="courier" placeholder="Courier (e.g. DHL)"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                <input type="text" name="tracking_number" placeholder="Tracking number"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                <input type="text" name="note" placeholder="Note (optional)"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                <button class="w-full bg-sage text-cream py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee-dark">
+                    Mark as shipped
+                </button>
+            </form>
+            {% endif %}
+
+            {% if order.status == 'shipped' %}
+            <form method="POST" action="{{ url_for('admin.order_set_status', order_id=order.id) }}" class="space-y-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="delivered">
+                <input type="text" name="note" placeholder="Note (e.g. signed for by J. Smith)"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                <button class="w-full bg-green-700 text-white py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-green-800">
+                    Mark as delivered
+                </button>
+            </form>
+            {% endif %}
+
+            <details class="mt-4 pt-4 border-t border-coffee-dark/10">
+                <summary class="text-[11px] tracking-widest uppercase text-red-700 cursor-pointer hover:text-red-900">
+                    Cancel this order
+                </summary>
+                <form method="POST" action="{{ url_for('admin.order_set_status', order_id=order.id) }}" class="space-y-2 mt-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="status" value="cancelled">
+                    <select name="cancellation_reason" required
+                            class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                        <option value="">Select reason…</option>
+                        <option value="Customer request by phone">Customer request — by phone</option>
+                        <option value="Customer request by email">Customer request — by email</option>
+                        <option value="Payment failed">Payment failed</option>
+                        <option value="Out of stock">Out of stock</option>
+                        <option value="Address issue">Address issue</option>
+                        <option value="Fraud suspicion">Fraud suspicion</option>
+                        <option value="Other">Other (specify in note)</option>
+                    </select>
+                    <input type="text" name="note" placeholder="Optional note"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                    <button class="w-full border border-red-300 text-red-700 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-red-50"
+                            onclick="return confirm('Cancel this order?')">
+                        Confirm cancellation
+                    </button>
+                </form>
+            </details>
+        </div>
+        {% else %}
+        <div class="bg-cream border border-coffee-dark/10 rounded-lg p-5 text-sm text-center text-coffee-light">
+            This order is <strong class="text-coffee-dark">{{ order.status }}</strong> — no further actions available.
+        </div>
+        {% endif %}
+
+        {# Customer #}
         <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
             <h2 class="font-display text-lg text-coffee-dark mb-3">Customer</h2>
             <p class="text-sm text-coffee-dark">{{ order.full_name }}</p>
             <p class="text-sm text-coffee-light">{{ order.email }}</p>
-            {% if order.user_id %}<p class="text-xs text-coffee-light mt-2">Registered user #{{ order.user_id }}</p>{% endif %}
+            {% if order.wholesale_id %}
+            <a href="{{ url_for('admin.wholesale_account_detail', acct_id=order.wholesale_id) }}"
+               class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mt-3 inline-block">
+                View trade account →
+            </a>
+            {% elif order.user_id %}
+            <p class="text-xs text-coffee-light mt-2">Registered user #{{ order.user_id }}</p>
+            {% endif %}
         </div>
     </div>
 </div>
+
 {% endblock %}
