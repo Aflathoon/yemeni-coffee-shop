@@ -60,6 +60,9 @@ def create_app():
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
+    from app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp)
+
     # --- Language selection ---
     @app.route("/set-language/<code>")
     def set_language(code):
