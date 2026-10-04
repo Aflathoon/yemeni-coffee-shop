@@ -44,6 +44,15 @@
                 {% if info.min_quantity > 1 %}
                 <p class="text-[11px] text-spice mt-0.5">MOQ {{ info.min_quantity }}</p>
                 {% endif %}
+                {% if info.campaign_labels %}
+                <div class="mt-1 flex flex-wrap gap-1">
+                    {% for lbl in info.campaign_labels %}
+                    <span class="text-[9px] tracking-wider uppercase bg-sage/20 text-sage px-1.5 py-0.5 rounded-sm">
+                        {{ lbl }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <form method="POST" action="{{ url_for('wholesale.cart_update', item_id=item.id) }}" class="flex items-center gap-1">

@@ -243,19 +243,50 @@ def clamp_to_floor(product, price):
 
 
 
-def wholesale_price_for(wholesale_account, product):
+def wholesale_price_for(wholesale_account, product,
+                        cart_total=None, cart_qty=None):
     """
-    Public wrapper: computes the raw price then clamps to the margin floor.
-    Returns the same dict as _wholesale_price_for_raw but with price clamped
-    and 'clamped': True when the floor kicked in.
+    Compute the wholesale price for a product with the full stack applied:
+
+        list/override/blanket/tier  →  campaigns  →  floor clamp
+
+    Returns dict with:
+      price, list_price, source, discount_pct,
+      min_quantity, notes, clamped,
+      base_price        — price before campaigns
+      campaign_discount — total $ removed by campaigns
+      campaign_labels   — human-readable list
+      campaigns         — matching Campaign objects
+      floor_clamped     — True if the floor bit
     """
-    info = _wholesale_price_for_raw(wholesale_account, product)
-    final, clamped = clamp_to_floor(product, info["price"])
-    info["price"] = final
-    info["clamped"] = clamped
-    if clamped:
-        # Recompute the effective discount %
-        list_price = info.get("list_price") or product.price or 0
-        if list_price > 0:
-            info["discount_pct"] = round((1 - final / list_price) * 100.0, 1)
+    # Base layer — override → blanket → tier → list
+    base = _wholesale_price_for_raw(wholesale_account, product)
+    base_price = float(base["price"])
+
+    # Campaign layer
+    from app.campaigns import apply_campaigns
+    applied = apply_campaigns(
+        base_price, wholesale_account, product,
+        cart_total=cart_total, cart_qty=cart_qty,
+    )
+
+    final_price = applied["final_price"]
+
+    # Compose the return
+    info = dict(base)
+    info["base_price"] = round(base_price, 2)
+    info["price"] = final_price
+    info["campaign_discount"] = applied["campaign_discount"]
+    info["campaign_labels"] = applied["labels"]
+    info["campaigns"] = applied["campaigns"]
+    info["floor_clamped"] = applied["floor_clamped"]
+
+    # Recompute discount % vs. list (tier + campaign combined)
+    list_price = float(product.price or 0)
+    if list_price > 0:
+        info["discount_pct"] = round((1 - final_price / list_price) * 100.0, 1)
+
+    # Backwards compat: also expose 'clamped' as alias
+    info["clamped"] = applied["floor_clamped"]
+
     return info
