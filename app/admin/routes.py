@@ -666,6 +666,13 @@ def settings():
             "SMTP_PASSWORD",
             "SMTP_USE_TLS",
             "MAIL_FROM",
+            "AI_ENABLED",
+            "DEEPSEEK_API_KEY",
+            "DEEPSEEK_MODEL_CHAT",
+            "DEEPSEEK_MODEL_REASON",
+            "AI_TEMPERATURE",
+            "AI_WATCHER_ENABLED",
+            "AI_WATCHER_INTERVAL_MIN",
         ]
         for f in fields:
             if f in request.form:
@@ -1835,3 +1842,20 @@ def orders_bulk_action():
         msg += f" Skipped {len(skipped)}: {'; '.join(skipped[:3])}{'…' if len(skipped) > 3 else ''}"
     flash(msg, "success" if applied else "warning")
     return redirect(url_for("admin.orders"))
+
+
+# ---------- AI Assistant diagnostics ----------
+
+@bp.route("/settings/test-ai", methods=["POST"])
+@admin_required
+def settings_test_ai():
+    from app.ai import test_connection, is_configured
+    if not is_configured():
+        flash("❌ AI not configured — set the API key and click Save first.", "error")
+        return redirect(url_for("admin.settings"))
+    result = test_connection()
+    if result.get("ok"):
+        flash(f"✅ {result.get('description', 'Connected')} ({result.get('latency_ms', '?')}ms)", "success")
+    else:
+        flash(f"❌ AI: {result.get('description', 'Unknown error')}", "error")
+    return redirect(url_for("admin.settings"))
