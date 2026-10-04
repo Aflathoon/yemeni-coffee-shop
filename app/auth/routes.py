@@ -222,3 +222,62 @@ def account_password():
     db.session.commit()
     flash("Password updated.", "success")
     return redirect(url_for("auth.account"))
+
+
+# ---------------- Wholesale application ----------------
+
+@bp.route("/wholesale")
+def wholesale_landing():
+    """Public page explaining the program."""
+    from app.models import Setting
+    return render_template("auth/wholesale_landing.html")
+
+
+@bp.route("/wholesale/apply", methods=["GET", "POST"])
+@login_required
+def wholesale_apply():
+    """Submit an application. Requires login (creates lead with contact info)."""
+    from datetime import datetime
+    if current_user.is_wholesale and current_user.wholesale_status == "approved":
+        flash("You're already an approved wholesale partner.", "success")
+        return redirect(url_for("auth.account"))
+
+    if request.method == "POST":
+        business_name = request.form.get("business_name", "").strip()
+        business_type = request.form.get("business_type", "").strip()
+        business_registration = request.form.get("business_registration", "").strip()
+        phone = request.form.get("phone", "").strip()
+        country = request.form.get("country", "").strip()
+        city = request.form.get("city", "").strip()
+        message = request.form.get("message", "").strip()
+
+        errors = []
+        if not business_name:
+            errors.append("Business name is required.")
+        if not business_type:
+            errors.append("Please choose a business type.")
+        if not phone:
+            errors.append("Contact phone is required.")
+        if not country:
+            errors.append("Country is required.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template("auth/wholesale_apply.html", form=request.form)
+
+        current_user.business_name = business_name
+        current_user.business_type = business_type
+        current_user.business_registration = business_registration or None
+        current_user.phone = phone
+        current_user.country = country
+        current_user.city = city or current_user.city
+        current_user.wholesale_notes = message or current_user.wholesale_notes
+        current_user.wholesale_status = "pending"
+        current_user.wholesale_applied_at = datetime.utcnow()
+        db.session.commit()
+
+        flash("Application submitted. We'll review it within 2 business days.", "success")
+        return redirect(url_for("auth.account"))
+
+    return render_template("auth/wholesale_apply.html", form={})

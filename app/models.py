@@ -22,6 +22,17 @@ class User(UserMixin, db.Model):
     postal_code = db.Column(db.String(30))
     country = db.Column(db.String(100))
 
+    # Wholesale / agent
+    is_wholesale = db.Column(db.Boolean, default=False, index=True)
+    wholesale_status = db.Column(db.String(20), default="none")  # none | pending | approved | rejected
+    business_name = db.Column(db.String(200))
+    business_type = db.Column(db.String(80))   # shop, cafe, distributor, agent, other
+    business_registration = db.Column(db.String(80))
+    wholesale_notes = db.Column(db.Text)        # admin-only notes
+    wholesale_applied_at = db.Column(db.DateTime)
+    wholesale_approved_at = db.Column(db.DateTime)
+    wholesale_tier = db.Column(db.String(20), default="standard")  # standard | bronze | silver | gold
+
     def set_password(self, pw):
         self.password_hash = generate_password_hash(pw)
 

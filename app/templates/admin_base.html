@@ -109,6 +109,9 @@
             <a href="/admin/customers" class="sidebar-link {% if request.endpoint == 'admin.customers' %}active{% endif %}">
                 <span>👥 Customers</span>
             </a>
+            <a href="/admin/wholesale" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.wholesale') %}active{% endif %}">
+                <span>🏪 Wholesale</span>
+            </a>
 
             <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Content</p>
 

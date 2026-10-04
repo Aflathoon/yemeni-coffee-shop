@@ -919,3 +919,43 @@ def _article_from_form(article):
     article.featured = request.form.get("featured") == "1"
 
     return article, None
+
+
+# ---------- Wholesale applications ----------
+
+@bp.route("/wholesale")
+@admin_required
+def wholesale_list():
+    pending = User.query.filter_by(wholesale_status="pending").order_by(User.wholesale_applied_at.desc()).all()
+    approved = User.query.filter_by(wholesale_status="approved").order_by(User.wholesale_approved_at.desc()).all()
+    rejected = User.query.filter_by(wholesale_status="rejected").order_by(User.wholesale_applied_at.desc()).all()
+    stats = compute_stats()
+    return render_template("admin/wholesale_list.html",
+                           pending=pending, approved=approved, rejected=rejected, stats=stats)
+
+
+@bp.route("/wholesale/<int:user_id>/approve", methods=["POST"])
+@admin_required
+def wholesale_approve(user_id):
+    from datetime import datetime
+    user = User.query.get_or_404(user_id)
+    user.wholesale_status = "approved"
+    user.is_wholesale = True
+    user.wholesale_approved_at = datetime.utcnow()
+    tier = request.form.get("tier", "standard")
+    if tier in ("standard", "bronze", "silver", "gold"):
+        user.wholesale_tier = tier
+    db.session.commit()
+    flash(f"{user.email} approved as wholesale — tier: {user.wholesale_tier}", "success")
+    return redirect(url_for("admin.wholesale_list"))
+
+
+@bp.route("/wholesale/<int:user_id>/reject", methods=["POST"])
+@admin_required
+def wholesale_reject(user_id):
+    user = User.query.get_or_404(user_id)
+    user.wholesale_status = "rejected"
+    user.is_wholesale = False
+    db.session.commit()
+    flash(f"{user.email} application rejected", "success")
+    return redirect(url_for("admin.wholesale_list"))

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Wholesale & Partnerships — The Spice & Roast Co.{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-16">
+
+    <header class="text-center mb-16">
+        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-4">For Retailers & Cafés</p>
+        <h1 class="font-display text-5xl text-coffee-dark mb-6">Stock our lines. Grow your shelf.</h1>
+        <p class="text-coffee-light max-w-2xl mx-auto text-lg leading-relaxed">
+            Volume pricing on coffee, spices, tea, honey, and accessories. Flexible quantities from 1 kg to pallets. Custom branding available.
+        </p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        {% for title, desc, icon in [
+            ("Tiered discounts", "Automatic pricing tiers at 10 kg, 50 kg, and 200 kg per order.", "📉"),
+            ("Grams or kilos", "Buy exactly what you need — many SKUs ship in gram, kilo, or full-case quantities.", "⚖️"),
+            ("Private label", "Your brand on our packaging or our brand on yours. Custom bags, logos, cards.", "🏷️"),
+            ("Dedicated agent", "A named account manager for orders over $500/month.", "🤝"),
+            ("Priority stock", "Reserved inventory for approved partners during harvest peaks.", "📦"),
+            ("Marketing kit", "Product photos, tasting notes, and shelf cards — free for partners.", "📸"),
+        ] %}
+        <div class="bg-cream border border-coffee-dark/10 rounded-sm p-6">
+            <p class="text-3xl mb-3">{{ icon }}</p>
+            <h3 class="font-display text-xl text-coffee-dark mb-2">{{ title }}</h3>
+            <p class="text-sm text-coffee-light leading-relaxed">{{ desc }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="bg-coffee-dark text-cream rounded-sm p-10 text-center">
+        <h2 class="font-display text-3xl mb-4">Ready to apply?</h2>
+        <p class="text-cream/80 mb-8 max-w-xl mx-auto">Sign in or create an account, then submit a short application. Approval usually within 2 business days.</p>
+        <div class="flex gap-3 justify-center flex-wrap">
+            <a href="{{ url_for('auth.wholesale_apply') }}" class="btn-primary bg-gold hover:bg-cream hover:text-coffee-dark">Apply now</a>
+            <a href="{{ url_for('auth.register') }}" class="btn-outline border-cream text-cream hover:bg-cream hover:text-coffee-dark">Create account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

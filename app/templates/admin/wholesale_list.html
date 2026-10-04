@@ -1,0 +1,107 @@
+{% extends "admin_base.html" %}
+{% block title %}Wholesale — Admin{% endblock %}
+{% block page_title %}Wholesale applications{% endblock %}
+{% block page_subtitle %}Approve shops, cafés, and distributors for tiered pricing{% endblock %}
+
+{% block content %}
+
+{% if pending %}
+<section class="mb-8">
+    <h2 class="font-display text-2xl text-coffee-dark mb-4">Pending ({{ pending|length }})</h2>
+    <div class="space-y-3">
+        {% for u in pending %}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <div class="flex justify-between items-start gap-4 flex-wrap">
+                <div class="flex-1 min-w-0">
+                    <p class="font-display text-xl text-coffee-dark">{{ u.business_name or u.email }}</p>
+                    <p class="text-sm text-coffee-light">
+                        {{ u.business_type or '—' }}
+                        {% if u.business_registration %} · Reg #{{ u.business_registration }}{% endif %}
+                    </p>
+                    <p class="text-sm text-coffee-light mt-1">
+                        📧 {{ u.email }}
+                        {% if u.phone %} · 📞 {{ u.phone }}{% endif %}
+                        {% if u.country %} · 🌍 {{ u.country }}{% if u.city %}, {{ u.city }}{% endif %}{% endif %}
+                    </p>
+                    {% if u.wholesale_notes %}
+                    <p class="text-sm mt-3 bg-cream p-3 rounded-sm border border-coffee-dark/10 italic">
+                        "{{ u.wholesale_notes }}"
+                    </p>
+                    {% endif %}
+                    <p class="text-xs text-coffee-light mt-2">
+                        Applied {{ u.wholesale_applied_at.strftime("%b %d, %Y at %H:%M") if u.wholesale_applied_at else "—" }}
+                    </p>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                    <form method="POST" action="{{ url_for('admin.wholesale_approve', user_id=u.id) }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <select name="tier" class="text-xs border border-coffee-dark/20 rounded-sm px-2 py-1 bg-cream">
+                            <option value="standard">standard (5%)</option>
+                            <option value="bronze">bronze (10%)</option>
+                            <option value="silver">silver (15%)</option>
+                            <option value="gold">gold (20%)</option>
+                        </select>
+                        <button class="text-[11px] tracking-widest uppercase bg-sage text-cream px-3 py-1.5 rounded-sm hover:bg-coffee-dark ml-1">
+                            Approve
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.wholesale_reject', user_id=u.id) }}" class="inline" onsubmit="return confirm('Reject?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="text-[11px] tracking-widest uppercase border border-red-300 text-red-700 px-3 py-1.5 rounded-sm hover:bg-red-50">
+                            Reject
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section>
+    <h2 class="font-display text-2xl text-coffee-dark mb-4">Approved partners ({{ approved|length }})</h2>
+    {% if approved %}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+        <table class="w-full text-[15px]">
+            <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+                <tr>
+                    <th class="text-left px-4 py-3">Business</th>
+                    <th class="text-left px-4 py-3">Contact</th>
+                    <th class="text-left px-4 py-3">Type</th>
+                    <th class="text-left px-4 py-3">Tier</th>
+                    <th class="text-left px-4 py-3">Approved</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in approved %}
+                <tr class="border-b border-coffee-dark/5">
+                    <td class="px-4 py-3 font-medium">{{ u.business_name or '—' }}</td>
+                    <td class="px-4 py-3 text-coffee-light">{{ u.email }}</td>
+                    <td class="px-4 py-3 text-coffee-light text-[13px]">{{ u.business_type or '—' }}</td>
+                    <td class="px-4 py-3">
+                        <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded bg-gold/20 text-coffee-dark font-medium">{{ u.wholesale_tier }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-coffee-light text-[13px]">{{ u.wholesale_approved_at.strftime("%b %d, %Y") if u.wholesale_approved_at else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-coffee-light italic">No approved partners yet.</p>
+    {% endif %}
+</section>
+
+{% if rejected %}
+<section class="mt-10">
+    <h2 class="font-display text-xl text-coffee-light mb-3">Rejected ({{ rejected|length }})</h2>
+    <div class="text-sm text-coffee-light">
+        {% for u in rejected %}
+        <p>{{ u.business_name or u.email }} — {{ u.wholesale_applied_at.strftime("%b %d, %Y") if u.wholesale_applied_at else "" }}</p>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}
