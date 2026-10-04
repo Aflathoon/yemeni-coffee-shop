@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Create account — The Spice & Roast Co.{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto py-12">
+    <div class="bg-white border border-coffee-dark/8 rounded-sm p-8">
+        <h1 class="font-display text-3xl text-coffee-dark mb-2">Create account</h1>
+        <p class="text-sm text-coffee-light mb-6">Save your cart, track orders, checkout faster.</p>
+
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Full name</label>
+                <input type="text" name="full_name" value="{{ form.full_name or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Email *</label>
+                <input type="email" name="email" required value="{{ form.email or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Password * (min 8 chars)</label>
+                <input type="password" name="password" required minlength="8"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Confirm password *</label>
+                <input type="password" name="password2" required minlength="8"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
+            </div>
+            <button type="submit" class="btn-primary w-full">Create account</button>
+        </form>
+
+        <p class="text-sm text-coffee-light text-center mt-6">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}" class="text-spice hover:text-coffee-dark">Sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

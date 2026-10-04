@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Sign in — The Spice & Roast Co.{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto py-12">
+    <div class="bg-white border border-coffee-dark/8 rounded-sm p-8">
+        <h1 class="font-display text-3xl text-coffee-dark mb-2">Sign in</h1>
+        <p class="text-sm text-coffee-light mb-6">Welcome back to the pantry.</p>
+
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Email</label>
+                <input type="email" name="email" required value="{{ form.email or '' }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Password</label>
+                <input type="password" name="password" required
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
+            </div>
+            <button type="submit" class="btn-primary w-full">Sign in</button>
+        </form>
+
+        <p class="text-sm text-coffee-light text-center mt-6">
+            New here?
+            <a href="{{ url_for('auth.register') }}" class="text-spice hover:text-coffee-dark">Create account</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

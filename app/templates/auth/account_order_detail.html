@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }} — The Spice & Roast Co.{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto py-12">
+    <a href="{{ url_for('auth.account_orders') }}" class="text-xs tracking-widest uppercase text-coffee-light hover:text-coffee-dark mb-6 inline-block">← All orders</a>
+
+    <div class="bg-white border border-coffee-dark/8 rounded-sm p-8 mb-6">
+        <div class="flex items-baseline justify-between mb-6">
+            <h1 class="font-display text-3xl text-coffee-dark">Order #{{ order.id }}</h1>
+            <span class="text-[10px] tracking-widest uppercase px-3 py-1 rounded
+                         {% if order.status == 'pending' %}bg-spice/15 text-spice
+                         {% elif order.status == 'shipped' %}bg-sage/20 text-sage
+                         {% elif order.status == 'delivered' %}bg-green-100 text-green-800
+                         {% else %}bg-stone-100 text-stone-600{% endif %}">{{ order.status }}</span>
+        </div>
+        <p class="text-xs text-coffee-light mb-6">{{ order.created_at.strftime("%B %d, %Y · %H:%M") }}</p>
+
+        <div class="space-y-3">
+            {% for item in order.items %}
+            <div class="flex justify-between text-sm border-b border-coffee-dark/5 pb-2">
+                <span>{{ item.product_name }} <span class="text-coffee-light">× {{ item.quantity }}</span></span>
+                <span>${{ "%.2f"|format(item.line_total) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="border-t border-coffee-dark/10 mt-4 pt-4 space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-coffee-light">Subtotal</span><span>${{ "%.2f"|format(order.subtotal) }}</span></div>
+            <div class="flex justify-between"><span class="text-coffee-light">Shipping</span><span>{% if order.shipping == 0 %}Free{% else %}${{ "%.2f"|format(order.shipping) }}{% endif %}</span></div>
+            <div class="flex justify-between font-display text-xl pt-2 border-t border-coffee-dark/10 mt-2"><span>Total</span><span>${{ "%.2f"|format(order.total) }}</span></div>
+        </div>
+    </div>
+
+    <div class="bg-cream border border-coffee-dark/10 rounded-sm p-6">
+        <h2 class="font-display text-lg text-coffee-dark mb-3">Shipped to</h2>
+        <p class="text-sm text-coffee-dark/85 leading-relaxed">
+            <strong>{{ order.full_name }}</strong><br>
+            {{ order.address_line }}<br>
+            {{ order.city }}, {{ order.postal_code }}<br>
+            {{ order.country }}
+        </p>
+    </div>
+</div>
+{% endblock %}
