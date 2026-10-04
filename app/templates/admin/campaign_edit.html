@@ -1,0 +1,285 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if campaign %}Edit campaign{% else %}New campaign{% endif %} — Admin{% endblock %}
+{% block page_title %}{% if campaign %}Edit campaign{% else %}New campaign{% endif %}{% endblock %}
+{% block page_subtitle %}{% if campaign %}{{ campaign.name }} · {{ campaign.status_label() }}{% else %}Set up a time-bound discount{% endif %}{% endblock %}
+
+{% block content %}
+
+{% set v = form if form else {} %}
+{% set is_edit = campaign is not none %}
+
+<form method="POST" class="space-y-5 max-w-4xl">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ---------- BASICS ---------- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-6 space-y-4">
+        <h2 class="font-display text-xl text-coffee-dark">Basics</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Campaign name *</label>
+                <input type="text" name="name" required
+                       value="{{ v.name if form else (campaign.name if campaign else '') }}"
+                       placeholder="e.g. Yemeni Coffee — February Push"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Slug</label>
+                <input type="text" name="slug" placeholder="auto"
+                       value="{{ v.slug if form else (campaign.slug if campaign else '') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            </div>
+            <div class="flex items-center gap-2 pt-6">
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="published" value="1"
+                           {% if (form and form.get('published') == '1') or (campaign and campaign.published) %}checked{% endif %}
+                           class="accent-coffee-dark">
+                    Published (visible to partners)
+                </label>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Public description (shown to partners)</label>
+            <input type="text" name="public_description" maxlength="400"
+                   value="{{ v.public_description if form else (campaign.public_description if campaign else '') }}"
+                   placeholder="Try our new Yemeni single-origin — 15% off for a limited time."
+                   class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Internal notes (admin only)</label>
+            <textarea name="internal_notes" rows="2"
+                      class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">{{ v.internal_notes if form else (campaign.internal_notes if campaign else '') or '' }}</textarea>
+        </div>
+    </div>
+
+    {# ---------- TIMING ---------- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-6 space-y-4">
+        <h2 class="font-display text-xl text-coffee-dark">Timing</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Starts at *</label>
+                {% set sa = (form.get('starts_at') if form else (campaign.starts_at.strftime('%Y-%m-%dT%H:%M') if campaign and campaign.starts_at else '')) %}
+                <input type="datetime-local" name="starts_at" required
+                       value="{{ sa }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Ends at *</label>
+                {% set ea = (form.get('ends_at') if form else (campaign.ends_at.strftime('%Y-%m-%dT%H:%M') if campaign and campaign.ends_at else '')) %}
+                <input type="datetime-local" name="ends_at" required
+                       value="{{ ea }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+        </div>
+    </div>
+
+    {# ---------- AUDIENCE ---------- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-6 space-y-4">
+        <h2 class="font-display text-xl text-coffee-dark">Audience</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Channel</label>
+                {% set cur_channel = (form.get('channel') if form else (campaign.channel if campaign else 'wholesale')) %}
+                <select name="channel" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                    <option value="wholesale" {% if cur_channel == 'wholesale' %}selected{% endif %}>Wholesale only</option>
+                    <option value="retail" {% if cur_channel == 'retail' %}selected{% endif %}>Retail only</option>
+                    <option value="both" {% if cur_channel == 'both' %}selected{% endif %}>Both</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Only partners who ordered in the last N days (optional)</label>
+                <input type="number" name="activity_days" min="1"
+                       value="{{ v.activity_days if form else (campaign.activity_days if campaign and campaign.activity_days else '') }}"
+                       placeholder="leave blank for no filter"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-2">Tiers (leave all unchecked for all tiers)</label>
+            <div class="flex flex-wrap gap-3">
+                {% set cur_tiers = (form.getlist('audience_tier') if form else (campaign.get_tiers() if campaign else [])) %}
+                {% for t in ['new','bronze','silver','gold'] %}
+                <label class="flex items-center gap-2 text-sm border border-coffee-dark/20 rounded-sm px-3 py-1.5 cursor-pointer hover:bg-parchment">
+                    <input type="checkbox" name="audience_tier_{{ t }}" value="1"
+                           {% if (form and form.get('audience_tier_' ~ t)) or (campaign and t in campaign.get_tiers()) %}checked{% endif %}
+                           class="accent-coffee-dark">
+                    {{ t|capitalize }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-2">
+                Specific partners (optional — leave empty to include all in the tiers above)
+            </label>
+            <div class="border border-coffee-dark/20 rounded-sm p-3 bg-cream max-h-48 overflow-auto">
+                {% set cur_partner_ids = [] %}
+                {% if form %}
+                    {% set cur_partner_ids = form.getlist('partner_ids') %}
+                {% elif campaign %}
+                    {% set cur_partner_ids = campaign.partner_links|map(attribute='wholesale_id')|map('string')|list %}
+                {% endif %}
+                {% for p in partners %}
+                <label class="flex items-center gap-2 text-sm py-1">
+                    <input type="checkbox" name="partner_ids" value="{{ p.id }}"
+                           {% if p.id|string in cur_partner_ids %}checked{% endif %}
+                           class="accent-coffee-dark">
+                    <span>{{ p.company_name }}</span>
+                    <span class="text-[11px] text-coffee-light">· {{ p.email }} · {{ p.tier }}</span>
+                </label>
+                {% else %}
+                <p class="text-sm text-coffee-light italic">No wholesale partners yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# ---------- SCOPE ---------- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-6 space-y-4">
+        <h2 class="font-display text-xl text-coffee-dark">Scope</h2>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Applies to</label>
+            {% set cur_scope = (form.get('scope') if form else (campaign.scope if campaign else 'all')) %}
+            <select name="scope" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream max-w-sm">
+                <option value="all" {% if cur_scope == 'all' %}selected{% endif %}>All products</option>
+                <option value="category" {% if cur_scope == 'category' %}selected{% endif %}>Specific categories</option>
+                <option value="products" {% if cur_scope == 'products' %}selected{% endif %}>Specific products</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-2">
+                Categories (used when "Specific categories" is selected)
+            </label>
+            <div class="flex flex-wrap gap-3">
+                {% set cur_cats = (form.getlist('scope_cat') if form else (campaign.get_scope_categories() if campaign else [])) %}
+                {% for c in ['coffee','tea','spices','herbs','honey','blends','accessories'] %}
+                <label class="flex items-center gap-2 text-sm border border-coffee-dark/20 rounded-sm px-3 py-1.5 cursor-pointer hover:bg-parchment">
+                    <input type="checkbox" name="scope_cat_{{ c }}" value="1"
+                           {% if (form and form.get('scope_cat_' ~ c)) or (campaign and c in campaign.get_scope_categories()) %}checked{% endif %}
+                           class="accent-coffee-dark">
+                    {{ c|capitalize }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-2">
+                Specific products (used when "Specific products" is selected)
+            </label>
+            <div class="border border-coffee-dark/20 rounded-sm p-3 bg-cream max-h-56 overflow-auto">
+                {% set cur_product_ids = [] %}
+                {% if form %}
+                    {% set cur_product_ids = form.getlist('product_ids') %}
+                {% elif campaign %}
+                    {% set cur_product_ids = campaign.product_links|map(attribute='product_id')|map('string')|list %}
+                {% endif %}
+                {% for p in products %}
+                <label class="flex items-center gap-2 text-sm py-1">
+                    <input type="checkbox" name="product_ids" value="{{ p.id }}"
+                           {% if p.id|string in cur_product_ids %}checked{% endif %}
+                           class="accent-coffee-dark">
+                    <span>{{ p.name }}</span>
+                    <span class="text-[11px] text-coffee-light">· ${{ "%.2f"|format(p.price) }} · {{ p.category }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# ---------- DISCOUNT ---------- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-6 space-y-4">
+        <h2 class="font-display text-xl text-coffee-dark">Discount</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Type</label>
+                {% set cur_dt = (form.get('discount_type') if form else (campaign.discount_type if campaign else 'percent')) %}
+                <select name="discount_type" class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                    <option value="percent" {% if cur_dt == 'percent' %}selected{% endif %}>Percentage off</option>
+                    <option value="fixed" {% if cur_dt == 'fixed' %}selected{% endif %}>Fixed amount off</option>
+                    <option value="freeship" {% if cur_dt == 'freeship' %}selected{% endif %}>Free shipping</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Value (% or $ amount)</label>
+                <input type="number" step="0.01" min="0" name="discount_value"
+                       value="{{ v.discount_value if form else (campaign.discount_value if campaign else '') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-2">
+                Tier scaling (optional) — extra % for higher tiers, replaces the base discount
+            </label>
+            <div class="grid grid-cols-3 gap-3 max-w-md">
+                {% set scaling = (campaign.get_tier_scaling() if campaign else {}) %}
+                {% for t in ['bronze','silver','gold'] %}
+                <div>
+                    <label class="block text-[11px] text-coffee-light mb-1">{{ t|capitalize }} %</label>
+                    <input type="number" step="0.5" min="0" max="90" name="tier_scaling_{{ t }}"
+                           value="{{ scaling.get(t, '') if campaign else '' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Minimum order value ($, optional)</label>
+                <input type="number" step="0.01" min="0" name="min_order_value"
+                       value="{{ v.min_order_value if form else (campaign.min_order_value if campaign and campaign.min_order_value else '') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+            <div>
+                <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Minimum order quantity (optional)</label>
+                <input type="number" min="1" name="min_order_qty"
+                       value="{{ v.min_order_qty if form else (campaign.min_order_qty if campaign and campaign.min_order_qty else '') }}"
+                       class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-2 pt-3 border-t border-coffee-dark/10">
+            <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="override_pricing" value="1"
+                       {% if (form and form.get('override_pricing') == '1') or (campaign and campaign.override_pricing) %}checked{% endif %}
+                       class="accent-coffee-dark">
+                Override base pricing (instead of stacking on top of tier + blanket)
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="respect_floor" value="1"
+                       {% if (form and form.get('respect_floor') != '0') or (not form and (not campaign or campaign.respect_floor)) %}checked{% endif %}
+                       class="accent-coffee-dark">
+                Respect margin floor (never push below cost + margin)
+            </label>
+        </div>
+    </div>
+
+    {# ---------- ACTIONS ---------- #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-4 flex items-center justify-between sticky bottom-0">
+        <div class="flex gap-3">
+            <a href="{{ url_for('admin.campaigns') }}" class="text-xs tracking-widest uppercase text-coffee-light hover:text-coffee-dark self-center">Cancel</a>
+            {% if campaign %}
+            <form method="POST" action="{{ url_for('admin.campaign_delete', campaign_id=campaign.id) }}"
+                  onsubmit="return confirm('Delete this campaign?')" class="inline ml-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-xs tracking-widest uppercase text-red-700 hover:text-red-900">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+        <button type="submit" class="bg-coffee-dark text-cream px-6 py-2 rounded-sm text-xs tracking-widest uppercase font-semibold hover:bg-coffee">
+            {% if campaign %}Save changes{% else %}Create campaign{% endif %}
+        </button>
+    </div>
+</form>
+
+{% endblock %}

@@ -112,6 +112,17 @@ def compute_stats():
     except Exception:
         pass
 
+    # Campaign counts
+    live_campaigns = 0
+    scheduled_campaigns = 0
+    try:
+        from app.models import Campaign
+        all_c = Campaign.query.filter_by(published=True).all()
+        live_campaigns = sum(1 for c in all_c if c.is_live())
+        scheduled_campaigns = sum(1 for c in all_c if c.is_upcoming())
+    except Exception:
+        pass
+
     return {
         "products": Product.query.count(),
         "orders": len(orders),
@@ -119,6 +130,8 @@ def compute_stats():
         "posts": Post.query.count(),
         "new_wholesale_accounts": new_ws,
         "approved_wholesale_accounts": approved_ws,
+        "live_campaigns": live_campaigns,
+        "scheduled_campaigns": scheduled_campaigns,
         "revenue": revenue_total,
         "revenue_30": revenue_30,
         "revenue_30_delta": pct_delta(revenue_30, revenue_prev_30),
@@ -1314,3 +1327,248 @@ def wholesale_account_debug_status(acct_id):
     }
 
 
+
+
+# ============ CAMPAIGNS ============
+
+def _slugify_campaign(s):
+    import re
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def _unique_campaign_slug(base, exclude_id=None):
+    from app.models import Campaign
+    slug = base
+    n = 1
+    while True:
+        q = Campaign.query.filter_by(slug=slug)
+        if exclude_id:
+            q = q.filter(Campaign.id != exclude_id)
+        if not q.first():
+            return slug
+        n += 1
+        slug = f"{base}-{n}"
+
+
+def _campaign_from_form(campaign, form):
+    """Populate or create a Campaign from the request form."""
+    from datetime import datetime
+    from app.models import Campaign, CampaignPartner, CampaignProduct
+
+    name = form.get("name", "").strip()
+    if not name:
+        return None, "Name is required."
+
+    def parse_dt(field):
+        raw = form.get(field, "").strip()
+        if not raw:
+            return None
+        try:
+            # HTML datetime-local sends "YYYY-MM-DDTHH:MM"
+            return datetime.fromisoformat(raw)
+        except (ValueError, TypeError):
+            return None
+
+    starts_at = parse_dt("starts_at")
+    ends_at = parse_dt("ends_at")
+    if not starts_at or not ends_at:
+        return None, "Start and end dates are required."
+    if ends_at <= starts_at:
+        return None, "End date must be after start date."
+
+    try:
+        discount_value = float(form.get("discount_value", "0") or 0)
+    except ValueError:
+        discount_value = 0.0
+    if discount_value < 0:
+        return None, "Discount cannot be negative."
+
+    min_order_value_raw = form.get("min_order_value", "").strip()
+    try:
+        min_order_value = float(min_order_value_raw) if min_order_value_raw else None
+    except ValueError:
+        min_order_value = None
+
+    min_order_qty_raw = form.get("min_order_qty", "").strip()
+    try:
+        min_order_qty = int(min_order_qty_raw) if min_order_qty_raw else None
+    except ValueError:
+        min_order_qty = None
+
+    # Tier scaling (e.g. bronze=5, silver=10, gold=15) — optional per-tier override
+    tier_scaling = {}
+    for t in ("bronze", "silver", "gold"):
+        v = form.get(f"tier_scaling_{t}", "").strip()
+        if v:
+            try:
+                tier_scaling[t] = float(v)
+            except ValueError:
+                pass
+
+    # Tiers audience (multi-checkbox: new/bronze/silver/gold)
+    tiers = [t for t in ("new", "bronze", "silver", "gold") if form.get(f"audience_tier_{t}")]
+
+    # Scope categories (multi-checkbox)
+    scope_categories = [c for c in ("coffee", "tea", "spices", "herbs", "honey", "blends", "accessories")
+                        if form.get(f"scope_cat_{c}")]
+
+    # Update or create
+    if campaign is None:
+        campaign = Campaign()
+
+    campaign.name = name
+    campaign.slug = _unique_campaign_slug(
+        form.get("slug", "").strip() or _slugify_campaign(name),
+        exclude_id=campaign.id,
+    )
+    campaign.public_description = form.get("public_description", "").strip() or None
+    campaign.internal_notes = form.get("internal_notes", "").strip() or None
+    campaign.starts_at = starts_at
+    campaign.ends_at = ends_at
+    campaign.channel = form.get("channel", "wholesale")
+    campaign.activity_days = None
+    activity_raw = form.get("activity_days", "").strip()
+    if activity_raw:
+        try:
+            campaign.activity_days = max(1, int(activity_raw))
+        except ValueError:
+            pass
+    campaign.scope = form.get("scope", "all")
+    campaign.discount_type = form.get("discount_type", "percent")
+    campaign.discount_value = discount_value
+    campaign.min_order_value = min_order_value
+    campaign.min_order_qty = min_order_qty
+    campaign.override_pricing = form.get("override_pricing") == "1"
+    campaign.respect_floor = form.get("respect_floor", "1") == "1"
+    campaign.published = form.get("published") == "1"
+
+    campaign.set_tiers(tiers)
+    campaign.set_scope_categories(scope_categories)
+    campaign.set_tier_scaling(tier_scaling)
+
+    return campaign, None
+
+
+def _save_campaign_partners(campaign, partner_ids):
+    """Replace the campaign's partner links with the given IDs."""
+    from app.models import CampaignPartner
+    CampaignPartner.query.filter_by(campaign_id=campaign.id).delete()
+    for pid in partner_ids:
+        try:
+            pid = int(pid)
+        except (ValueError, TypeError):
+            continue
+        db.session.add(CampaignPartner(campaign_id=campaign.id, wholesale_id=pid))
+
+
+def _save_campaign_products(campaign, product_ids):
+    """Replace the campaign's product links with the given IDs."""
+    from app.models import CampaignProduct
+    CampaignProduct.query.filter_by(campaign_id=campaign.id).delete()
+    for pid in product_ids:
+        try:
+            pid = int(pid)
+        except (ValueError, TypeError):
+            continue
+        db.session.add(CampaignProduct(campaign_id=campaign.id, product_id=pid))
+
+
+@bp.route("/campaigns")
+@admin_required
+def campaigns():
+    from app.models import Campaign
+    all_campaigns = Campaign.query.order_by(Campaign.starts_at.desc()).all()
+    # Split by status
+    live = [c for c in all_campaigns if c.is_live()]
+    scheduled = [c for c in all_campaigns if c.published and c.is_upcoming()]
+    drafts = [c for c in all_campaigns if not c.published]
+    expired = [c for c in all_campaigns if c.published and c.is_expired()]
+    stats = compute_stats()
+    return render_template(
+        "admin/campaigns.html",
+        campaigns=all_campaigns,
+        live=live, scheduled=scheduled, drafts=drafts, expired=expired,
+        stats=stats,
+    )
+
+
+@bp.route("/campaigns/new", methods=["GET", "POST"])
+@admin_required
+def campaign_new():
+    from app.models import WholesaleAccount, Product
+    stats = compute_stats()
+    if request.method == "POST":
+        campaign, err = _campaign_from_form(None, request.form)
+        if err:
+            flash(err, "error")
+            return render_template(
+                "admin/campaign_edit.html",
+                campaign=None, stats=stats, form=request.form,
+                partners=WholesaleAccount.query.order_by(WholesaleAccount.company_name).all(),
+                products=Product.query.filter_by(active=True).order_by(Product.name).all(),
+            )
+        db.session.add(campaign)
+        db.session.flush()
+        _save_campaign_partners(campaign, request.form.getlist("partner_ids"))
+        _save_campaign_products(campaign, request.form.getlist("product_ids"))
+        db.session.commit()
+        flash(f"Campaign '{campaign.name}' created", "success")
+        return redirect(url_for("admin.campaigns"))
+    return render_template(
+        "admin/campaign_edit.html",
+        campaign=None, stats=stats, form={},
+        partners=WholesaleAccount.query.order_by(WholesaleAccount.company_name).all(),
+        products=Product.query.filter_by(active=True).order_by(Product.name).all(),
+    )
+
+
+@bp.route("/campaigns/<int:campaign_id>/edit", methods=["GET", "POST"])
+@admin_required
+def campaign_edit(campaign_id):
+    from app.models import Campaign, WholesaleAccount, Product, CampaignPartner, CampaignProduct
+    campaign = Campaign.query.get_or_404(campaign_id)
+    stats = compute_stats()
+    if request.method == "POST":
+        _, err = _campaign_from_form(campaign, request.form)
+        if err:
+            flash(err, "error")
+            return render_template(
+                "admin/campaign_edit.html",
+                campaign=campaign, stats=stats, form=request.form,
+                partners=WholesaleAccount.query.order_by(WholesaleAccount.company_name).all(),
+                products=Product.query.filter_by(active=True).order_by(Product.name).all(),
+            )
+        _save_campaign_partners(campaign, request.form.getlist("partner_ids"))
+        _save_campaign_products(campaign, request.form.getlist("product_ids"))
+        db.session.commit()
+        flash(f"Campaign '{campaign.name}' updated", "success")
+        return redirect(url_for("admin.campaign_edit", campaign_id=campaign.id))
+    return render_template(
+        "admin/campaign_edit.html",
+        campaign=campaign, stats=stats, form=None,
+        partners=WholesaleAccount.query.order_by(WholesaleAccount.company_name).all(),
+        products=Product.query.filter_by(active=True).order_by(Product.name).all(),
+    )
+
+
+@bp.route("/campaigns/<int:campaign_id>/toggle-publish", methods=["POST"])
+@admin_required
+def campaign_toggle_publish(campaign_id):
+    from app.models import Campaign
+    c = Campaign.query.get_or_404(campaign_id)
+    c.published = not c.published
+    db.session.commit()
+    flash(f"'{c.name}' now {'published' if c.published else 'draft'}", "success")
+    return redirect(url_for("admin.campaigns"))
+
+
+@bp.route("/campaigns/<int:campaign_id>/delete", methods=["POST"])
+@admin_required
+def campaign_delete(campaign_id):
+    from app.models import Campaign
+    c = Campaign.query.get_or_404(campaign_id)
+    name = c.name
+    db.session.delete(c)
+    db.session.commit()
+    flash(f"Deleted campaign '{name}'", "success")
+    return redirect(url_for("admin.campaigns"))

@@ -119,8 +119,12 @@
 
             <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Content</p>
 
-            <a href="/admin/posts" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.post') %}active{% endif %}">
+            <a href="/admin/posts" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.post') and 'campaign' not in request.endpoint %}active{% endif %}">
                 <span>📝 Posts</span>
+            </a>
+            <a href="/admin/campaigns" class="sidebar-link {% if request.endpoint and 'campaign' in request.endpoint %}active{% endif %}">
+                <span>🎯 Campaigns</span>
+                {% if stats and stats.live_campaigns %}<span class="badge">{{ stats.live_campaigns }}</span>{% endif %}
             </a>
             <a href="/admin/articles" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.article') %}active{% endif %}">
                 <span>📰 Articles</span>

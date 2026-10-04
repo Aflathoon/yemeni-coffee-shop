@@ -1,0 +1,106 @@
+{% extends "admin_base.html" %}
+{% block title %}Campaigns — Admin{% endblock %}
+{% block page_title %}Campaigns{% endblock %}
+{% block page_subtitle %}{{ campaigns|length }} total · {{ live|length }} live{% endblock %}
+
+{% block content %}
+
+<div class="flex justify-end mb-5">
+    <a href="{{ url_for('admin.campaign_new') }}"
+       class="bg-coffee-dark text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">
+        + New campaign
+    </a>
+</div>
+
+{# Summary tiles #}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Live</p>
+        <p class="font-display text-2xl text-sage">{{ live|length }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Scheduled</p>
+        <p class="font-display text-2xl text-navy">{{ scheduled|length }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Drafts</p>
+        <p class="font-display text-2xl text-coffee-light">{{ drafts|length }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Expired</p>
+        <p class="font-display text-2xl text-stone-400">{{ expired|length }}</p>
+    </div>
+</div>
+
+{% if campaigns %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+    <table class="w-full text-[15px]">
+        <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+            <tr>
+                <th class="text-left px-4 py-3">Campaign</th>
+                <th class="text-left px-4 py-3">Window</th>
+                <th class="text-left px-4 py-3">Audience</th>
+                <th class="text-right px-4 py-3">Discount</th>
+                <th class="text-center px-4 py-3">Status</th>
+                <th class="text-right px-4 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in campaigns %}
+            <tr class="border-b border-coffee-dark/5 hover:bg-parchment/40">
+                <td class="px-4 py-3">
+                    <a href="{{ url_for('admin.campaign_edit', campaign_id=c.id) }}"
+                       class="font-medium text-coffee-dark hover:text-spice">{{ c.name }}</a>
+                    {% if c.public_description %}
+                    <p class="text-[12px] text-coffee-light line-clamp-1">{{ c.public_description }}</p>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-[13px] text-coffee-light">
+                    {{ c.starts_at.strftime("%b %d") }} → {{ c.ends_at.strftime("%b %d, %Y") }}
+                </td>
+                <td class="px-4 py-3 text-[12px] text-coffee-light">
+                    {% if c.channel == 'both' %}Retail + Wholesale
+                    {% else %}{{ c.channel|capitalize }}{% endif %}
+                    {% if c.get_tiers() %} · {{ c.get_tiers()|join(', ') }}{% endif %}
+                    {% if c.scope == 'category' %} · {{ c.get_scope_categories()|join(', ') }}{% endif %}
+                    {% if c.scope == 'products' %} · {{ c.product_links|length }} product(s){% endif %}
+                </td>
+                <td class="px-4 py-3 text-right">
+                    {% if c.discount_type == 'percent' %}−{{ c.discount_value }}%
+                    {% elif c.discount_type == 'fixed' %}−${{ "%.2f"|format(c.discount_value) }}
+                    {% else %}Free shipping{% endif %}
+                </td>
+                <td class="px-4 py-3 text-center">
+                    {% set label = c.status_label() %}
+                    <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded
+                                 {% if label == 'Live' %}bg-sage/20 text-sage
+                                 {% elif label == 'Scheduled' %}bg-navy/15 text-navy
+                                 {% elif label == 'Draft' %}bg-stone-100 text-stone-600
+                                 {% else %}bg-stone-100 text-stone-400{% endif %}">
+                        {{ label }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                    <form method="POST" action="{{ url_for('admin.campaign_toggle_publish', campaign_id=c.id) }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mr-2">
+                            {% if c.published %}Unpublish{% else %}Publish{% endif %}
+                        </button>
+                    </form>
+                    <a href="{{ url_for('admin.campaign_edit', campaign_id=c.id) }}"
+                       class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="font-display text-2xl text-coffee-dark mb-2">No campaigns yet</p>
+    <p class="text-coffee-light text-sm mb-6">Create time-bound discounts for retail or wholesale audiences.</p>
+    <a href="{{ url_for('admin.campaign_new') }}" class="btn-primary inline-block">Create first campaign</a>
+</div>
+{% endif %}
+
+{% endblock %}
