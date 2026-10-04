@@ -1,12 +1,109 @@
 {% extends "wholesale/base.html" %}
 {% block title %}Cart — Partner Portal{% endblock %}
 {% block page_title %}Wholesale cart{% endblock %}
-{% block page_subtitle %}{{ items|length }} item(s){% endblock %}
+{% block page_subtitle %}{{ count }} item(s){% endblock %}
 
 {% block content %}
-<div class="bg-white border border-coffee-dark/8 rounded-lg p-12 text-center">
-    <p class="font-display text-2xl text-navy mb-3">Full cart &amp; checkout — coming soon</p>
-    <p class="text-coffee-light text-sm mb-6">This is being built in Patch 10.4.</p>
-    <a href="{{ url_for('wholesale.catalog') }}" class="btn-primary inline-block">← Back to catalog</a>
+
+{% if not lines %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="font-display text-2xl text-navy mb-2">Your cart is empty</p>
+    <p class="text-coffee-light text-sm mb-6">Add products from the catalog to start a wholesale order.</p>
+    <a href="{{ url_for('wholesale.catalog') }}" class="btn-primary inline-block">Browse catalog</a>
 </div>
+{% else %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <div class="lg:col-span-2 space-y-3">
+        {% for line in lines %}
+        {% set item = line.item %}
+        {% set p = item.product %}
+        {% set info = line.info %}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-4 flex gap-4 items-center">
+            <img src="{{ p.image|imgurl }}"
+                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                 alt="{{ p.name }}"
+                 class="w-20 h-20 object-cover rounded bg-parchment shrink-0">
+
+            <div class="flex-1 min-w-0">
+                <a href="{{ url_for('wholesale.catalog_product', slug=p.slug) }}"
+                   class="font-display text-lg text-navy hover:text-spice">
+                    {{ p.name }}
+                </a>
+                <p class="text-[11px] tracking-widest uppercase text-coffee-light mt-1">
+                    {{ p.category }}
+                    {% if p.origin_country %} · {{ p.origin_country }}{% endif %}
+                    · {{ p|unit_label }}
+                </p>
+                <p class="text-sm mt-1.5">
+                    <span class="font-medium">${{ "%.2f"|format(info.price) }}</span> each
+                    <span class="text-coffee-light line-through ml-1 text-xs">${{ "%.2f"|format(info.list_price) }}</span>
+                    <span class="text-[10px] tracking-widest uppercase text-sage ml-2">−{{ info.discount_pct }}%</span>
+                </p>
+                {% if info.min_quantity > 1 %}
+                <p class="text-[11px] text-spice mt-0.5">MOQ {{ info.min_quantity }}</p>
+                {% endif %}
+            </div>
+
+            <form method="POST" action="{{ url_for('wholesale.cart_update', item_id=item.id) }}" class="flex items-center gap-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="number" name="quantity" value="{{ item.quantity }}"
+                       min="{{ info.min_quantity }}"
+                       class="w-20 border border-coffee-dark/20 rounded-sm px-2 py-1.5 text-center text-sm bg-cream">
+                <button class="text-[10px] tracking-widest uppercase bg-parchment px-2 py-1.5 rounded-sm hover:bg-navy hover:text-cream">↻</button>
+            </form>
+
+            <p class="font-display text-lg w-24 text-right text-navy">${{ "%.2f"|format(line.line_total) }}</p>
+
+            <form method="POST" action="{{ url_for('wholesale.cart_remove', item_id=item.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="text-coffee-light hover:text-red-700 text-xl leading-none" title="Remove">×</button>
+            </form>
+        </div>
+        {% endfor %}
+
+        <div class="flex justify-between pt-4 text-xs tracking-widest uppercase">
+            <a href="{{ url_for('wholesale.catalog') }}" class="text-spice hover:text-navy">← Continue shopping</a>
+            <form method="POST" action="{{ url_for('wholesale.cart_clear') }}" onsubmit="return confirm('Clear entire cart?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="text-coffee-light hover:text-red-700">Clear cart</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="lg:col-span-1">
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5 sticky top-24">
+            <h2 class="font-display text-xl text-navy mb-4">Order summary</h2>
+
+            <div class="space-y-2 text-sm mb-4">
+                <div class="flex justify-between">
+                    <span class="text-coffee-light">Subtotal</span>
+                    <span>${{ "%.2f"|format(subtotal) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-coffee-light">Shipping</span>
+                    <span>{% if shipping == 0 %}Free{% else %}${{ "%.2f"|format(shipping) }}{% endif %}</span>
+                </div>
+                {% if shipping > 0 %}
+                <p class="text-xs text-coffee-light italic pt-1">
+                    Free trade shipping over $250. Add ${{ "%.2f"|format(250 - subtotal) }} more.
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="border-t border-coffee-dark/10 pt-3 mb-5 flex justify-between font-display text-2xl text-navy">
+                <span>Total</span>
+                <span>${{ "%.2f"|format(total) }}</span>
+            </div>
+
+            <a href="{{ url_for('wholesale.checkout') }}" class="btn-primary block text-center w-full">
+                Proceed to checkout →
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
 {% endblock %}

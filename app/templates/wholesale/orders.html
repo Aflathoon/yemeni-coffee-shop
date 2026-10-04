@@ -1,9 +1,10 @@
 {% extends "wholesale/base.html" %}
 {% block title %}Orders — Partner Portal{% endblock %}
-{% block page_title %}Orders{% endblock %}
-{% block page_subtitle %}Past and pending orders{% endblock %}
+{% block page_title %}Order history{% endblock %}
+{% block page_subtitle %}{{ orders|length }} order(s){% endblock %}
 
 {% block content %}
+
 {% if orders %}
 <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
     <table class="w-full text-[15px]">
@@ -13,15 +14,30 @@
                 <th class="text-left px-4 py-3">Date</th>
                 <th class="text-right px-4 py-3">Total</th>
                 <th class="text-left px-4 py-3">Status</th>
+                <th class="text-right px-4 py-3"></th>
             </tr>
         </thead>
         <tbody>
             {% for o in orders %}
-            <tr class="border-b border-coffee-dark/5">
+            <tr class="border-b border-coffee-dark/5 hover:bg-parchment/40">
                 <td class="px-4 py-3 font-medium">#{{ o.id }}</td>
-                <td class="px-4 py-3 text-coffee-light text-[13px]">{{ o.created_at.strftime("%b %d, %Y") }}</td>
+                <td class="px-4 py-3 text-coffee-light text-[13px]">{{ o.created_at.strftime("%b %d, %Y · %H:%M") }}</td>
                 <td class="px-4 py-3 text-right">${{ "%.2f"|format(o.total) }}</td>
-                <td class="px-4 py-3 text-[11px] uppercase tracking-widest">{{ o.status }}</td>
+                <td class="px-4 py-3">
+                    <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded
+                                 {% if o.status == 'pending' %}bg-spice/15 text-spice
+                                 {% elif o.status == 'shipped' %}bg-sage/20 text-sage
+                                 {% elif o.status == 'delivered' %}bg-green-100 text-green-800
+                                 {% else %}bg-stone-100 text-stone-600{% endif %}">{{ o.status }}</span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                    <a href="{{ url_for('wholesale.order_detail', order_id=o.id) }}"
+                       class="text-[10px] tracking-widest uppercase text-spice hover:text-navy mr-2">View</a>
+                    <form method="POST" action="{{ url_for('wholesale.order_reorder', order_id=o.id) }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-spice">↻ Reorder</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -30,10 +46,9 @@
 {% else %}
 <div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
     <p class="font-display text-2xl text-navy mb-2">No orders yet</p>
-    <p class="text-coffee-light text-sm mb-6">Once you place your first order, it will appear here.</p>
-    {% if acct.is_approved %}
+    <p class="text-coffee-light text-sm mb-6">Once you place your first wholesale order, it will appear here.</p>
     <a href="{{ url_for('wholesale.catalog') }}" class="btn-primary inline-block">Browse catalog</a>
-    {% endif %}
 </div>
 {% endif %}
+
 {% endblock %}

@@ -576,6 +576,7 @@ def settings():
             "WHOLESALE_DISCOUNT_SILVER",
             "WHOLESALE_DISCOUNT_GOLD",
             "WHOLESALE_MOQ_DEFAULT",
+            "WHOLESALE_MOQ_ENFORCE",
         ]
         for f in fields:
             if f in request.form:
@@ -1267,3 +1268,5 @@ def wholesale_account_debug_status(acct_id):
         "custom_discount_pct": acct.custom_discount_pct,
         "approved_at": acct.approved_at.isoformat() if acct.approved_at else None,
     }
+
+

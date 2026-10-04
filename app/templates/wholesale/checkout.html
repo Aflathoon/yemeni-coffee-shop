@@ -1,0 +1,103 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Checkout — Partner Portal{% endblock %}
+{% block page_title %}Checkout{% endblock %}
+{% block page_subtitle %}Confirm shipping details for order{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <form method="POST" class="lg:col-span-2 bg-white border border-coffee-dark/8 rounded-lg p-6 space-y-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <h2 class="font-display text-lg text-navy mb-3 pb-2 border-b border-coffee-dark/10">Shipping address</h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Address *</label>
+                    <input type="text" name="address_line" required value="{{ form.address_line or '' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">City *</label>
+                        <input type="text" name="city" required value="{{ form.city or '' }}"
+                               class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Postal code</label>
+                        <input type="text" name="postal_code" value="{{ form.postal_code or '' }}"
+                               class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Country *</label>
+                    <input type="text" name="country" required value="{{ form.country or '' }}"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="font-display text-lg text-navy mb-3 pb-2 border-b border-coffee-dark/10">Order details</h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Your PO number (optional)</label>
+                    <input type="text" name="po_number" value="{{ form.po_number or '' }}"
+                           placeholder="e.g. PO-2026-0412"
+                           class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream">
+                </div>
+                <div>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Notes</label>
+                    <textarea name="notes" rows="3"
+                              class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream"
+                              placeholder="Delivery instructions, special requirements…">{{ form.notes or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary w-full">
+            Place order · ${{ "%.2f"|format(total) }}
+        </button>
+        <p class="text-xs text-coffee-light text-center italic">
+            Payment terms and invoicing handled offline.
+        </p>
+    </form>
+
+    <div class="lg:col-span-1">
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5 sticky top-24">
+            <h2 class="font-display text-xl text-navy mb-4">Order summary</h2>
+
+            <div class="space-y-3 mb-5 max-h-72 overflow-auto pr-1">
+                {% for line in lines %}
+                <div class="flex gap-3 text-sm">
+                    <img src="{{ line.item.product.image|imgurl }}"
+                         onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                         alt=""
+                         class="w-12 h-12 rounded object-cover bg-parchment shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-display text-sm text-navy truncate">{{ line.item.product.name }}</p>
+                        <p class="text-[11px] text-coffee-light">
+                            {{ line.item.quantity }} × ${{ "%.2f"|format(line.info.price) }}
+                        </p>
+                    </div>
+                    <p class="font-medium text-sm">${{ "%.2f"|format(line.line_total) }}</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="border-t border-coffee-dark/10 pt-4 space-y-2 text-sm">
+                <div class="flex justify-between"><span class="text-coffee-light">Subtotal</span><span>${{ "%.2f"|format(subtotal) }}</span></div>
+                <div class="flex justify-between"><span class="text-coffee-light">Shipping</span><span>{% if shipping == 0 %}Free{% else %}${{ "%.2f"|format(shipping) }}{% endif %}</span></div>
+            </div>
+
+            <div class="border-t border-coffee-dark/10 mt-4 pt-4 flex justify-between font-display text-2xl text-navy">
+                <span>Total</span>
+                <span>${{ "%.2f"|format(total) }}</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -128,12 +128,230 @@ def catalog_product(slug):
     return render_template("wholesale/product.html", acct=acct, product=product, price_info=info)
 
 
+# ---------- Wholesale cart ----------
+
+def _ws_cart_items(acct):
+    from app.models import CartItem
+    return (CartItem.query
+            .filter_by(wholesale_id=acct.id)
+            .order_by(CartItem.added_at.desc()).all())
+
+
+def _ws_cart_summary(acct):
+    """Return subtotal, shipping, total, and item count for a wholesale cart."""
+    from app.pricing import wholesale_price_for, get_discount_percent
+    items = _ws_cart_items(acct)
+    subtotal = 0.0
+    for it in items:
+        info = wholesale_price_for(acct, it.product)
+        subtotal += info["price"] * it.quantity
+    subtotal = round(subtotal, 2)
+    shipping = 0.0 if subtotal >= 250 else (15.0 if subtotal > 0 else 0.0)
+    total = round(subtotal + shipping, 2)
+    count = sum(it.quantity for it in items)
+    return {
+        "items": items,
+        "subtotal": subtotal,
+        "shipping": shipping,
+        "total": total,
+        "count": count,
+    }
+
+
 @bp.route("/cart")
 @approved_wholesale_required
 def cart_view():
-    """Wholesale cart. Full implementation in Patch 10.4."""
+    from app.pricing import wholesale_price_for
     acct = current_wholesale()
-    items = (CartItem.query
-             .filter_by(wholesale_id=acct.id)
-             .order_by(CartItem.added_at.desc()).all())
-    return render_template("wholesale/cart.html", acct=acct, items=items, price_info={})
+    summary = _ws_cart_summary(acct)
+
+    # Pre-compute per-line pricing
+    lines = []
+    for it in summary["items"]:
+        info = wholesale_price_for(acct, it.product)
+        lines.append({
+            "item": it,
+            "info": info,
+            "line_total": round(info["price"] * it.quantity, 2),
+        })
+
+    return render_template(
+        "wholesale/cart.html",
+        acct=acct,
+        lines=lines,
+        subtotal=summary["subtotal"],
+        shipping=summary["shipping"],
+        total=summary["total"],
+        count=summary["count"],
+    )
+
+
+@bp.route("/cart/update/<int:item_id>", methods=["POST"])
+@approved_wholesale_required
+def cart_update(item_id):
+    from app.models import CartItem
+    from app.pricing import wholesale_price_for
+    acct = current_wholesale()
+    item = CartItem.query.get_or_404(item_id)
+    if item.wholesale_id != acct.id:
+        flash("That item isn't in your cart.", "error")
+        return redirect(url_for("wholesale.cart_view"))
+
+    info = wholesale_price_for(acct, item.product)
+    moq = max(1, info.get("min_quantity") or 1)
+
+    try:
+        qty = int(request.form.get("quantity", str(moq)) or moq)
+    except ValueError:
+        qty = moq
+    if qty < moq:
+        qty = moq
+        flash(f"Minimum quantity for {item.product.name} is {moq}.", "warning")
+
+    item.quantity = qty
+    db.session.commit()
+    return redirect(url_for("wholesale.cart_view"))
+
+
+@bp.route("/cart/remove/<int:item_id>", methods=["POST"])
+@approved_wholesale_required
+def cart_remove(item_id):
+    from app.models import CartItem
+    acct = current_wholesale()
+    item = CartItem.query.get_or_404(item_id)
+    if item.wholesale_id != acct.id:
+        flash("That item isn't in your cart.", "error")
+        return redirect(url_for("wholesale.cart_view"))
+    db.session.delete(item)
+    db.session.commit()
+    flash("Item removed.", "success")
+    return redirect(url_for("wholesale.cart_view"))
+
+
+@bp.route("/cart/clear", methods=["POST"])
+@approved_wholesale_required
+def cart_clear():
+    from app.models import CartItem
+    acct = current_wholesale()
+    CartItem.query.filter_by(wholesale_id=acct.id).delete()
+    db.session.commit()
+    flash("Cart cleared.", "success")
+    return redirect(url_for("wholesale.cart_view"))
+
+
+# ---------- Wholesale checkout ----------
+
+@bp.route("/checkout", methods=["GET", "POST"])
+@approved_wholesale_required
+def checkout():
+    from app.models import Order, OrderItem, CartItem
+    from app.pricing import wholesale_price_for
+    from datetime import datetime
+
+    acct = current_wholesale()
+    summary = _ws_cart_summary(acct)
+
+    if not summary["items"]:
+        flash("Your wholesale cart is empty.", "warning")
+        return redirect(url_for("wholesale.catalog"))
+
+    if request.method == "POST":
+        # Use shipping address from account, but allow override
+        address_line = request.form.get("address_line", "").strip() or acct.address_line
+        city = request.form.get("city", "").strip() or acct.city
+        postal_code = request.form.get("postal_code", "").strip() or acct.postal_code
+        country = request.form.get("country", "").strip() or acct.country
+        notes = request.form.get("notes", "").strip()
+        po_number = request.form.get("po_number", "").strip()
+
+        errors = []
+        if not address_line: errors.append("Shipping address is required.")
+        if not city: errors.append("City is required.")
+        if not country: errors.append("Country is required.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "wholesale/checkout.html",
+                acct=acct,
+                lines=[],
+                subtotal=summary["subtotal"],
+                shipping=summary["shipping"],
+                total=summary["total"],
+                form=request.form,
+            )
+
+        # Build the order
+        order = Order(
+            user_id=None,
+            wholesale_id=acct.id,
+            email=acct.email,
+            full_name=acct.company_name,
+            address_line=address_line,
+            city=city,
+            postal_code=postal_code or "",
+            country=country,
+            notes=(f"PO: {po_number}\n" if po_number else "") + (notes or ""),
+            status="pending",
+            subtotal=summary["subtotal"],
+            shipping=summary["shipping"],
+            total=summary["total"],
+        )
+        db.session.add(order)
+        db.session.flush()
+
+        for it in summary["items"]:
+            info = wholesale_price_for(acct, it.product)
+            db.session.add(OrderItem(
+                order_id=order.id,
+                product_id=it.product_id,
+                product_name=it.product.name,
+                product_price=info["price"],       # snapshot wholesale price
+                quantity=it.quantity,
+                line_total=round(info["price"] * it.quantity, 2),
+            ))
+            db.session.delete(it)
+
+        db.session.commit()
+        flash(f"Wholesale order #{order.id} placed.", "success")
+        return redirect(url_for("wholesale.order_confirmation", order_id=order.id))
+
+    # GET — prefill from account
+    form = {
+        "address_line": acct.address_line or "",
+        "city": acct.city or "",
+        "postal_code": acct.postal_code or "",
+        "country": acct.country or "",
+    }
+
+    lines = []
+    for it in summary["items"]:
+        info = wholesale_price_for(acct, it.product)
+        lines.append({
+            "item": it,
+            "info": info,
+            "line_total": round(info["price"] * it.quantity, 2),
+        })
+
+    return render_template(
+        "wholesale/checkout.html",
+        acct=acct,
+        lines=lines,
+        subtotal=summary["subtotal"],
+        shipping=summary["shipping"],
+        total=summary["total"],
+        form=form,
+    )
+
+
+@bp.route("/orders/<int:order_id>")
+@approved_wholesale_required
+def order_confirmation(order_id):
+    from app.models import Order
+    acct = current_wholesale()
+    order = Order.query.get_or_404(order_id)
+    if order.wholesale_id != acct.id:
+        flash("That order isn't yours.", "error")
+        return redirect(url_for("wholesale.orders"))
+    return render_template("wholesale/order_confirmation.html", acct=acct, order=order)

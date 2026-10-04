@@ -177,6 +177,8 @@ class CartItem(db.Model):
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    wholesale_id = db.Column(db.Integer, db.ForeignKey("wholesale_account.id"), nullable=True, index=True)
+    po_number = db.Column(db.String(60))
     email = db.Column(db.String(120), nullable=False)
     full_name = db.Column(db.String(200), nullable=False)
     address_line = db.Column(db.String(300), nullable=False)
@@ -184,13 +186,66 @@ class Order(db.Model):
     postal_code = db.Column(db.String(30), nullable=False)
     country = db.Column(db.String(100), nullable=False)
     notes = db.Column(db.Text)
+
+    # Status + lifecycle timestamps
     status = db.Column(db.String(50), default="pending", index=True)
+    paid_at = db.Column(db.DateTime)
+    shipped_at = db.Column(db.DateTime)
+    delivered_at = db.Column(db.DateTime)
+    cancelled_at = db.Column(db.DateTime)
+    cancelled_by = db.Column(db.String(20))       # customer | admin | system
+    cancellation_reason = db.Column(db.Text)
+    tracking_number = db.Column(db.String(120))
+    courier = db.Column(db.String(80))
+
     subtotal = db.Column(db.Float, default=0.0)
     shipping = db.Column(db.Float, default=0.0)
     total = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     items = db.relationship("OrderItem", backref="order", cascade="all, delete-orphan")
+    events = db.relationship("OrderEvent", backref="order",
+                             cascade="all, delete-orphan",
+                             order_by="OrderEvent.created_at.asc()")
+
+    # ---------- helpers ----------
+
+    VALID_TRANSITIONS = {
+        "pending":   ["paid", "cancelled"],
+        "paid":      ["shipped", "cancelled"],
+        "shipped":   ["delivered", "cancelled"],
+        "delivered": [],
+        "cancelled": [],
+    }
+
+    def can_transition_to(self, new_status):
+        return new_status in self.VALID_TRANSITIONS.get(self.status, [])
+
+    @property
+    def is_terminal(self):
+        return self.status in ("delivered", "cancelled")
+
+    def status_label(self):
+        return {
+            "pending": "Pending",
+            "paid": "Paid",
+            "shipped": "Shipped",
+            "delivered": "Delivered",
+            "cancelled": "Cancelled",
+        }.get(self.status, self.status.title() if self.status else "—")
+
+
+class OrderEvent(db.Model):
+    """Audit log of every status change + note on an order."""
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("order.id"), nullable=False, index=True)
+    event_type = db.Column(db.String(40))          # status_change | note | tracking_added
+    from_status = db.Column(db.String(30))
+    to_status = db.Column(db.String(30))
+    note = db.Column(db.Text)
+    actor_email = db.Column(db.String(120))        # who triggered it (email)
+    actor_role = db.Column(db.String(20))          # admin | customer | wholesale | system
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
 
 class OrderItem(db.Model):

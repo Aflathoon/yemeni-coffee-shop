@@ -15,18 +15,11 @@ def dashboard():
     # We compute from Order table if any exist with this wholesale_id
     from app.models import Order
 
-    total_orders = 0
-    total_spend = 0.0
-    recent_orders = []
-    try:
-        total_orders = Order.query.filter_by(wholesale_id=acct.id).count()
-        rows = db.session.query(func.sum(Order.total)).filter(Order.wholesale_id == acct.id).first()
-        total_spend = float(rows[0] or 0) if rows else 0.0
-        recent_orders = (Order.query.filter_by(wholesale_id=acct.id)
-                         .order_by(Order.created_at.desc()).limit(5).all())
-    except Exception:
-        # Order.wholesale_id may not exist yet (added in Patch 10.5) — graceful
-        pass
+    total_orders = Order.query.filter_by(wholesale_id=acct.id).count()
+    rows = db.session.query(func.sum(Order.total)).filter(Order.wholesale_id == acct.id).first()
+    total_spend = float(rows[0] or 0) if rows else 0.0
+    recent_orders = (Order.query.filter_by(wholesale_id=acct.id)
+                     .order_by(Order.created_at.desc()).limit(5).all())
 
     discount = 0.0
     if acct.is_approved:
@@ -46,9 +39,62 @@ def dashboard():
 @bp.route("/orders")
 @wholesale_required
 def orders():
-    """Order history. Full list will come with Patch 10.5."""
+    """Full order history for this partner."""
+    from app.models import Order
     acct = current_wholesale()
-    return render_template("wholesale/orders.html", acct=acct, orders=[])
+    if not acct.is_approved:
+        flash("Order history is available once your account is approved.", "warning")
+        return redirect(url_for("wholesale.dashboard"))
+    all_orders = (Order.query
+                  .filter_by(wholesale_id=acct.id)
+                  .order_by(Order.created_at.desc()).all())
+    return render_template("wholesale/orders.html", acct=acct, orders=all_orders)
+
+
+@bp.route("/orders/<int:order_id>")
+@wholesale_required
+def order_detail(order_id):
+    """Single order view."""
+    from app.models import Order
+    acct = current_wholesale()
+    order = Order.query.get_or_404(order_id)
+    if order.wholesale_id != acct.id:
+        flash("That order isn't yours.", "error")
+        return redirect(url_for("wholesale.orders"))
+    return render_template("wholesale/order_detail.html", acct=acct, order=order)
+
+
+@bp.route("/orders/<int:order_id>/reorder", methods=["POST"])
+@wholesale_required
+def order_reorder(order_id):
+    """Add all items from a past order back to the cart."""
+    from app.models import Order, CartItem, Product
+    acct = current_wholesale()
+    order = Order.query.get_or_404(order_id)
+    if order.wholesale_id != acct.id:
+        flash("That order isn't yours.", "error")
+        return redirect(url_for("wholesale.orders"))
+
+    added = 0
+    for item in order.items:
+        product = Product.query.get(item.product_id)
+        if not product or not product.active:
+            continue
+        existing = CartItem.query.filter_by(
+            wholesale_id=acct.id, product_id=product.id
+        ).first()
+        if existing:
+            existing.quantity += item.quantity
+        else:
+            db.session.add(CartItem(
+                wholesale_id=acct.id,
+                product_id=product.id,
+                quantity=item.quantity,
+            ))
+        added += 1
+    db.session.commit()
+    flash(f"Added {added} item(s) from order #{order.id} to your cart.", "success")
+    return redirect(url_for("wholesale.cart_view"))
 
 
 @bp.route("/price-list")

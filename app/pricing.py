@@ -109,7 +109,7 @@ def wholesale_price_for(wholesale_account, product):
             "list_price": round(base, 2),
             "source": "override",
             "discount_pct": round((1 - override["price"] / base) * 100.0, 1) if base > 0 else 0.0,
-            "min_quantity": override["min_quantity"],
+            "min_quantity": max(1, int(override.get("min_quantity") or get_default_moq() if moq_enforced() else 1)),
             "notes": override["notes"],
         }
 
@@ -123,7 +123,7 @@ def wholesale_price_for(wholesale_account, product):
                 "list_price": round(base, 2),
                 "source": "custom",
                 "discount_pct": pct,
-                "min_quantity": 1,
+                "min_quantity": get_default_moq() if moq_enforced() else 1,
                 "notes": None,
             }
         except (ValueError, TypeError):
@@ -137,6 +137,43 @@ def wholesale_price_for(wholesale_account, product):
         "list_price": round(base, 2),
         "source": "tier",
         "discount_pct": pct,
-        "min_quantity": 1,
+        "min_quantity": get_default_moq() if moq_enforced() else 1,
         "notes": None,
     }
+
+
+# ---------- Wholesale MOQ ----------
+
+def get_default_moq():
+    """Global default minimum order quantity for wholesale orders."""
+    raw = Setting.get("WHOLESALE_MOQ_DEFAULT")
+    try:
+        v = int(raw) if raw is not None else 10
+        return max(1, v)
+    except (ValueError, TypeError):
+        return 10
+
+
+def moq_enforced():
+    raw = Setting.get("WHOLESALE_MOQ_ENFORCE")
+    if raw is None:
+        return True   # enforced by default
+    return str(raw).strip().lower() not in ("0", "false", "no", "off")
+
+
+def effective_moq(wholesale_account, product):
+    """
+    Minimum order quantity for a partner buying a product.
+    Priority:
+      1. Per-product override's min_quantity (if set)
+      2. Global default MOQ (if enforcement is on)
+      3. 1 (no minimum)
+    """
+    if not moq_enforced():
+        return 1
+
+    override = override_for(wholesale_account, product) if wholesale_account else None
+    if override and override.get("min_quantity"):
+        return max(1, int(override["min_quantity"]))
+
+    return get_default_moq()
