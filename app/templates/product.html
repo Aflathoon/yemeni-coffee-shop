@@ -3,7 +3,7 @@
 {% block content %}
 
 <nav class="text-[11px] tracking-widest uppercase text-coffee-light mb-6">
-    <a href="/" class="hover:text-spice">Home</a>
+    <a href="/" class="hover:text-spice">{{ _("Home") }}</a>
     <span class="mx-2">/</span>
     <a href="/?category={{ product.category }}" class="hover:text-spice">{{ product.category }}</a>
     <span class="mx-2">/</span>
@@ -62,10 +62,10 @@
             <input type="number" name="quantity" min="1" value="1"
                    class="w-20 border border-coffee-dark/20 rounded-sm px-3 py-3 text-center bg-white focus:outline-none focus:border-coffee-dark">
             <button type="submit" class="flex-1 btn-primary">
-                Add to Cart
+                {{ _("Add to Cart") }}
             </button>
         </form>
-        <p class="text-xs text-coffee-light tracking-wider">Free shipping over $75 · Ships within 1–2 business days</p>
+        <p class="text-xs text-coffee-light tracking-wider">{{ _("Free shipping over $75 · Ships within 1–2 business days") }}</p>
 
         {% if product.gallery %}
         <div class="mt-8 grid grid-cols-4 gap-2">
@@ -82,11 +82,11 @@
         {% endif %}
 
         <div class="mt-8 border-t border-coffee-dark/10 pt-6">
-            <h3 class="font-display text-lg text-coffee-dark mb-3">The Story</h3>
+            <h3 class="font-display text-lg text-coffee-dark mb-3">{{ _("The Story") }}</h3>
             <div class="space-y-2 text-sm text-coffee-dark/85 leading-relaxed">
-                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">Origin</span> {{ explanation.origin }}</p>
-                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">Use</span> {{ explanation.recommended_use }}</p>
-                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">Flavor</span> {{ explanation.flavor_notes }}</p>
+                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">{{ _("Origin") }}</span> {{ explanation.origin }}</p>
+                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">{{ _("Use") }}</span> {{ explanation.recommended_use }}</p>
+                <p><span class="text-spice tracking-widest uppercase text-[10px] mr-2">{{ _("Flavor") }}</span> {{ explanation.flavor_notes }}</p>
             </div>
         </div>
     </div>
@@ -94,7 +94,7 @@
 
 {% if related %}
 <section class="border-t border-coffee-dark/10 pt-10">
-    <h2 class="font-display text-2xl text-coffee-dark mb-6">More from this collection</h2>
+    <h2 class="font-display text-2xl text-coffee-dark mb-6">{{ _("More from this collection") }}</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
         {% for p in related %}
         <a href="/product/{{ p.slug }}" class="card hover:shadow-md transition-shadow group">

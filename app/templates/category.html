@@ -9,7 +9,7 @@
 <section class="relative mb-8 rounded-lg overflow-hidden bg-parchment">
     <div class="grid grid-cols-1 md:grid-cols-3">
         <div class="md:col-span-2 p-8 md:p-12 flex flex-col justify-center bg-gradient-to-br from-coffee-dark via-coffee to-coffee-light text-cream">
-            <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">Shop · {{ category.label }}</p>
+            <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">{{ _("Shop") }} · {{ category.label }}</p>
             <h1 class="font-display text-4xl md:text-5xl font-semibold leading-tight mb-4">
                 {{ category.tagline }}
             </h1>
@@ -43,11 +43,11 @@
 {# ---------- Origin filter chips (if any) ---------- #}
 {% if countries %}
 <div class="flex flex-wrap gap-2 items-center mb-5 pb-4 border-b border-coffee-dark/10">
-    <span class="text-[10px] tracking-widest uppercase text-coffee-light">Origin:</span>
+    <span class="text-[10px] tracking-widest uppercase text-coffee-light">{{ _("Origin:") }}</span>
     <a href="{{ url_for('main.category_page', category_slug=category_slug, q=search or None, sort=sort, per_page=per_page) }}"
        class="text-[11px] px-2 py-1 rounded-sm border
               {% if not active_country %}bg-spice text-cream border-spice{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
-        All
+        {{ _("All") }}
     </a>
     {% for c in countries %}
     <a href="{{ url_for('main.category_page', category_slug=category_slug, country=c.name, q=search or None, sort=sort, per_page=per_page) }}"
@@ -70,17 +70,17 @@
         {% if active_country %}<input type="hidden" name="country" value="{{ active_country }}">{% endif %}
         {% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}
 
-        <label class="text-coffee-light text-[11px] tracking-widest uppercase">Sort</label>
+        <label class="text-coffee-light text-[11px] tracking-widest uppercase">{{ _("Sort") }}</label>
         <select name="sort" onchange="this.form.submit()"
                 class="border border-coffee-dark/20 rounded-sm px-2 py-1.5 bg-cream text-[13px]">
-            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
-            <option value="featured" {% if sort == 'featured' %}selected{% endif %}>Featured first</option>
-            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
-            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
-            <option value="name" {% if sort == 'name' %}selected{% endif %}>Name A→Z</option>
+            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>{{ _("Newest first") }}</option>
+            <option value="featured" {% if sort == 'featured' %}selected{% endif %}>{{ _("Featured first") }}</option>
+            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>{{ _("Price ↑") }}</option>
+            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>{{ _("Price ↓") }}</option>
+            <option value="name" {% if sort == 'name' %}selected{% endif %}>{{ _("Name A→Z") }}</option>
         </select>
 
-        <label class="text-coffee-light text-[11px] tracking-widest uppercase ml-2">Per page</label>
+        <label class="text-coffee-light text-[11px] tracking-widest uppercase ml-2">{{ _("Per page") }}</label>
         <select name="per_page" onchange="this.form.submit()"
                 class="border border-coffee-dark/20 rounded-sm px-2 py-1.5 bg-cream text-[13px]">
             {% for n in [12, 24, 48, 96, 200] %}
@@ -96,9 +96,9 @@
 <nav class="flex items-center justify-center gap-1 mb-6 text-sm flex-wrap">
     {% if page > 1 %}
     <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=1) }}"
-       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">« First</a>
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ _("« First") }}</a>
     <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page-1) }}"
-       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">‹ Prev</a>
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ _("‹ Prev") }}</a>
     {% endif %}
 
     {% for n in page_numbers %}
@@ -114,9 +114,9 @@
 
     {% if page < total_pages %}
     <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page+1) }}"
-       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Next ›</a>
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ _("Next ›") }}</a>
     <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=total_pages) }}"
-       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Last »</a>
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ _("Last »") }}</a>
     {% endif %}
 </nav>
 {% endif %}
@@ -169,18 +169,18 @@
                 <input type="hidden" name="quantity" value="1">
                 <button type="submit"
                         class="text-[10px] tracking-[0.15em] uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-spice transition">
-                    Add
+                    {{ _("Add") }}
                 </button>
             </form>
         </div>
     </div>
     {% else %}
     <div class="col-span-full text-center py-20">
-        <p class="font-display text-2xl text-coffee-dark mb-3">Nothing here yet</p>
+        <p class="font-display text-2xl text-coffee-dark mb-3">{{ _("Nothing here yet") }}</p>
         <p class="text-coffee-light text-sm mb-4">
-            We haven't added any {{ category.label|lower }} products yet.
+            {{ _("We haven't added any products in this category yet.") }}
         </p>
-        <a href="/" class="text-spice hover:text-coffee-dark text-xs tracking-widest uppercase">Back to shop</a>
+        <a href="/" class="text-spice hover:text-coffee-dark text-xs tracking-widest uppercase">{{ _("Back to shop") }}</a>
     </div>
     {% endfor %}
 </div>
@@ -221,7 +221,7 @@
             onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
             class="group flex items-center gap-2 text-[11px] tracking-widest uppercase text-coffee-light hover:text-spice transition">
         <span class="w-8 h-8 rounded-full bg-parchment group-hover:bg-spice group-hover:text-cream flex items-center justify-center transition">↑</span>
-        Back to top
+        {{ _("Back to top") }}
     </button>
 </div>
 

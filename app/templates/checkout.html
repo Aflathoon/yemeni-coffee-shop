@@ -2,7 +2,7 @@
 {% block title %}Checkout — The Spice & Roast Co.{% endblock %}
 {% block content %}
 
-<h1 class="font-display text-4xl text-coffee-dark mb-8">Checkout</h1>
+<h1 class="font-display text-4xl text-coffee-dark mb-8">{{ _("Checkout") }}</h1>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -10,50 +10,50 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div>
-            <h2 class="font-display text-xl text-coffee-dark mb-4 pb-2 border-b border-coffee-dark/10">Contact</h2>
-            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Email</label>
+            <h2 class="font-display text-xl text-coffee-dark mb-4 pb-2 border-b border-coffee-dark/10">{{ _("Contact") }}</h2>
+            <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">{{ _("Email") }}</label>
             <input type="email" name="email" required
                    value="{{ form.get('email', '') }}"
                    class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
         </div>
 
         <div>
-            <h2 class="font-display text-xl text-coffee-dark mb-4 pb-2 border-b border-coffee-dark/10 mt-6">Shipping Address</h2>
+            <h2 class="font-display text-xl text-coffee-dark mb-4 pb-2 border-b border-coffee-dark/10 mt-6">{{ _("Shipping Address") }}</h2>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Full name</label>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">{{ _("Full name") }}</label>
                     <input type="text" name="full_name" required
                            value="{{ form.get('full_name', '') }}"
                            class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
                 </div>
                 <div>
-                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Address</label>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">{{ _("Address") }}</label>
                     <input type="text" name="address_line" required
                            value="{{ form.get('address_line', '') }}"
                            class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">City</label>
+                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">{{ _("City") }}</label>
                         <input type="text" name="city" required
                                value="{{ form.get('city', '') }}"
                                class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
                     </div>
                     <div>
-                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Postal code</label>
+                        <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">{{ _("Postal code") }}</label>
                         <input type="text" name="postal_code" required
                                value="{{ form.get('postal_code', '') }}"
                                class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Country</label>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">{{ _("Country") }}</label>
                     <input type="text" name="country" required
                            value="{{ form.get('country', '') }}"
                            class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">
                 </div>
                 <div>
-                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">Notes (optional)</label>
+                    <label class="block text-[11px] tracking-widest uppercase text-coffee-light mb-1">{{ _("Notes (optional)") }}</label>
                     <textarea name="notes" rows="3"
                               class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream focus:outline-none focus:border-coffee-dark">{{ form.get('notes', '') }}</textarea>
                 </div>
@@ -61,16 +61,16 @@
         </div>
 
         <button type="submit" class="btn-primary w-full mt-4">
-            Place order · ${{ "%.2f"|format(total) }}
+            {{ _("Place order") }} · ${{ "%.2f"|format(total) }}
         </button>
         <p class="text-xs text-coffee-light text-center italic">
-            Order is placed immediately. Real payment processing comes later.
+            {{ _("Order is placed immediately. Real payment processing comes later.") }}
         </p>
     </form>
 
     <div class="lg:col-span-1">
         <div class="bg-cream border border-coffee-dark/10 rounded-sm p-6 sticky top-28">
-            <h2 class="font-display text-2xl text-coffee-dark mb-4">Order Summary</h2>
+            <h2 class="font-display text-2xl text-coffee-dark mb-4">{{ _("Order Summary") }}</h2>
 
             <div class="space-y-3 mb-5 max-h-64 overflow-auto pr-1">
                 {% for item in items %}
@@ -89,12 +89,12 @@
             </div>
 
             <div class="border-t border-coffee-dark/15 pt-4 space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-coffee-light">Subtotal</span><span>${{ "%.2f"|format(subtotal) }}</span></div>
-                <div class="flex justify-between"><span class="text-coffee-light">Shipping</span><span>{% if shipping == 0 %}Free{% else %}${{ "%.2f"|format(shipping) }}{% endif %}</span></div>
+                <div class="flex justify-between"><span class="text-coffee-light">{{ _("Subtotal") }}</span><span>${{ "%.2f"|format(subtotal) }}</span></div>
+                <div class="flex justify-between"><span class="text-coffee-light">{{ _("Shipping") }}</span><span>{% if shipping == 0 %}{{ _("Free") }}{% else %}${{ "%.2f"|format(shipping) }}{% endif %}</span></div>
             </div>
 
             <div class="border-t border-coffee-dark/15 mt-4 pt-4 flex justify-between font-display text-2xl text-coffee-dark">
-                <span>Total</span>
+                <span>{{ _("Total") }}</span>
                 <span>${{ "%.2f"|format(total) }}</span>
             </div>
         </div>

@@ -2,13 +2,13 @@
 {% block title %}Cart — The Spice & Roast Co.{% endblock %}
 {% block content %}
 
-<h1 class="font-display text-4xl text-coffee-dark mb-8">Your Cart</h1>
+<h1 class="font-display text-4xl text-coffee-dark mb-8">{{ _("Your Cart") }}</h1>
 
 {% if not items %}
 <div class="bg-cream border border-coffee-dark/10 rounded-sm p-16 text-center">
-    <p class="font-display text-2xl text-coffee-dark mb-4">Your cart is empty.</p>
-    <p class="text-coffee-light mb-8 text-sm">Nothing here yet — go find something wonderful.</p>
-    <a href="/" class="btn-primary inline-block">Browse products</a>
+    <p class="font-display text-2xl text-coffee-dark mb-4">{{ _("Your cart is empty.") }}</p>
+    <p class="text-coffee-light mb-8 text-sm">{{ _("Nothing here yet — go find something wonderful.") }}</p>
+    <a href="/" class="btn-primary inline-block">{{ _("Browse products") }}</a>
 </div>
 {% else %}
 
@@ -43,7 +43,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="number" name="quantity" value="{{ item.quantity }}" min="1"
                        class="w-14 border border-coffee-dark/20 rounded-sm px-2 py-1 text-center text-sm bg-white">
-                <button class="text-[10px] tracking-widest uppercase bg-parchment px-2 py-1 rounded-sm hover:bg-coffee-dark hover:text-cream">Update</button>
+                <button class="text-[10px] tracking-widest uppercase bg-parchment px-2 py-1 rounded-sm hover:bg-coffee-dark hover:text-cream">{{ _("Update") }}</button>
             </form>
 
             <p class="font-semibold w-20 text-right">${{ "%.2f"|format((item.product|price_for) * item.quantity) }}</p>
@@ -56,26 +56,26 @@
         {% endfor %}
 
         <div class="flex justify-between pt-6 text-xs tracking-widest uppercase">
-            <a href="/" class="text-spice hover:text-coffee-dark">← Continue shopping</a>
+            <a href="/" class="text-spice hover:text-coffee-dark">← {{ _("Continue shopping") }}</a>
             <form method="POST" action="/cart/clear" onsubmit="return confirm('Clear entire cart?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="text-coffee-light hover:text-red-700">Clear cart</button>
+                <button class="text-coffee-light hover:text-red-700">{{ _("Clear cart") }}</button>
             </form>
         </div>
     </div>
 
     <div class="lg:col-span-1">
         <div class="bg-cream border border-coffee-dark/10 rounded-sm p-6 sticky top-28">
-            <h2 class="font-display text-2xl text-coffee-dark mb-5">Order Summary</h2>
+            <h2 class="font-display text-2xl text-coffee-dark mb-5">{{ _("Order Summary") }}</h2>
 
             <div class="space-y-2 text-sm mb-4">
                 <div class="flex justify-between">
-                    <span class="text-coffee-light">Subtotal</span>
+                    <span class="text-coffee-light">{{ _("Subtotal") }}</span>
                     <span>${{ "%.2f"|format(subtotal) }}</span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-coffee-light">Shipping</span>
-                    <span>{% if shipping == 0 %}Free{% else %}${{ "%.2f"|format(shipping) }}{% endif %}</span>
+                    <span class="text-coffee-light">{{ _("Shipping") }}</span>
+                    <span>{% if shipping == 0 %}{{ _("Free") }}{% else %}${{ "%.2f"|format(shipping) }}{% endif %}</span>
                 </div>
                 {% if shipping > 0 %}
                 <p class="text-xs text-coffee-light pt-1 italic">
@@ -85,11 +85,11 @@
             </div>
 
             <div class="border-t border-coffee-dark/15 pt-4 mb-6 flex justify-between font-display text-2xl text-coffee-dark">
-                <span>Total</span>
+                <span>{{ _("Total") }}</span>
                 <span>${{ "%.2f"|format(total) }}</span>
             </div>
 
-            <a href="/checkout" class="btn-primary block text-center w-full">Checkout →</a>
+            <a href="/checkout" class="btn-primary block text-center w-full">{{ _("Checkout →") }}</a>
         </div>
     </div>
 
