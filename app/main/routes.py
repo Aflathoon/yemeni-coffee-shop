@@ -46,17 +46,12 @@ def index():
     category = request.args.get("category")
     country = request.args.get("country")
     search = request.args.get("q", "").strip()
-    search = request.args.get("q", "").strip()
-    search = request.args.get("q", "").strip()
 
     q = Product.query
     if category:
         q = q.filter_by(category=category)
     if country:
         q = q.filter_by(origin_country=country)
-    if search:
-        like = f"%{search}%"
-        q = q.filter((Product.name.ilike(like)) | (Product.short_desc.ilike(like)) | (Product.description.ilike(like)) | (Product.origin_country.ilike(like)))
     if search:
         like = f"%{search}%"
         q = q.filter((Product.name.ilike(like)) | (Product.short_desc.ilike(like)) | (Product.description.ilike(like)) | (Product.origin_country.ilike(like)))
