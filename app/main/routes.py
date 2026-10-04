@@ -76,6 +76,8 @@ def index():
         "index.html",
         products=products, categories=categories, countries=countries,
         featured=featured, active_category=category, active_country=country,
+        hero_products=hero_products(limit=6) if not category and not country and not search else [],
+        strip_products=strip_products(per_category=3) if not category and not country and not search else [],
     )
 
 
@@ -315,3 +317,91 @@ def offers():
         samples[c.id] = prods
 
     return render_template("offers.html", campaigns=campaigns, samples=samples)
+
+
+# ---------- Hero carousel ----------
+
+def hero_products(limit=6):
+    """
+    Return a list of products for the homepage hero carousel.
+
+    Priority:
+      1. Products marked featured=True (up to limit)
+      2. Bestsellers from the last 30 days (by quantity)
+      3. Newest active products
+
+    Deduplicated, capped at `limit`.
+    """
+    from datetime import datetime, timedelta
+    from app.models import OrderItem, Order
+
+    chosen = []
+    chosen_ids = set()
+
+    # 1. Featured
+    featured = Product.query.filter_by(active=True, featured=True).limit(limit).all()
+    for p in featured:
+        if p.id not in chosen_ids:
+            chosen.append(p)
+            chosen_ids.add(p.id)
+
+    # 2. Bestsellers (last 30 days)
+    if len(chosen) < limit:
+        cutoff = datetime.utcnow() - timedelta(days=30)
+        rows = (
+            db.session.query(
+                OrderItem.product_id,
+                func.sum(OrderItem.quantity).label("qty"),
+            )
+            .join(Order, OrderItem.order_id == Order.id)
+            .filter(Order.created_at >= cutoff)
+            .filter(Order.status != "cancelled")
+            .group_by(OrderItem.product_id)
+            .order_by(func.sum(OrderItem.quantity).desc())
+            .limit(limit * 2)
+            .all()
+        )
+        for pid, qty in rows:
+            if len(chosen) >= limit:
+                break
+            if pid in chosen_ids:
+                continue
+            p = Product.query.get(pid)
+            if p and p.active:
+                chosen.append(p)
+                chosen_ids.add(p.id)
+
+    # 3. Newest
+    if len(chosen) < limit:
+        newest = (Product.query
+                  .filter_by(active=True)
+                  .order_by(Product.created_at.desc())
+                  .limit(limit * 2)
+                  .all())
+        for p in newest:
+            if len(chosen) >= limit:
+                break
+            if p.id not in chosen_ids:
+                chosen.append(p)
+                chosen_ids.add(p.id)
+
+    return chosen[:limit]
+
+
+# ---------- Rolling strip under hero ----------
+
+def strip_products(per_category=3, categories=None):
+    """
+    Return a spread of products across categories for the rolling marquee.
+    Default: 3 per category (coffee, tea, spices, herbs, honey, accessories).
+    """
+    cats = categories or ["coffee", "tea", "spices", "herbs", "honey", "accessories"]
+    out = []
+    for c in cats:
+        items = (Product.query
+                 .filter_by(active=True, category=c)
+                 .order_by(Product.featured.desc(), Product.created_at.desc())
+                 .limit(per_category)
+                 .all())
+        out.extend(items)
+    return out

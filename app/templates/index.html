@@ -1,25 +1,211 @@
 {% extends "base.html" %}
 {% block content %}
 
-{# Hero #}
-<section class="relative mb-10 rounded-sm overflow-hidden">
-    <div class="bg-gradient-to-br from-coffee-dark via-coffee to-coffee-light px-8 md:px-16 py-16 md:py-24 text-cream">
-        <p class="text-[10px] tracking-[0.35em] text-gold mb-4 uppercase">A World of Flavor · One Pantry</p>
-        <h1 class="font-display text-4xl md:text-6xl font-semibold leading-[1.05] mb-4 max-w-2xl">
-            Spices, Coffee &amp; Honey<br>from Every Corner of the World
-        </h1>
-        <p class="text-cream/80 max-w-xl text-sm md:text-base leading-relaxed mb-8">
-            Heirloom Yemeni Mokha. Kashmiri saffron. Malabar pepper. Sidr honey from Hadhramaut.
-            Curated from small producers, delivered to your door.
-        </p>
-        <div class="flex gap-3">
-            <a href="/?category=spices" class="btn-primary bg-gold hover:bg-cream hover:text-coffee-dark">Shop Spices</a>
-            <a href="/?country=Yemen" class="btn-outline border-cream text-cream hover:bg-cream hover:text-coffee-dark">Yemeni Collection</a>
+{# ---------- Hero carousel ---------- #}
+{% if hero_products %}
+<section class="relative mb-8 rounded-lg overflow-hidden bg-parchment" id="hero-carousel">
+    <div class="relative" style="min-height: 440px;">
+
+        {% for p in hero_products %}
+        {% set rp = p|retail_price %}
+        {% set ws_info = p|ws_price if is_wholesale_logged_in else None %}
+        <div class="hero-slide absolute inset-0 grid grid-cols-1 md:grid-cols-2 transition-opacity duration-700
+                    {% if loop.first %}opacity-100 z-10{% else %}opacity-0 z-0 pointer-events-none{% endif %}"
+             data-slide="{{ loop.index0 }}">
+
+            <div class="relative bg-cream overflow-hidden">
+                <img src="{{ p.image|imgurl }}"
+                     onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                     alt="{{ p.name }}"
+                     class="w-full h-full object-cover">
+                {% if p.origin_country %}
+                <span class="absolute top-4 left-4 bg-cream/95 text-coffee-dark text-[10px] tracking-widest uppercase px-2.5 py-1.5 rounded-sm font-medium">
+                    {{ p.origin_country }}{% if p.origin_region %} · {{ p.origin_region }}{% endif %}
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="flex flex-col justify-center p-8 md:p-12 bg-gradient-to-br from-coffee-dark via-coffee to-coffee-light text-cream">
+                <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-4">Featured · {{ p.category|capitalize }}</p>
+                <h1 class="font-display text-3xl md:text-4xl lg:text-5xl font-semibold leading-tight mb-4">
+                    {{ p.name }}
+                </h1>
+                <p class="text-cream/80 text-sm md:text-base leading-relaxed mb-6 max-w-md line-clamp-3">
+                    {{ p.short_desc or p.description[:180] }}
+                </p>
+
+                <div class="flex items-baseline gap-3 mb-6">
+                    {% if ws_info %}
+                    <span class="font-display text-3xl">${{ "%.2f"|format(ws_info.price) }}</span>
+                    <span class="text-cream/60 text-sm line-through">${{ "%.2f"|format(p.price) }}</span>
+                    <span class="text-[10px] tracking-widest uppercase bg-gold/20 text-gold px-2 py-1 rounded-sm">Wholesale</span>
+                    {% elif rp.campaign_discount > 0 %}
+                    <span class="font-display text-3xl text-gold">${{ "%.2f"|format(rp.price) }}</span>
+                    <span class="text-cream/60 text-sm line-through">${{ "%.2f"|format(p.price) }}</span>
+                    {% else %}
+                    <span class="font-display text-3xl">${{ "%.2f"|format(p.price) }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="flex gap-3 flex-wrap">
+                    <a href="/product/{{ p.slug }}"
+                       class="bg-gold hover:bg-cream hover:text-coffee-dark transition text-coffee-dark px-6 py-3 rounded-sm text-[11px] tracking-widest uppercase font-semibold">
+                        Shop now
+                    </a>
+                    {% if p.category %}
+                    <a href="/?category={{ p.category }}"
+                       class="border border-cream/40 text-cream hover:bg-cream hover:text-coffee-dark transition px-6 py-3 rounded-sm text-[11px] tracking-widest uppercase">
+                        More {{ p.category }}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <button type="button" onclick="heroNav(-1)" aria-label="Previous slide"
+                class="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-cream/95 text-coffee-dark items-center justify-center shadow-lg hover:bg-gold transition">
+            ‹
+        </button>
+        <button type="button" onclick="heroNav(1)" aria-label="Next slide"
+                class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-cream/95 text-coffee-dark items-center justify-center shadow-lg hover:bg-gold transition">
+            ›
+        </button>
+
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2" id="hero-dots">
+            {% for p in hero_products %}
+            <button type="button" onclick="heroGoTo({{ loop.index0 }})"
+                    class="hero-dot w-2.5 h-2.5 rounded-full bg-cream/50 hover:bg-cream transition
+                           {% if loop.first %}!bg-gold !w-6{% endif %}"
+                    aria-label="Go to slide {{ loop.index }}"></button>
+            {% endfor %}
         </div>
     </div>
 </section>
 
-{# Active filter #}
+<script>
+(function() {
+    const slides = document.querySelectorAll('.hero-slide');
+    const dots = document.querySelectorAll('.hero-dot');
+    const carousel = document.getElementById('hero-carousel');
+    if (!carousel || slides.length < 2) return;
+
+    let current = 0;
+    let paused = false;
+    const INTERVAL = 6000;
+    let timer = null;
+
+    function show(idx) {
+        idx = (idx + slides.length) % slides.length;
+        slides.forEach((s, i) => {
+            s.classList.toggle('opacity-100', i === idx);
+            s.classList.toggle('z-10', i === idx);
+            s.classList.toggle('opacity-0', i !== idx);
+            s.classList.toggle('z-0', i !== idx);
+            s.classList.toggle('pointer-events-none', i !== idx);
+        });
+        dots.forEach((d, i) => {
+            d.classList.toggle('!bg-gold', i === idx);
+            d.classList.toggle('!w-6', i === idx);
+            d.classList.toggle('bg-cream/50', i !== idx);
+        });
+        current = idx;
+    }
+
+    function next() { show(current + 1); }
+    function prev() { show(current - 1); }
+
+    window.heroNav = function(dir) { dir > 0 ? next() : prev(); resetTimer(); };
+    window.heroGoTo = function(idx) { show(idx); resetTimer(); };
+
+    function resetTimer() {
+        if (timer) clearInterval(timer);
+        if (!paused) timer = setInterval(next, INTERVAL);
+    }
+
+    carousel.addEventListener('mouseenter', () => { paused = true; if (timer) clearInterval(timer); });
+    carousel.addEventListener('mouseleave', () => { paused = false; resetTimer(); });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') window.heroNav(1);
+        if (e.key === 'ArrowLeft') window.heroNav(-1);
+    });
+
+    resetTimer();
+})();
+</script>
+{% endif %}
+
+{# ---------- Rolling product strip ---------- #}
+{% if strip_products %}
+<section class="mb-8 -mx-4 md:-mx-6 overflow-hidden" id="product-strip">
+    <div class="strip-track flex gap-3 will-change-transform"
+         style="animation-duration: 60s;">
+        {% for p in strip_products %}
+        <a href="/product/{{ p.slug }}"
+           class="strip-item group flex-shrink-0 relative rounded-md overflow-hidden bg-parchment border border-coffee-dark/8 hover:border-spice transition"
+           style="height: 160px; width: 160px;">
+            <img src="{{ p.image|imgurl }}"
+                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                 alt="{{ p.name }}"
+                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                 loading="lazy"
+                 width="160" height="160">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-coffee-dark/90 to-transparent p-2 pt-6">
+                <p class="text-cream text-[11px] font-medium leading-tight line-clamp-2">{{ p.name }}</p>
+                <p class="text-gold text-[10px] tracking-wider mt-0.5">${{ "%.2f"|format(p.price) }}</p>
+            </div>
+            <span class="absolute top-1.5 left-1.5 bg-cream/90 text-coffee-dark text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded-sm">
+                {{ p.category }}
+            </span>
+        </a>
+        {% endfor %}
+        {% for p in strip_products %}
+        <a href="/product/{{ p.slug }}"
+           class="strip-item group flex-shrink-0 relative rounded-md overflow-hidden bg-parchment border border-coffee-dark/8 hover:border-spice transition"
+           style="height: 160px; width: 160px;"
+           aria-hidden="true">
+            <img src="{{ p.image|imgurl }}"
+                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                 alt=""
+                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                 loading="lazy"
+                 width="160" height="160">
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-coffee-dark/90 to-transparent p-2 pt-6">
+                <p class="text-cream text-[11px] font-medium leading-tight line-clamp-2">{{ p.name }}</p>
+                <p class="text-gold text-[10px] tracking-wider mt-0.5">${{ "%.2f"|format(p.price) }}</p>
+            </div>
+            <span class="absolute top-1.5 left-1.5 bg-cream/90 text-coffee-dark text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded-sm">
+                {{ p.category }}
+            </span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+<style>
+@keyframes strip-roll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+#product-strip .strip-track {
+    animation: strip-roll linear infinite;
+}
+#product-strip:hover .strip-track {
+    animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+    #product-strip .strip-track {
+        animation: none;
+    }
+    #product-strip {
+        overflow-x: auto;
+    }
+}
+</style>
+{% endif %}
+
+{# ---------- Active filter indicator ---------- #}
 {% if active_category or active_country %}
 <div class="mb-6 flex items-center gap-3 text-sm">
     <span class="text-coffee-light tracking-wider text-xs uppercase">Filtered by</span>
@@ -29,7 +215,7 @@
 </div>
 {% endif %}
 
-{# Product grid #}
+{# ---------- Product grid ---------- #}
 <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
     {% for p in products %}
     <div class="card hover:shadow-md transition-shadow duration-200 flex flex-col">
@@ -43,6 +229,9 @@
                      width="600" height="600">
                 {% if p.featured %}
                 <span class="absolute top-2 left-2 bg-gold text-coffee-dark text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded-sm">Featured</span>
+                {% endif %}
+                {% if not is_wholesale and (p|retail_price).campaign_discount > 0 %}
+                <span class="absolute top-2 {% if p.featured %}top-10{% endif %} left-2 bg-sage text-cream text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded-sm">On offer</span>
                 {% endif %}
                 {% if p.origin_country %}
                 <span class="absolute top-2 right-2 bg-cream/95 text-coffee-dark text-[9px] tracking-wider uppercase px-2 py-1 rounded-sm">{{ p.origin_country }}</span>
