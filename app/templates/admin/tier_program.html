@@ -47,8 +47,31 @@
                 Run evaluation
             </button>
         </form>
+        {% if at_risk and at_risk|selectattr('acct.tier_state', 'equalto', 'downgrade')|list or at_risk|selectattr('acct.tier_state', 'equalto', 'terminate')|list %}
+        <form method="POST" action="{{ url_for('admin.tier_program_apply') }}" id="apply-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="button" onclick="confirmApply()"
+                    class="bg-red-700 text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-red-800">
+                Apply pending changes
+            </button>
+        </form>
+        {% endif %}
     </div>
 </div>
+
+<script>
+function confirmApply() {
+    const list = [
+        {% for r in at_risk %}{% if r.acct.tier_state in ('downgrade', 'terminate') %}
+        "{{ r.acct.company_name }}: {{ r.acct.tier }} → {% if r.acct.tier_state == 'terminate' %}new{% else %}{{ r.acct.tier|lower }}{% endif %}",
+        {% endif %}{% endfor %}
+    ];
+    const msg = "About to apply " + list.length + " tier change(s):\n\n" + list.join("\n") + "\n\nContinue?";
+    if (confirm(msg)) {
+        document.getElementById('apply-form').submit();
+    }
+}
+</script>
 
 <div class="bg-cream border border-coffee-dark/10 rounded-lg p-4 mb-6 text-sm">
     <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-2">Tier targets</p>

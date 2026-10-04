@@ -82,6 +82,14 @@ class WholesaleAccount(db.Model):
     status = db.Column(db.String(20), default="pending", index=True)  # pending | approved | rejected | suspended
     tier = db.Column(db.String(20), default="standard")                # standard | bronze | silver | gold
     custom_discount_pct = db.Column(db.Float)                          # optional: flat % off everything (overrides tier)
+
+    # Tier auto-management
+    tier_state = db.Column(db.String(20), default="ok")                # ok | warn | grace | downgrade | terminate
+    tier_state_since = db.Column(db.DateTime)
+    tier_last_evaluated_at = db.Column(db.DateTime)
+    tier_missed_months = db.Column(db.Integer, default=0)
+    tier_locked = db.Column(db.Boolean, default=False)
+    tier_locked_reason = db.Column(db.String(300))
     notes = db.Column(db.Text)                                        # applicant's own notes
     admin_notes = db.Column(db.Text)                                  # internal
     applied_at = db.Column(db.DateTime, default=datetime.utcnow)

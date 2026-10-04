@@ -60,4 +60,12 @@ def change_order_status(order, new_status, actor_email=None, actor_role="admin",
         actor_role=actor_role,
     ))
     db.session.commit()
+
+    # Fire-and-forget email notification
+    try:
+        from app.mail import send_order_status_update
+        send_order_status_update(order, new_status)
+    except Exception:
+        pass   # never block the state change on email failure
+
     return True, None

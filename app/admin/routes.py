@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from app.admin import bp
 from app import db
-from app.models import Product, User, Order, OrderItem, Post
+from app.models import Product, User, Order, OrderItem, Post, WholesaleAccount
 
 
 ALLOWED_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
@@ -634,6 +634,16 @@ def settings():
             "WHOLESALE_MOQ_ENFORCE",
             "MARGIN_FLOOR_ENFORCE",
             "MARGIN_FLOOR_PCT_DEFAULT",
+            "TIER_BRONZE_AMOUNT",
+            "TIER_SILVER_AMOUNT",
+            "TIER_GOLD_AMOUNT",
+            "SMTP_ENABLED",
+            "SMTP_HOST",
+            "SMTP_PORT",
+            "SMTP_USER",
+            "SMTP_PASSWORD",
+            "SMTP_USE_TLS",
+            "MAIL_FROM",
         ]
         for f in fields:
             if f in request.form:
@@ -1572,3 +1582,113 @@ def campaign_delete(campaign_id):
     db.session.commit()
     flash(f"Deleted campaign '{name}'", "success")
     return redirect(url_for("admin.campaigns"))
+
+
+# ============ TIER AUTO-MANAGEMENT ============
+
+@bp.route("/tier-program")
+@admin_required
+def tier_program():
+    from app.tiers import tier_requirements, evaluate_account
+
+    accounts = (WholesaleAccount.query
+                .filter_by(status="approved")
+                .order_by(WholesaleAccount.company_name).all())
+
+    rows = []
+    for acct in accounts:
+        eval_result = evaluate_account(acct)
+        rows.append({
+            "acct": acct,
+            "eval": eval_result,
+            "trailing_revenue": eval_result["actual_revenue"],
+        })
+
+    at_risk = [r for r in rows if r["acct"].tier_state in ("warn", "grace", "downgrade", "terminate")]
+    healthy = [r for r in rows if r["acct"].tier_state == "ok"]
+    reqs = tier_requirements()
+    stats = compute_stats()
+
+    return render_template(
+        "admin/tier_program.html",
+        rows=rows, at_risk=at_risk, healthy=healthy,
+        requirements=reqs, stats=stats,
+    )
+
+
+@bp.route("/tier-program/evaluate", methods=["POST"])
+@admin_required
+def tier_program_evaluate():
+    from app.tiers import evaluate_all
+    dry = request.form.get("dry_run") == "1"
+    results = evaluate_all(dry_run=dry)
+    changed = sum(1 for r in results if not r.get("skipped") and r.get("state_before") != r.get("state_after"))
+    skipped = sum(1 for r in results if r.get("skipped"))
+    verb = "Simulated" if dry else "Evaluated"
+    flash(f"{verb} {len(results)} partner(s): {changed} state change(s), {skipped} locked/skipped.", "success")
+    return redirect(url_for("admin.tier_program"))
+
+
+@bp.route("/tier-program/<int:acct_id>/lock", methods=["POST"])
+@admin_required
+def tier_program_lock(acct_id):
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    acct.tier_locked = True
+    acct.tier_locked_reason = request.form.get("reason", "").strip() or "Manual lock by admin"
+    db.session.commit()
+    flash(f"{acct.company_name} tier locked.", "success")
+    return redirect(url_for("admin.tier_program"))
+
+
+@bp.route("/tier-program/<int:acct_id>/unlock", methods=["POST"])
+@admin_required
+def tier_program_unlock(acct_id):
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    acct.tier_locked = False
+    acct.tier_locked_reason = None
+    db.session.commit()
+    flash(f"{acct.company_name} tier unlocked.", "success")
+    return redirect(url_for("admin.tier_program"))
+
+
+@bp.route("/tier-program/<int:acct_id>/reset-state", methods=["POST"])
+@admin_required
+def tier_program_reset_state(acct_id):
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    acct.tier_state = "ok"
+    acct.tier_missed_months = 0
+    acct.tier_state_since = None
+    db.session.commit()
+    flash(f"{acct.company_name} state reset.", "success")
+    return redirect(url_for("admin.tier_program"))
+
+
+# ============ TIER PROGRAM: APPLY DOWNGRADES ============
+
+@bp.route("/tier-program/apply", methods=["POST"])
+@admin_required
+def tier_program_apply():
+    """Actually apply pending tier changes."""
+    from app.tiers import apply_downgrade, apply_termination
+    from app.models import WholesaleAccount
+
+    to_downgrade = WholesaleAccount.query.filter_by(status="approved", tier_state="downgrade").all()
+    to_terminate = WholesaleAccount.query.filter_by(status="approved", tier_state="terminate").all()
+
+    changed = []
+    for acct in to_terminate:
+        r = apply_termination(acct)
+        if r:
+            changed.append((acct.company_name, r["from"], r["to"]))
+    for acct in to_downgrade:
+        r = apply_downgrade(acct)
+        if r:
+            changed.append((acct.company_name, r["from"], r["to"]))
+
+    if changed:
+        names = ", ".join(f"{c[0]} ({c[1]}→{c[2]})" for c in changed)
+        flash(f"Applied {len(changed)} tier change(s): {names}", "success")
+    else:
+        flash("No pending tier changes to apply.", "success")
+
+    return redirect(url_for("admin.tier_program"))

@@ -116,6 +116,9 @@
                 <span>🏢 Trade accounts</span>
                 {% if stats and stats.new_wholesale_accounts %}<span class="badge">{{ stats.new_wholesale_accounts }}</span>{% endif %}
             </a>
+            <a href="/admin/tier-program" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('admin.tier_program') %}active{% endif %}">
+                <span>📊 Tier program</span>
+            </a>
 
             <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Content</p>
 
