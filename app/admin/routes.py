@@ -2798,3 +2798,50 @@ def products_cleanup_orphans():
     mb = freed_bytes / 1024 / 1024
     flash(f"Removed {removed} orphan image(s) — freed {mb:.1f} MB.", "success")
     return redirect(url_for("admin.products_duplicates"))
+
+
+# ---------- i18n status ----------
+
+@bp.route("/i18n/status")
+@admin_required
+def i18n_status():
+    """Show translation coverage per language."""
+    import re
+    from pathlib import Path
+    from flask import current_app
+
+    translations_dir = Path(current_app.root_path) / "translations"
+    langs = ["en", "ar", "fr", "de", "es", "ur", "hi", "tr"]
+
+    def parse_po(path):
+        if not path.exists():
+            return 0, 0
+        text = path.read_text(encoding="utf-8", errors="replace")
+        total = len(re.findall(r"^msgid\s", text, re.M))
+        # Count translated entries (msgstr non-empty AND != msgid)
+        entries = re.split(r"\n\n+", text)
+        translated = 0
+        for block in entries:
+            msgid_m = re.search(r'^msgid\s+"(.+?)"', block, re.M)
+            msgstr_m = re.search(r'^msgstr\s+"(.+?)"', block, re.M)
+            if msgid_m and msgstr_m:
+                if msgstr_m.group(1) and msgstr_m.group(1) != msgid_m.group(1):
+                    translated += 1
+        return translated, total
+
+    rows = []
+    for lang in langs:
+        po = translations_dir / lang / "LC_MESSAGES" / "messages.po"
+        mo = translations_dir / lang / "LC_MESSAGES" / "messages.mo"
+        tr, total = parse_po(po)
+        rows.append({
+            "lang": lang,
+            "translated": tr,
+            "total": total,
+            "po_exists": po.exists(),
+            "mo_exists": mo.exists(),
+            "pct": round(tr / total * 100, 1) if total else 0,
+        })
+
+    stats = compute_stats()
+    return render_template("admin/i18n_status.html", rows=rows, stats=stats)

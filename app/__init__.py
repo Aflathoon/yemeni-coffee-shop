@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from flask_wtf import CSRFProtect
 from flask_migrate import Migrate
+from flask_babel import Babel, gettext as _gettext, ngettext as _ngettext, lazy_gettext as _lazy
 from dotenv import load_dotenv
 import os
 import sys
@@ -15,6 +16,7 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 csrf = CSRFProtect()
 migrate = Migrate()
+babel = Babel()
 
 LANGUAGES = {
     "en": "English",
@@ -39,6 +41,7 @@ def create_app():
     login_manager.init_app(app)
     csrf.init_app(app)
     migrate.init_app(app, db)
+    babel.init_app(app, locale_selector=get_locale)
 
     # ---------- Jinja filters ----------
 
@@ -137,6 +140,12 @@ def create_app():
     from app.wholesale import bp as wholesale_bp
     app.register_blueprint(wholesale_bp)
 
+    # ---------- i18n helpers exposed to templates ----------
+    # `_()` is the standard gettext function; `_l()` lazy-evaluates for module-level strings.
+    app.jinja_env.globals["_"] = _gettext
+    app.jinja_env.globals["_l"] = _lazy
+    app.jinja_env.globals["ngettext"] = _ngettext
+
     # Expose wholesale session helpers to templates
     from app.wholesale.session import current_wholesale as _current_wholesale
     @app.context_processor
@@ -150,9 +159,27 @@ def create_app():
 
     @app.route("/set-language/<code>")
     def set_language(code):
+        from flask import redirect
         if code in LANGUAGES:
             session["lang"] = code
-        return request.referrer or "/"
+
+        # Prefer explicit ?next=, then referrer, then home
+        target = request.args.get("next", "").strip()
+        if not target or not target.startswith("/"):
+            ref = request.referrer or ""
+            # Only accept same-origin referrers
+            if ref:
+                from urllib.parse import urlparse
+                try:
+                    parsed = urlparse(ref)
+                    if parsed.hostname in (request.host.split(":")[0], "localhost", "127.0.0.1"):
+                        target = parsed.path + ("?" + parsed.query if parsed.query else "")
+                except Exception:
+                    pass
+            if not target:
+                target = "/"
+
+        return redirect(target)
 
     @app.context_processor
     def inject_globals():
@@ -196,6 +223,25 @@ def create_app():
             _seed_products()
 
     return app
+
+
+def get_locale():
+    """
+    Return the user's preferred locale from the session.
+    Falls back to the best match from the Accept-Language header,
+    then to English.
+    """
+    from flask import session, request
+    # 1. explicit user choice
+    lang = session.get("lang")
+    if lang and lang in LANGUAGES:
+        return lang
+    # 2. browser's Accept-Language
+    best = request.accept_languages.best_match(list(LANGUAGES.keys()))
+    if best:
+        return best
+    # 3. fallback
+    return "en"
 
 
 def _is_server_run():

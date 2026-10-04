@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="{{ current_lang }}">
+{% set _dir = "rtl" if current_lang in ("ar", "ur") else "ltr" %}
+<html lang="{{ current_lang }}" dir="{{ _dir }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -134,14 +135,15 @@
                            class="w-40 lg:w-52 bg-transparent border-b border-coffee-dark/30 focus:border-coffee-dark outline-none text-sm py-1 px-1 placeholder:text-coffee-light">
                 </form>
 
-                <div class="relative group">
-                    <button class="nav-link flex items-center gap-1">
+                <div class="relative" id="lang-menu">
+                    <button type="button" id="lang-menu-trigger" class="nav-link flex items-center gap-1">
                         🌐 {{ languages[current_lang].split()[0] if languages[current_lang] else 'EN' }}
                     </button>
-                    <div class="absolute right-0 top-full mt-2 bg-cream border border-coffee-dark/10 shadow-lg py-2 min-w-[160px] hidden group-hover:block z-50">
+                    <div id="lang-menu-panel"
+                         class="hidden absolute right-0 top-full mt-1 bg-cream border border-coffee-dark/10 shadow-lg py-2 min-w-[160px] z-50">
                         {% for code, label in languages.items() %}
-                        <a href="{{ url_for('set_language', code=code) }}"
-                           class="block px-4 py-1.5 text-sm hover:bg-parchment {% if code == current_lang %}font-bold{% endif %}">
+                        <a href="{{ url_for('set_language', code=code, next=request.full_path.rstrip('?') if request.query_string else request.path) }}"
+                           class="block px-4 py-1.5 text-sm hover:bg-parchment {% if code == current_lang %}font-bold text-spice{% endif %}">
                             {{ label }}
                         </a>
                         {% endfor %}
@@ -419,6 +421,32 @@
 
     // Initial state
     toggle();
+})();
+</script>
+
+<script>
+(function() {
+    const trigger = document.getElementById('lang-menu-trigger');
+    const panel = document.getElementById('lang-menu-panel');
+    if (!trigger || !panel) return;
+
+    function close() { panel.classList.add('hidden'); }
+    function toggle() { panel.classList.contains('hidden') ? panel.classList.remove('hidden') : close(); }
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggle();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && e.target !== trigger) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+    });
+
+    panel.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
 })();
 </script>
 

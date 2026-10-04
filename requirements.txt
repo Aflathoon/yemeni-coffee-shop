@@ -7,3 +7,4 @@ Pillow
 python-dotenv
 requests
 gunicorn
+Flask-Babel==4.0.0

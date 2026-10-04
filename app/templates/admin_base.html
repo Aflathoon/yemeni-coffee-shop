@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+{% set _dir = "rtl" if current_lang in ("ar", "ur") else "ltr" %}
+<html lang="{{ current_lang or 'en' }}" dir="{{ _dir }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -162,6 +163,9 @@
             </a>
             <a href="/admin/settings" class="sidebar-link {% if request.endpoint == 'admin.settings' %}active{% endif %}">
                 <span>⚙️ Settings</span>
+            </a>
+            <a href="/admin/i18n/status" class="sidebar-link {% if request.endpoint == 'admin.i18n_status' %}active{% endif %}">
+                <span>🌐 Translations</span>
             </a>
 
             <p class="text-[10px] tracking-[0.25em] text-coffee-light px-4 mt-6 mb-2 uppercase">Assistant</p>

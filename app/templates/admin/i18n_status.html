@@ -1,0 +1,62 @@
+{% extends "admin_base.html" %}
+{% block title %}i18n Status — Admin{% endblock %}
+{% block page_title %}Translations{% endblock %}
+{% block page_subtitle %}Translation coverage per language{% endblock %}
+
+{% block content %}
+
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-6 mb-6">
+    <h2 class="font-display text-lg text-navy mb-2">How this works</h2>
+    <ol class="text-sm text-coffee-light space-y-1 list-decimal list-inside">
+        <li>Wrap user-facing strings in templates with <code class="bg-parchment px-1 rounded">Text here</code> → <code class="bg-parchment px-1 rounded">{{ "{{ _('Text here') }}" }}</code></li>
+        <li>Run <code class="bg-parchment px-1 rounded">pybabel extract</code> to collect new strings</li>
+        <li>Run <code class="bg-parchment px-1 rounded">pybabel update</code> to merge into each .po file</li>
+        <li>Translators fill in <code class="bg-parchment px-1 rounded">msgstr</code> values</li>
+        <li>Run <code class="bg-parchment px-1 rounded">pybabel compile</code> to produce .mo files</li>
+    </ol>
+</div>
+
+<div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+    <table class="w-full text-[15px]">
+        <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+            <tr>
+                <th class="text-left px-4 py-3">Language</th>
+                <th class="text-right px-4 py-3">Translated</th>
+                <th class="text-right px-4 py-3">Total</th>
+                <th class="text-right px-4 py-3">Coverage</th>
+                <th class="text-left px-4 py-3">Files</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr class="border-b border-coffee-dark/5">
+                <td class="px-4 py-3 font-medium text-coffee-dark">
+                    {{ r.lang|upper }}
+                    {% if r.lang == 'en' %}<span class="text-[10px] text-coffee-light ml-2">(source)</span>{% endif %}
+                </td>
+                <td class="px-4 py-3 text-right">{{ r.translated }}</td>
+                <td class="px-4 py-3 text-right">{{ r.total }}</td>
+                <td class="px-4 py-3 text-right">
+                    <div class="inline-flex items-center gap-2">
+                        <div class="w-24 h-1.5 bg-parchment rounded-full overflow-hidden">
+                            <div class="h-full {% if r.pct >= 90 %}bg-sage{% elif r.pct >= 40 %}bg-gold{% else %}bg-spice{% endif %}"
+                                 style="width: {{ r.pct }}%"></div>
+                        </div>
+                        <span class="text-[11px] text-coffee-light">{{ r.pct }}%</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-[12px] text-coffee-light">
+                    {% if r.po_exists %}<span class="text-sage">.po</span>{% else %}<span class="text-stone-400">no .po</span>{% endif %}
+                    {% if r.mo_exists %} · <span class="text-sage">.mo</span>{% else %} · <span class="text-stone-400">no .mo</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mt-6 bg-cream border border-coffee-dark/10 rounded-lg p-4 text-sm text-coffee-light">
+    <strong class="text-coffee-dark">Note:</strong> coverage is currently near 0% because no strings are wrapped with <code class="bg-parchment px-1 rounded">{{ "{{ _('...') }}" }}</code> yet. Stage 2 will wrap the site chrome (nav, footer, buttons) and coverage will climb.
+</div>
+
+{% endblock %}
