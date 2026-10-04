@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ article.meta_title or article.title }} — The Spice & Roast Co.{% endblock %}
+{% block head %}
+{% if article.meta_description %}<meta name="description" content="{{ article.meta_description }}">{% endif %}
+{% endblock %}
+{% block content %}
+
+<article class="max-w-3xl mx-auto py-8">
+    <a href="{{ url_for('blog.index') }}" class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-spice mb-6 inline-block">← The Journal</a>
+
+    {% if article.category %}
+    <p class="text-[10px] tracking-[0.25em] text-spice uppercase mb-3">{{ article.category }}</p>
+    {% endif %}
+
+    <h1 class="font-display text-4xl md:text-5xl text-coffee-dark leading-tight mb-6">{{ article.title }}</h1>
+
+    <p class="text-[11px] tracking-widest uppercase text-coffee-light mb-8">
+        By {{ article.author_name }} · {{ article.created_at.strftime("%B %d, %Y") }} · {{ article.reading_minutes }} min read
+    </p>
+
+    {% if article.hero_image %}
+    <div class="aspect-[16/9] bg-parchment rounded-sm overflow-hidden mb-8">
+        <img src="{{ article.hero_image|imgurl }}"
+             onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+             alt="" class="w-full h-full object-cover">
+    </div>
+    {% endif %}
+
+    {% if article.excerpt %}
+    <p class="font-display text-xl text-coffee-dark italic mb-8 leading-relaxed">{{ article.excerpt }}</p>
+    {% endif %}
+
+    <div class="prose prose-lg max-w-none text-coffee-dark/90 leading-relaxed">
+        {{ article.body|safe }}
+    </div>
+
+    {% if article.tags %}
+    <div class="mt-10 pt-6 border-t border-coffee-dark/10 flex flex-wrap gap-2">
+        {% for tag in article.tags.split(",") if tag.strip() %}
+        <a href="{{ url_for('blog.index', tag=tag.strip()) }}"
+           class="text-[10px] tracking-widest uppercase px-3 py-1 rounded-sm bg-parchment text-coffee-dark hover:bg-spice hover:text-cream transition">
+            #{{ tag.strip() }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</article>
+
+{% if sponsored %}
+<section class="max-w-6xl mx-auto mt-16 pt-10 border-t border-coffee-dark/10">
+    <h2 class="font-display text-2xl text-coffee-dark mb-6">From the shop</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% for p in sponsored %}
+        <a href="/product/{{ p.slug }}" class="card hover:shadow-md transition">
+            <img src="{{ p.image|imgurl }}"
+                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                 alt="{{ p.name }}" class="product-img" loading="lazy">
+            <div class="p-4">
+                <h3 class="font-display text-base text-coffee-dark leading-tight mb-1">{{ p.name }}</h3>
+                <p class="text-sm mt-1">${{ "%.2f"|format(p.price) }}</p>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if related %}
+<section class="max-w-6xl mx-auto mt-16 pt-10 border-t border-coffee-dark/10">
+    <h2 class="font-display text-2xl text-coffee-dark mb-6">More from the journal</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for a in related %}
+        <a href="{{ url_for('blog.detail', slug=a.slug) }}" class="card hover:shadow-md transition group">
+            {% if a.hero_image %}
+            <div class="aspect-[4/3] bg-parchment overflow-hidden">
+                <img src="{{ a.hero_image|imgurl }}"
+                     onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                     alt="" class="w-full h-full object-cover" loading="lazy">
+            </div>
+            {% endif %}
+            <div class="p-5">
+                <h3 class="font-display text-lg text-coffee-dark leading-tight group-hover:text-spice transition">{{ a.title }}</h3>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}

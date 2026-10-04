@@ -142,6 +142,28 @@ class Setting(db.Model):
         return {r.key: r.value for r in cls.query.all()}
 
 
+class Article(db.Model):
+    """Long-form blog content. Separate from Post (which is short marketing copy)."""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(250), nullable=False)
+    slug = db.Column(db.String(250), unique=True, index=True)
+    excerpt = db.Column(db.String(400))
+    body = db.Column(db.Text)                 # rich HTML from TinyMCE
+    hero_image = db.Column(db.String(300))
+    category = db.Column(db.String(60), index=True)   # e.g. "coffee", "recipes", "origins"
+    tags = db.Column(db.String(400))
+    author_name = db.Column(db.String(120), default="The Spice & Roast Co.")
+    reading_minutes = db.Column(db.Integer, default=4)
+    published = db.Column(db.Boolean, default=False, index=True)
+    featured = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # SEO
+    meta_title = db.Column(db.String(250))
+    meta_description = db.Column(db.String(400))
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200))

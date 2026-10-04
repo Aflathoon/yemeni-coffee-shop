@@ -109,6 +109,9 @@ def create_app():
     from app.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
 
+    from app.blog import bp as blog_bp
+    app.register_blueprint(blog_bp)
+
     # --- Language selection ---
     @app.route("/set-language/<code>")
     def set_language(code):
