@@ -1,0 +1,318 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ acct.company_name }} — Partner — Admin{% endblock %}
+{% block page_title %}{{ acct.company_name }}{% endblock %}
+{% block page_subtitle %}{{ acct.email }} · {{ acct.business_type or 'Business' }}{% endblock %}
+
+{% block content %}
+
+{# Quick links row #}
+<div class="flex gap-2 mb-5 flex-wrap">
+    <a href="{{ url_for('admin.wholesale_account_detail', acct_id=acct.id) }}"
+       class="text-[11px] tracking-widest uppercase border border-coffee-dark/20 px-3 py-1.5 rounded-sm hover:bg-parchment">
+        Account settings
+    </a>
+    <a href="{{ url_for('admin.wholesale_account_prices', acct_id=acct.id) }}"
+       class="text-[11px] tracking-widest uppercase border border-coffee-dark/20 px-3 py-1.5 rounded-sm hover:bg-parchment">
+        Custom prices
+    </a>
+    <a href="{{ url_for('admin.tier_program') }}"
+       class="text-[11px] tracking-widest uppercase border border-coffee-dark/20 px-3 py-1.5 rounded-sm hover:bg-parchment">
+        ← Tier program
+    </a>
+</div>
+
+{# ---------- Hero summary ---------- #}
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+
+    {# Stat cards #}
+    <div class="stat-card lg:col-span-1">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light">Tier</p>
+        <p class="font-display text-3xl text-navy capitalize mt-1">{{ acct.tier }}</p>
+        <div class="mt-2">
+            <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded font-medium
+                         {% if acct.tier_state == 'ok' %}bg-sage/20 text-sage
+                         {% elif acct.tier_state == 'warn' %}bg-amber-100 text-amber-800
+                         {% elif acct.tier_state == 'grace' %}bg-spice/20 text-spice
+                         {% elif acct.tier_state == 'downgrade' %}bg-red-100 text-red-800
+                         {% elif acct.tier_state == 'terminate' %}bg-red-200 text-red-900
+                         {% else %}bg-stone-100 text-stone-600{% endif %}">
+                {{ acct.tier_state }}
+            </span>
+            {% if acct.tier_locked %}
+            <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded bg-stone-200 text-stone-700 ml-1">🔒 Locked</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light">Lifetime spend</p>
+        <p class="font-display text-3xl text-navy mt-1">${{ "%.2f"|format(total_spend) }}</p>
+        <p class="text-[12px] text-coffee-light mt-1">{{ total_orders }} order{{ 's' if total_orders != 1 else '' }}</p>
+    </div>
+
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light">Avg. order</p>
+        <p class="font-display text-3xl text-navy mt-1">${{ "%.2f"|format(avg_order) }}</p>
+        <p class="text-[12px] text-coffee-light mt-1">
+            {% if last_order %}Last: {{ last_order.created_at.strftime("%b %d") }}{% else %}No orders yet{% endif %}
+        </p>
+    </div>
+
+    <div class="stat-card">
+        <p class="text-[10px] tracking-widest uppercase text-coffee-light">Tier progress</p>
+        <p class="font-display text-3xl text-navy mt-1">
+            {% if tier_req.amount > 0 %}
+            {{ ((tier_trailing / tier_req.amount) * 100)|round(0)|int }}%
+            {% else %}—{% endif %}
+        </p>
+        <p class="text-[12px] text-coffee-light mt-1">
+            ${{ "%.0f"|format(tier_trailing) }} / ${{ "%.0f"|format(tier_req.amount) }}
+        </p>
+    </div>
+</div>
+
+{# ---------- Revenue chart ---------- #}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-5 mb-6">
+    <h2 class="font-display text-lg text-navy mb-4">Revenue — last 12 months</h2>
+    <div class="flex items-end gap-1 h-32">
+        {% for month, value in series %}
+        {% set height_pct = (value / max_rev * 100)|round(1) if max_rev else 0 %}
+        <div class="flex-1 flex flex-col items-center group relative">
+            <div class="w-full bg-navy/15 hover:bg-spice transition rounded-t-sm"
+                 style="height: {{ height_pct }}%; min-height: 2px;"
+                 title="{{ month }}: ${{ '%.2f'|format(value) }}"></div>
+            <div class="absolute -top-8 bg-navy text-cream text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10">
+                {{ month }} · ${{ "%.0f"|format(value) }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="flex justify-between text-[10px] text-coffee-light mt-2">
+        <span>{{ series[0][0] if series }}</span>
+        <span>{{ series[-1][0] if series }}</span>
+    </div>
+</div>
+
+{# ---------- Two-column: details + engagement ---------- #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+    {# Left: business details #}
+    <div class="lg:col-span-1 bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <h2 class="font-display text-lg text-navy mb-4">Business</h2>
+        <dl class="space-y-3 text-sm">
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Company</dt>
+                <dd class="text-coffee-dark">{{ acct.company_name }}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Business type</dt>
+                <dd class="text-coffee-dark">{{ acct.business_type or '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Tax ID</dt>
+                <dd class="text-coffee-dark">{{ acct.tax_id or '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Contact</dt>
+                <dd class="text-coffee-dark">{{ acct.email }}{% if acct.phone %} · {{ acct.phone }}{% endif %}</dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Address</dt>
+                <dd class="text-coffee-dark leading-relaxed">
+                    {% if acct.address_line %}{{ acct.address_line }}<br>{% endif %}
+                    {% if acct.city %}{{ acct.city }}{% if acct.postal_code %}, {{ acct.postal_code }}{% endif %}<br>{% endif %}
+                    {% if acct.country %}{{ acct.country }}{% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Member since</dt>
+                <dd class="text-coffee-dark">{{ acct.created_at.strftime("%B %d, %Y") }}</dd>
+            </div>
+            {% if acct.tier_last_evaluated_at %}
+            <div>
+                <dt class="text-[10px] tracking-widest uppercase text-coffee-light">Last tier eval</dt>
+                <dd class="text-coffee-dark">{{ acct.tier_last_evaluated_at.strftime("%B %d, %Y") }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    {# Middle: campaigns + discounts #}
+    <div class="lg:col-span-2 space-y-4">
+
+        {# Pricing stack #}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-navy mb-4">Pricing stack</h2>
+            <div class="grid grid-cols-3 gap-3 text-sm">
+                <div>
+                    <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Tier</p>
+                    <p class="text-coffee-dark font-medium capitalize">{{ acct.tier }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Blanket discount</p>
+                    <p class="text-coffee-dark font-medium">
+                        {% if acct.custom_discount_pct %}−{{ acct.custom_discount_pct }}%{% else %}—{% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-1">Custom overrides</p>
+                    <p class="text-coffee-dark font-medium">{{ overrides|length }} SKU(s)</p>
+                </div>
+            </div>
+            {% if overrides %}
+            <div class="mt-4 pt-4 border-t border-coffee-dark/10">
+                <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-2">Per-product overrides</p>
+                <div class="space-y-1 max-h-32 overflow-auto">
+                    {% for o in overrides[:8] %}
+                    <div class="flex justify-between text-sm">
+                        <span class="text-coffee-dark truncate">{{ o.product.name if o.product else 'Product #' ~ o.product_id }}</span>
+                        <span class="text-coffee-light shrink-0 ml-2">${{ "%.2f"|format(o.price) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if overrides|length > 8 %}
+                <a href="{{ url_for('admin.wholesale_account_prices', acct_id=acct.id) }}" class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark mt-2 inline-block">
+                    All {{ overrides|length }} overrides →
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# Active campaigns #}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-navy mb-4">
+                Active campaigns ({{ active_campaigns|length }})
+            </h2>
+            {% if active_campaigns %}
+            <div class="space-y-2">
+                {% for c in active_campaigns %}
+                <div class="flex items-center justify-between bg-cream/60 border border-coffee-dark/8 rounded-sm p-3">
+                    <div class="min-w-0">
+                        <p class="text-sm text-navy font-medium truncate">{{ c.name }}</p>
+                        <p class="text-[11px] text-coffee-light">
+                            {{ c.scope|capitalize }} · ends {{ c.ends_at.strftime("%b %d") }}
+                        </p>
+                    </div>
+                    <div class="text-right shrink-0 ml-3">
+                        <span class="text-[10px] tracking-widest uppercase bg-sage/20 text-sage px-2 py-1 rounded">
+                            {% if c.discount_type == 'percent' %}−{{ c.discount_value }}%
+                            {% elif c.discount_type == 'fixed' %}−${{ "%.0f"|format(c.discount_value) }}
+                            {% else %}Free ship{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-coffee-light italic">No active campaigns apply to this partner right now.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# ---------- Recent orders ---------- #}
+<div class="bg-white border border-coffee-dark/8 rounded-lg mb-6">
+    <div class="p-5 border-b border-coffee-dark/8 flex items-center justify-between">
+        <h2 class="font-display text-lg text-navy">Recent orders</h2>
+        <a href="{{ url_for('admin.orders', channel='wholesale') }}" class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark">All wholesale orders →</a>
+    </div>
+    {% if orders %}
+    <table class="w-full text-[15px]">
+        <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+            <tr>
+                <th class="text-left px-4 py-3">Order</th>
+                <th class="text-left px-4 py-3">Date</th>
+                <th class="text-left px-4 py-3">Status</th>
+                <th class="text-right px-4 py-3">Items</th>
+                <th class="text-right px-4 py-3">Total</th>
+                <th class="text-right px-4 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in orders[:8] %}
+            <tr class="border-b border-coffee-dark/5 hover:bg-parchment/40">
+                <td class="px-4 py-3 font-medium">#{{ o.id }}</td>
+                <td class="px-4 py-3 text-coffee-light text-[13px]">{{ o.created_at.strftime("%b %d, %Y") }}</td>
+                <td class="px-4 py-3">
+                    <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded
+                                 {% if o.status == 'pending' %}bg-spice/15 text-spice
+                                 {% elif o.status == 'paid' %}bg-blue-100 text-blue-800
+                                 {% elif o.status == 'shipped' %}bg-sage/20 text-sage
+                                 {% elif o.status == 'delivered' %}bg-green-100 text-green-800
+                                 {% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ o.status }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-right">{{ o.items|length }}</td>
+                <td class="px-4 py-3 text-right font-medium">${{ "%.2f"|format(o.total) }}</td>
+                <td class="px-4 py-3 text-right">
+                    <a href="{{ url_for('admin.order_detail', order_id=o.id) }}"
+                       class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">View →</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if orders|length > 8 %}
+    <div class="p-3 text-center bg-cream/40 border-t border-coffee-dark/8">
+        <span class="text-xs text-coffee-light">{{ orders|length - 8 }} older order(s) — see full list in Orders →</span>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="p-8 text-center text-coffee-light italic text-sm">No orders yet.</p>
+    {% endif %}
+</div>
+
+{# ---------- Recent activity ---------- #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <h2 class="font-display text-lg text-navy mb-4">Recent order events</h2>
+        {% if recent_events %}
+        <ol class="relative border-l-2 border-coffee-dark/10 ml-3 pl-6 space-y-4">
+            {% for e in recent_events %}
+            <li class="relative">
+                <span class="absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 border-cream
+                             {% if e.to_status == 'cancelled' %}bg-red-500
+                             {% elif e.to_status == 'delivered' %}bg-green-600
+                             {% elif e.to_status == 'shipped' %}bg-sage
+                             {% elif e.to_status == 'paid' %}bg-blue-500
+                             {% else %}bg-coffee-dark{% endif %}"></span>
+                <div class="text-sm">
+                    <p class="text-coffee-dark">
+                        <span class="font-medium">#{{ e.order_id }}</span>
+                        {{ e.from_status|capitalize if e.from_status else '' }}
+                        {% if e.from_status %} → {% endif %}
+                        {{ e.to_status|capitalize }}
+                    </p>
+                    <p class="text-[11px] text-coffee-light">
+                        {{ e.created_at.strftime("%b %d · %H:%M") }}
+                        {% if e.actor_email %} · {{ e.actor_email }}{% endif %}
+                    </p>
+                    {% if e.note %}<p class="text-[13px] text-coffee-dark/80 mt-0.5 italic">{{ e.note }}</p>{% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ol>
+        {% else %}
+        <p class="text-sm text-coffee-light italic">No events yet.</p>
+        {% endif %}
+    </div>
+
+    {# Internal notes #}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+        <h2 class="font-display text-lg text-navy mb-4">Internal notes</h2>
+        <form method="POST" action="{{ url_for('admin.wholesale_account_set_notes', acct_id=acct.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea name="admin_notes" rows="10"
+                      class="w-full border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm font-mono"
+                      placeholder="Negotiated terms, contact log, next actions…">{{ acct.admin_notes or '' }}</textarea>
+            <button class="mt-2 bg-coffee-dark text-cream px-4 py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">
+                Save notes
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

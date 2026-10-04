@@ -68,7 +68,9 @@
                         <span class="text-[10px] tracking-widest uppercase px-2 py-1 rounded bg-gold/20 text-coffee-dark font-medium">{{ a.tier }}</span>
                     </td>
                     <td class="px-4 py-3 text-coffee-light text-[13px]">{{ a.approved_at.strftime("%b %d, %Y") if a.approved_at else '—' }}</td>
-                    <td class="px-4 py-3 text-right">
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                        <a href="{{ url_for('admin.partner_relationship', acct_id=a.id) }}"
+                           class="text-[11px] tracking-widest uppercase text-navy hover:text-spice mr-3">Relationship</a>
                         <a href="{{ url_for('admin.wholesale_account_detail', acct_id=a.id) }}"
                            class="text-[11px] tracking-widest uppercase text-spice hover:text-coffee-dark">Manage →</a>
                     </td>

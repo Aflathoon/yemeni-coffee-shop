@@ -1692,3 +1692,75 @@ def tier_program_apply():
         flash("No pending tier changes to apply.", "success")
 
     return redirect(url_for("admin.tier_program"))
+
+
+# ============ PARTNER RELATIONSHIP PAGE ============
+
+@bp.route("/wholesale-accounts/<int:acct_id>/relationship")
+@admin_required
+def partner_relationship(acct_id):
+    """Single-partner dossier: orders, revenue, tier history, campaigns, notes."""
+    from datetime import datetime, timedelta
+    from app.models import WholesaleAccount, Order, Campaign, OrderEvent, WholesalePrice
+    from app.tiers import tier_requirements, partner_revenue, partner_revenue_series, evaluate_account
+    from app.campaigns import campaigns_for
+    from app.models import Product
+
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+
+    # Orders
+    orders = (Order.query
+              .filter_by(wholesale_id=acct.id)
+              .order_by(Order.created_at.desc())
+              .all())
+    total_orders = len(orders)
+    total_spend = round(sum(o.total for o in orders if o.status != "cancelled"), 2)
+    avg_order = round(total_spend / total_orders, 2) if total_orders else 0.0
+    last_order = orders[0] if orders else None
+
+    # Revenue series (12 months)
+    series = partner_revenue_series(acct, months=12)
+    max_rev = max((v for _, v in series), default=0) or 1
+
+    # Tier status
+    reqs = tier_requirements()
+    eval_result = evaluate_account(acct)
+    req = reqs.get((acct.tier or "new").lower(), {"months": 1, "amount": 0})
+    tier_trailing = partner_revenue(acct, req["months"])
+
+    # Order timeline (recent events)
+    recent_events = (OrderEvent.query
+                     .join(Order, OrderEvent.order_id == Order.id)
+                     .filter(Order.wholesale_id == acct.id)
+                     .order_by(OrderEvent.created_at.desc())
+                     .limit(10).all())
+
+    # Campaigns matching this partner
+    active_matches = {}
+    for p in Product.query.filter_by(active=True).limit(50).all():
+        for c in campaigns_for(acct, p):
+            active_matches[c.id] = c
+
+    # Custom price overrides
+    overrides = WholesalePrice.query.filter_by(wholesale_id=acct.id).all()
+
+    stats = compute_stats()
+
+    return render_template(
+        "admin/partner_relationship.html",
+        acct=acct,
+        orders=orders,
+        total_orders=total_orders,
+        total_spend=total_spend,
+        avg_order=avg_order,
+        last_order=last_order,
+        series=series,
+        max_rev=max_rev,
+        tier_trailing=tier_trailing,
+        tier_req=req,
+        eval_result=eval_result,
+        recent_events=recent_events,
+        active_campaigns=list(active_matches.values()),
+        overrides=overrides,
+        stats=stats,
+    )

@@ -145,8 +145,10 @@ function confirmApply() {
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button class="text-[10px] tracking-widest uppercase text-coffee-light hover:text-coffee-dark">Reset</button>
                         </form>
+                        <a href="{{ url_for('admin.partner_relationship', acct_id=r.acct.id) }}"
+                           class="text-[10px] tracking-widest uppercase text-navy hover:text-spice ml-2 mr-2">Dossier</a>
                         <a href="{{ url_for('admin.wholesale_account_detail', acct_id=r.acct.id) }}"
-                           class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark ml-2">View →</a>
+                           class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">View →</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -204,8 +206,10 @@ function confirmApply() {
                             <button class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">Lock</button>
                         </form>
                         {% endif %}
+                        <a href="{{ url_for('admin.partner_relationship', acct_id=r.acct.id) }}"
+                           class="text-[10px] tracking-widest uppercase text-navy hover:text-spice ml-3 mr-2">Dossier</a>
                         <a href="{{ url_for('admin.wholesale_account_detail', acct_id=r.acct.id) }}"
-                           class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark ml-3">View →</a>
+                           class="text-[10px] tracking-widest uppercase text-spice hover:text-coffee-dark">View →</a>
                     </td>
                 </tr>
                 {% endfor %}
