@@ -309,6 +309,156 @@ class Article(db.Model):
     meta_description = db.Column(db.String(400))
 
 
+class Campaign(db.Model):
+    """
+    Time-bound discount campaign. Stacks on top of tier/blanket/override pricing
+    unless 'override_pricing' is True.
+
+    Audience targeting (Option E):
+      - channel: 'retail' | 'wholesale' | 'both'
+      - tiers: JSON list of tier strings, e.g. ["silver","gold"]; empty = all tiers
+      - partner_ids: stored via CampaignPartner link table (empty = all partners in tiers)
+      - activity_days: optional; only partners who ordered within N days
+    Scope targeting:
+      - scope: 'all' | 'category' | 'products'
+      - scope_categories: JSON list e.g. ["coffee","spices"]
+      - product_ids: via CampaignProduct link table
+    """
+    __tablename__ = "campaign"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(200), unique=True, index=True)
+    public_description = db.Column(db.String(400))    # shown to partners
+    internal_notes = db.Column(db.Text)               # admin-only
+
+    # Timing
+    starts_at = db.Column(db.DateTime, nullable=False, index=True)
+    ends_at = db.Column(db.DateTime, nullable=False, index=True)
+
+    # Audience
+    channel = db.Column(db.String(20), default="wholesale")     # retail | wholesale | both
+    tiers_json = db.Column(db.Text)                              # JSON: ["silver","gold"] or null
+    activity_days = db.Column(db.Integer)                        # null = no filter
+
+    # Scope
+    scope = db.Column(db.String(20), default="all")              # all | category | products
+    scope_categories_json = db.Column(db.Text)                   # JSON: ["coffee"]
+    # product_ids via CampaignProduct link table
+
+    # Discount
+    discount_type = db.Column(db.String(20), default="percent")  # percent | fixed | freeship
+    discount_value = db.Column(db.Float, default=0.0)            # % or $ amount
+    tier_scaling_json = db.Column(db.Text)                       # JSON: {"bronze":5,"silver":10,"gold":15} for scaling
+    min_order_value = db.Column(db.Float)                        # null = no minimum
+    min_order_qty = db.Column(db.Integer)                        # null = no minimum
+
+    # Behaviour
+    override_pricing = db.Column(db.Boolean, default=False)      # True = replace, not stack
+    respect_floor = db.Column(db.Boolean, default=True)          # apply margin floor
+
+    # Status
+    published = db.Column(db.Boolean, default=False, index=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    partner_links = db.relationship("CampaignPartner", backref="campaign",
+                                     cascade="all, delete-orphan")
+    product_links = db.relationship("CampaignProduct", backref="campaign",
+                                     cascade="all, delete-orphan")
+
+    # ---- JSON helpers ----
+    import json as _json
+
+    def get_tiers(self):
+        if not self.tiers_json:
+            return []
+        try:
+            import json as _j
+            return _j.loads(self.tiers_json) or []
+        except Exception:
+            return []
+
+    def set_tiers(self, tiers_list):
+        import json as _j
+        self.tiers_json = _j.dumps(tiers_list) if tiers_list else None
+
+    def get_scope_categories(self):
+        if not self.scope_categories_json:
+            return []
+        try:
+            import json as _j
+            return _j.loads(self.scope_categories_json) or []
+        except Exception:
+            return []
+
+    def set_scope_categories(self, cats_list):
+        import json as _j
+        self.scope_categories_json = _j.dumps(cats_list) if cats_list else None
+
+    def get_tier_scaling(self):
+        if not self.tier_scaling_json:
+            return {}
+        try:
+            import json as _j
+            return _j.loads(self.tier_scaling_json) or {}
+        except Exception:
+            return {}
+
+    def set_tier_scaling(self, scaling_dict):
+        import json as _j
+        # drop falsy values
+        cleaned = {k: v for k, v in (scaling_dict or {}).items() if v not in (None, "", 0, "0")}
+        self.tier_scaling_json = _j.dumps(cleaned) if cleaned else None
+
+    # ---- Status helpers ----
+    def is_live(self):
+        from datetime import datetime as _dt
+        if not self.published:
+            return False
+        now = _dt.utcnow()
+        return self.starts_at <= now <= self.ends_at
+
+    def is_upcoming(self):
+        from datetime import datetime as _dt
+        if not self.published:
+            return False
+        return _dt.utcnow() < self.starts_at
+
+    def is_expired(self):
+        from datetime import datetime as _dt
+        return _dt.utcnow() > self.ends_at
+
+    def status_label(self):
+        if not self.published:
+            return "Draft"
+        if self.is_expired():
+            return "Expired"
+        if self.is_upcoming():
+            return "Scheduled"
+        return "Live"
+
+
+class CampaignPartner(db.Model):
+    """Which specific wholesale partners a campaign applies to (if any)."""
+    __tablename__ = "campaign_partner"
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey("campaign.id"), nullable=False, index=True)
+    wholesale_id = db.Column(db.Integer, db.ForeignKey("wholesale_account.id"), nullable=False, index=True)
+    __table_args__ = (db.UniqueConstraint("campaign_id", "wholesale_id", name="uq_campaign_partner"),)
+
+
+class CampaignProduct(db.Model):
+    """Which specific products a campaign applies to (when scope='products')."""
+    __tablename__ = "campaign_product"
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey("campaign.id"), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False, index=True)
+    __table_args__ = (db.UniqueConstraint("campaign_id", "product_id", name="uq_campaign_product"),)
+
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200))

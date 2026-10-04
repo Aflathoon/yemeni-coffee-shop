@@ -85,6 +85,22 @@ def create_app():
             return f"{qty or 1} kg"
         return f"{qty or 1} g"
 
+    @app.template_filter("active_campaigns_for")
+    def active_campaigns_for_filter(product, account=None):
+        """Return active campaigns that apply to a given product for the current partner."""
+        from flask import session
+        from app.models import WholesaleAccount
+        from app.campaigns import campaigns_for
+
+        # Only wholesale partners for now
+        ws_id = session.get("ws_id")
+        acct = None
+        if ws_id:
+            acct = WholesaleAccount.query.get(ws_id)
+        if not acct:
+            return []
+        return campaigns_for(acct, product)
+
     @app.template_filter("ws_price")
     def ws_price_filter(product):
         """Effective wholesale price dict for the current partner + product."""
