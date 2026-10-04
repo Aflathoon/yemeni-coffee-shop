@@ -123,6 +123,17 @@ def compute_stats():
     except Exception:
         pass
 
+    # Wholesale at-risk counts
+    partners_at_risk = 0
+    try:
+        from app.models import WholesaleAccount
+        partners_at_risk = (WholesaleAccount.query
+                            .filter_by(status="approved")
+                            .filter(WholesaleAccount.tier_state.in_(["warn", "grace", "downgrade", "terminate"]))
+                            .count())
+    except Exception:
+        pass
+
     return {
         "products": Product.query.count(),
         "orders": len(orders),
@@ -132,6 +143,7 @@ def compute_stats():
         "approved_wholesale_accounts": approved_ws,
         "live_campaigns": live_campaigns,
         "scheduled_campaigns": scheduled_campaigns,
+        "partners_at_risk": partners_at_risk,
         "revenue": revenue_total,
         "revenue_30": revenue_30,
         "revenue_30_delta": pct_delta(revenue_30, revenue_prev_30),
@@ -189,7 +201,8 @@ def dashboard():
 @admin_required
 def orders():
     status_filter = request.args.get("status")
-    channel = request.args.get("channel")  # retail | wholesale
+    channel = request.args.get("channel")
+    search = request.args.get("q", "").strip()
     q = Order.query
     if status_filter:
         q = q.filter_by(status=status_filter)
@@ -197,11 +210,20 @@ def orders():
         q = q.filter(Order.wholesale_id.isnot(None))
     elif channel == "retail":
         q = q.filter(Order.wholesale_id.is_(None))
+    if search:
+        # numeric → order id
+        like = f"%{search}%"
+        conds = [Order.full_name.ilike(like), Order.email.ilike(like),
+                 Order.tracking_number.ilike(like), Order.po_number.ilike(like)]
+        if search.isdigit():
+            conds.append(Order.id == int(search))
+        from sqlalchemy import or_
+        q = q.filter(or_(*conds))
     all_orders = q.order_by(Order.created_at.desc()).all()
     stats = compute_stats()
     return render_template("admin/orders.html",
                            orders=all_orders, stats=stats,
-                           status_filter=status_filter, channel=channel)
+                           status_filter=status_filter, channel=channel, search=search)
 
 
 @bp.route("/orders/<int:order_id>")
@@ -1764,3 +1786,52 @@ def partner_relationship(acct_id):
         overrides=overrides,
         stats=stats,
     )
+
+
+# ============ BULK ORDER ACTIONS ============
+
+@bp.route("/orders/bulk", methods=["POST"])
+@admin_required
+def orders_bulk_action():
+    """Apply a status change to multiple orders at once."""
+    from app.orders import change_order_status
+
+    order_ids = request.form.getlist("order_ids")
+    new_status = (request.form.get("bulk_status") or "").strip().lower()
+    note = request.form.get("bulk_note", "").strip() or None
+
+    if not order_ids:
+        flash("No orders selected.", "warning")
+        return redirect(url_for("admin.orders"))
+
+    if new_status not in ("paid", "shipped", "delivered", "cancelled"):
+        flash("Invalid bulk status.", "error")
+        return redirect(url_for("admin.orders"))
+
+    applied = 0
+    skipped = []
+
+    for oid in order_ids:
+        try:
+            oid = int(oid)
+        except (ValueError, TypeError):
+            continue
+        order = Order.query.get(oid)
+        if not order:
+            continue
+        ok, err = change_order_status(
+            order, new_status,
+            actor_email=current_user.email if current_user.is_authenticated else None,
+            actor_role="admin",
+            note=note,
+        )
+        if ok:
+            applied += 1
+        else:
+            skipped.append(f"#{order.id}: {err}")
+
+    msg = f"Applied '{new_status}' to {applied} order(s)."
+    if skipped:
+        msg += f" Skipped {len(skipped)}: {'; '.join(skipped[:3])}{'…' if len(skipped) > 3 else ''}"
+    flash(msg, "success" if applied else "warning")
+    return redirect(url_for("admin.orders"))
