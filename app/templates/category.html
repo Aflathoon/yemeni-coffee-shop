@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}{{ category.label }} — The Spice & Roast Co.{% endblock %}
+{% block head %}
+<meta name="description" content="{{ category.description[:160] }}">
+{% endblock %}
+{% block content %}
+
+{# ---------- Category hero ---------- #}
+<section class="relative mb-8 rounded-lg overflow-hidden bg-parchment">
+    <div class="grid grid-cols-1 md:grid-cols-3">
+        <div class="md:col-span-2 p-8 md:p-12 flex flex-col justify-center bg-gradient-to-br from-coffee-dark via-coffee to-coffee-light text-cream">
+            <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">Shop · {{ category.label }}</p>
+            <h1 class="font-display text-4xl md:text-5xl font-semibold leading-tight mb-4">
+                {{ category.tagline }}
+            </h1>
+            <p class="text-cream/80 text-sm md:text-base leading-relaxed max-w-2xl mb-4">
+                {{ category.description }}
+            </p>
+            <p class="text-[11px] tracking-widest uppercase text-gold">
+                {{ total_count }} product{{ 's' if total_count != 1 else '' }} available
+            </p>
+        </div>
+        <div class="hidden md:block bg-cream overflow-hidden">
+            <img src="{{ category.image|imgurl }}"
+                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                 alt="{{ category.label }}"
+                 class="w-full h-full object-cover">
+        </div>
+    </div>
+</section>
+
+{# ---------- Category switcher chips ---------- #}
+<div class="flex flex-wrap gap-2 mb-6">
+    {% for slug, meta in all_categories %}
+    <a href="{{ url_for('main.category_page', category_slug=slug) }}"
+       class="text-[11px] tracking-widest uppercase px-3 py-1.5 rounded-sm border
+              {% if slug == category_slug %}bg-coffee-dark text-cream border-coffee-dark{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        {{ meta.label }}
+    </a>
+    {% endfor %}
+</div>
+
+{# ---------- Origin filter chips (if any) ---------- #}
+{% if countries %}
+<div class="flex flex-wrap gap-2 items-center mb-5 pb-4 border-b border-coffee-dark/10">
+    <span class="text-[10px] tracking-widest uppercase text-coffee-light">Origin:</span>
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, q=search or None, sort=sort, per_page=per_page) }}"
+       class="text-[11px] px-2 py-1 rounded-sm border
+              {% if not active_country %}bg-spice text-cream border-spice{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        All
+    </a>
+    {% for c in countries %}
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=c.name, q=search or None, sort=sort, per_page=per_page) }}"
+       class="text-[11px] px-2 py-1 rounded-sm border
+              {% if active_country == c.name %}bg-spice text-cream border-spice{% else %}border-coffee-dark/20 text-coffee-dark hover:bg-parchment{% endif %}">
+        {{ c.name }} ({{ c.count }})
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# ---------- Sort + per-page bar ---------- #}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-4 border-b border-coffee-dark/10">
+    <p class="text-sm text-coffee-light">
+        Showing <strong class="text-coffee-dark">{{ products|length }}</strong> of
+        <strong class="text-coffee-dark">{{ total_count }}</strong> product(s)
+        {% if total_pages > 1 %} · page {{ page }} of {{ total_pages }}{% endif %}
+    </p>
+    <form method="GET" class="flex items-center gap-2 text-sm">
+        {% if active_country %}<input type="hidden" name="country" value="{{ active_country }}">{% endif %}
+        {% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}
+
+        <label class="text-coffee-light text-[11px] tracking-widest uppercase">Sort</label>
+        <select name="sort" onchange="this.form.submit()"
+                class="border border-coffee-dark/20 rounded-sm px-2 py-1.5 bg-cream text-[13px]">
+            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
+            <option value="featured" {% if sort == 'featured' %}selected{% endif %}>Featured first</option>
+            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
+            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
+            <option value="name" {% if sort == 'name' %}selected{% endif %}>Name A→Z</option>
+        </select>
+
+        <label class="text-coffee-light text-[11px] tracking-widest uppercase ml-2">Per page</label>
+        <select name="per_page" onchange="this.form.submit()"
+                class="border border-coffee-dark/20 rounded-sm px-2 py-1.5 bg-cream text-[13px]">
+            {% for n in [12, 24, 48, 96, 200] %}
+            <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+        </select>
+        <input type="hidden" name="page" value="1">
+    </form>
+</div>
+
+{# ---------- Top pagination ---------- #}
+{% if total_pages > 1 %}
+<nav class="flex items-center justify-center gap-1 mb-6 text-sm flex-wrap">
+    {% if page > 1 %}
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">« First</a>
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page-1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">‹ Prev</a>
+    {% endif %}
+
+    {% for n in page_numbers %}
+        {% if n == '…' %}
+        <span class="px-2 text-coffee-light">…</span>
+        {% elif n == page %}
+        <span class="px-3 py-1.5 rounded-sm bg-coffee-dark text-cream font-semibold">{{ n }}</span>
+        {% else %}
+        <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=n) }}"
+           class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ n }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page+1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Next ›</a>
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=total_pages) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Last »</a>
+    {% endif %}
+</nav>
+{% endif %}
+
+{# ---------- Product grid ---------- #}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    {% for p in products %}
+    <div class="card hover:shadow-md transition-shadow duration-200 flex flex-col">
+        <a href="/product/{{ p.slug }}" class="block">
+            <div class="relative">
+                <img src="{{ p.image|imgurl }}"
+                     onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                     alt="{{ p.name }}"
+                     class="product-img"
+                     loading="lazy"
+                     width="600" height="600">
+                {% if p.featured %}
+                <span class="absolute top-2 left-2 bg-gold text-coffee-dark text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded-sm">Featured</span>
+                {% endif %}
+                {% if not is_wholesale and (p|retail_price).campaign_discount > 0 %}
+                <span class="absolute top-2 {% if p.featured %}top-10{% endif %} left-2 bg-sage text-cream text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded-sm">On offer</span>
+                {% endif %}
+                {% if p.origin_country %}
+                <span class="absolute top-2 right-2 bg-cream/95 text-coffee-dark text-[9px] tracking-wider uppercase px-2 py-1 rounded-sm">{{ p.origin_country }}</span>
+                {% endif %}
+            </div>
+            <div class="p-4 pb-2">
+                <h3 class="font-display text-lg text-coffee-dark leading-tight mb-1">{{ p.name }}</h3>
+                <p class="text-xs text-coffee-light leading-relaxed line-clamp-2 min-h-[2.5em]">{{ p.short_desc or p.description[:70] }}</p>
+            </div>
+        </a>
+        <div class="mt-auto p-4 pt-2 flex items-center justify-between border-t border-coffee-dark/8">
+            <div>
+                {% if is_wholesale %}
+                <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p|price_for) }}</p>
+                <p class="text-[10px] text-coffee-light line-through">${{ "%.2f"|format(p.price) }}</p>
+                {% else %}
+                {% set rp = p|retail_price %}
+                {% if rp.campaign_discount > 0 %}
+                <p class="font-semibold text-spice">${{ "%.2f"|format(rp.price) }}</p>
+                <p class="text-[10px] text-coffee-light line-through">${{ "%.2f"|format(p.price) }}</p>
+                {% else %}
+                <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p.price) }}</p>
+                {% endif %}
+                {% endif %}
+                <p class="text-[10px] text-coffee-light tracking-wider">{{ p|unit_label }}</p>
+            </div>
+            <form method="POST" action="/cart/add/{{ p.slug }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="quantity" value="1">
+                <button type="submit"
+                        class="text-[10px] tracking-[0.15em] uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-spice transition">
+                    Add
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-span-full text-center py-20">
+        <p class="font-display text-2xl text-coffee-dark mb-3">Nothing here yet</p>
+        <p class="text-coffee-light text-sm mb-4">
+            We haven't added any {{ category.label|lower }} products yet.
+        </p>
+        <a href="/" class="text-spice hover:text-coffee-dark text-xs tracking-widest uppercase">Back to shop</a>
+    </div>
+    {% endfor %}
+</div>
+
+{# ---------- Bottom pagination ---------- #}
+{% if total_pages > 1 %}
+<nav class="flex items-center justify-center gap-1 mt-10 text-sm flex-wrap">
+    {% if page > 1 %}
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">« First</a>
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page-1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">‹ Prev</a>
+    {% endif %}
+
+    {% for n in page_numbers %}
+        {% if n == '…' %}
+        <span class="px-2 text-coffee-light">…</span>
+        {% elif n == page %}
+        <span class="px-3 py-1.5 rounded-sm bg-coffee-dark text-cream font-semibold">{{ n }}</span>
+        {% else %}
+        <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=n) }}"
+           class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">{{ n }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=page+1) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Next ›</a>
+    <a href="{{ url_for('main.category_page', category_slug=category_slug, country=active_country, q=search or None, sort=sort, per_page=per_page, page=total_pages) }}"
+       class="px-3 py-1.5 rounded-sm border border-coffee-dark/15 text-coffee-dark hover:bg-parchment">Last »</a>
+    {% endif %}
+</nav>
+{% endif %}
+
+{# ---------- Inline back-to-top ---------- #}
+<div class="flex justify-end mt-8 pt-6 border-t border-coffee-dark/10">
+    <button type="button"
+            onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+            class="group flex items-center gap-2 text-[11px] tracking-widest uppercase text-coffee-light hover:text-spice transition">
+        <span class="w-8 h-8 rounded-full bg-parchment group-hover:bg-spice group-hover:text-cream flex items-center justify-center transition">↑</span>
+        Back to top
+    </button>
+</div>
+
+{% endblock %}

@@ -473,3 +473,97 @@ def strip_products(per_category=3, categories=None):
                  .all())
         out.extend(items)
     return out
+
+
+# ---------- Dedicated category pages ----------
+
+@bp.route("/shop/<category_slug>")
+def category_page(category_slug):
+    """Dedicated page for a single category with its own SEO + hero."""
+    from app.categories import get_category, all_categories
+
+    cat = get_category(category_slug)
+    if not cat:
+        from flask import abort
+        abort(404)
+
+    slug, meta = cat
+
+    country = request.args.get("country")
+    search = request.args.get("q", "").strip()
+    sort = request.args.get("sort", "newest").strip()
+
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (ValueError, TypeError):
+        page = 1
+
+    try:
+        per_page = int(request.args.get("per_page", 24))
+        if per_page not in (12, 24, 48, 96, 200):
+            per_page = 24
+    except (ValueError, TypeError):
+        per_page = 24
+
+    base_q = Product.query.filter_by(active=True, category=slug)
+    if country:
+        base_q = base_q.filter_by(origin_country=country)
+    if search:
+        like = f"%{search}%"
+        base_q = base_q.filter(
+            (Product.name.ilike(like))
+            | (Product.short_desc.ilike(like))
+            | (Product.description.ilike(like))
+            | (Product.tags.ilike(like))
+        )
+
+    total_count = base_q.count()
+
+    if sort == "price_asc":
+        base_q = base_q.order_by(Product.price.asc())
+    elif sort == "price_desc":
+        base_q = base_q.order_by(Product.price.desc())
+    elif sort == "name":
+        base_q = base_q.order_by(Product.name.asc())
+    elif sort == "featured":
+        base_q = base_q.order_by(Product.featured.desc(), Product.created_at.desc())
+    else:
+        sort = "newest"
+        base_q = base_q.order_by(Product.created_at.desc())
+
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+
+    offset = (page - 1) * per_page
+    products = base_q.offset(offset).limit(per_page).all()
+
+    # Category-aware counts (only for this category)
+    countries = db_countries(category_filter=slug)
+    categories = db_categories()
+
+    featured = Product.query.filter_by(featured=True, category=slug).limit(5).all()
+    if not featured:
+        featured = Product.query.filter_by(featured=True).limit(5).all()
+
+    page_numbers = _build_page_numbers(page, total_pages)
+
+    return render_template(
+        "category.html",
+        category_slug=slug,
+        category=meta,
+        all_categories=all_categories(),
+        products=products,
+        categories=categories,
+        countries=countries,
+        featured=featured,
+        active_category=slug,
+        active_country=country,
+        search=search,
+        sort=sort,
+        page=page,
+        per_page=per_page,
+        total_count=total_count,
+        total_pages=total_pages,
+        page_numbers=page_numbers,
+    )
