@@ -74,6 +74,23 @@
 </head>
 <body>
 
+{# ---------- Retail campaign banner ---------- #}
+{% if active_retail_campaigns %}
+<div class="bg-sage text-cream">
+    <div class="max-w-[1400px] mx-auto px-4 py-2 flex items-center justify-center gap-3 text-sm">
+        <span class="text-[10px] tracking-widest uppercase">🎯 {{ active_retail_campaigns|length }} active offer{{ 's' if active_retail_campaigns|length != 1 else '' }}</span>
+        <span class="text-cream/70">·</span>
+        <a href="{{ url_for('main.offers') }}" class="underline hover:no-underline">
+            {% if active_retail_campaigns|length == 1 %}
+            {{ active_retail_campaigns[0].public_description or active_retail_campaigns[0].name }}
+            {% else %}
+            See all live promotions
+            {% endif %}
+        </a>
+    </div>
+</div>
+{% endif %}
+
 {# ---------- Announcement bar ---------- #}
 <div class="bg-coffee-dark text-cream text-center py-2 px-4 text-xs tracking-widest">
     FREE SHIPPING ON ORDERS OVER $75 &nbsp;·&nbsp; HAND-SOURCED FROM SMALL PRODUCERS WORLDWIDE
@@ -86,13 +103,14 @@
 
             {# Left: nav (hidden on mobile, burger shown) #}
             <nav class="hidden lg:flex items-center gap-6 text-coffee-dark">
-                <button id="sidebar-toggle" class="nav-link">Shop</button>
+                <a href="/" class="nav-link">Shop</a>
                 <a href="/?category=coffee" class="nav-link">Coffee</a>
                 <a href="/?category=spices" class="nav-link">Spices</a>
                 <a href="/?category=honey" class="nav-link">Honey</a>
                 <a href="/?category=tea" class="nav-link">Tea</a>
                 <a href="/?category=accessories" class="nav-link">Accessories</a>
                 <a href="{{ url_for('blog.index') }}" class="nav-link">Journal</a>
+                <a href="{{ url_for('main.offers') }}" class="nav-link">Offers</a>
                 <a href="{{ url_for('wholesale.landing') }}" class="nav-link text-gold hover:text-coffee-dark">Trade</a>
             </nav>
 
@@ -180,7 +198,7 @@
                             All Products
                         </a>
                     </li>
-                    {% for c in categories %}
+                    {% for c in categories or [] %}
                     <li>
                         <a href="/?category={{ c.name }}"
                            class="flex justify-between text-sm py-1 {% if active_category == c.name %}font-semibold text-spice{% else %}text-coffee-dark hover:text-spice{% endif %}">
@@ -195,7 +213,7 @@
             <div>
                 <h3 class="font-display text-lg text-coffee-dark mb-3">Origin</h3>
                 <ul class="space-y-1 max-h-72 overflow-auto pr-1">
-                    {% for c in countries %}
+                    {% for c in countries or [] %}
                     <li>
                         <a href="/?country={{ c.name }}"
                            class="flex justify-between text-sm py-0.5 {% if active_country == c.name %}font-semibold text-spice{% else %}text-coffee-dark hover:text-spice{% endif %}">
@@ -235,7 +253,7 @@
             <div>
                 <h3 class="font-display text-lg text-coffee-dark mb-3">Featured</h3>
                 <div class="space-y-3">
-                    {% for p in featured %}
+                    {% for p in featured or [] %}
                     <a href="/product/{{ p.slug }}" class="flex gap-3 items-center group">
                         <img src="{{ p.image|imgurl }}"
                              onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Current Offers — The Spice & Roast Co.{% endblock %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto py-10">
+
+    <header class="text-center mb-12">
+        <p class="text-[10px] tracking-[0.35em] text-gold uppercase mb-3">Current Offers</p>
+        <h1 class="font-display text-5xl text-coffee-dark mb-4">This Season's Promotions</h1>
+        <p class="text-coffee-light max-w-xl mx-auto">
+            Limited-time deals on selected products. No codes needed — discounts apply automatically at checkout.
+        </p>
+    </header>
+
+    {% if campaigns %}
+    <div class="space-y-6">
+        {% for c in campaigns %}
+        <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+            <div class="p-6 md:p-8">
+                <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+                    <div class="flex-1 min-w-0">
+                        <span class="inline-block bg-sage/20 text-sage text-[10px] tracking-widest uppercase px-2 py-1 rounded mb-3">
+                            Live now
+                        </span>
+                        <h2 class="font-display text-3xl text-coffee-dark mb-2">{{ c.name }}</h2>
+                        {% if c.public_description %}
+                        <p class="text-coffee-dark/80 leading-relaxed">{{ c.public_description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="font-display text-4xl text-spice">
+                            {% if c.discount_type == 'percent' %}−{{ c.discount_value }}%
+                            {% elif c.discount_type == 'fixed' %}−${{ "%.0f"|format(c.discount_value) }}
+                            {% else %}Free ship{% endif %}
+                        </p>
+                        <p class="text-[11px] text-coffee-light">Ends {{ c.ends_at.strftime("%b %d") }}</p>
+                    </div>
+                </div>
+
+                {% if samples.get(c.id) %}
+                <div class="pt-5 border-t border-coffee-dark/10">
+                    <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-3">Featured in this offer</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {% for p in samples[c.id] %}
+                        <a href="/product/{{ p.slug }}" class="group">
+                            <img src="{{ p.image|imgurl }}"
+                                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                                 alt="{{ p.name }}"
+                                 class="w-full aspect-square object-cover rounded-sm bg-parchment group-hover:opacity-90 transition"
+                                 loading="lazy">
+                            <p class="text-sm text-coffee-dark mt-2 group-hover:text-spice line-clamp-2">{{ p.name }}</p>
+                            {% set rp = p|retail_price %}
+                            <p class="text-sm mt-0.5">
+                                <span class="font-medium text-spice">${{ "%.2f"|format(rp.price) }}</span>
+                                <span class="text-coffee-light line-through ml-1 text-xs">${{ "%.2f"|format(p.price) }}</span>
+                            </p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-cream border border-coffee-dark/10 rounded-lg p-16 text-center">
+        <p class="text-4xl mb-3">🎯</p>
+        <p class="font-display text-2xl text-coffee-dark mb-3">No active offers right now</p>
+        <p class="text-coffee-light text-sm mb-6">Sign up to our newsletter or check back soon — we run promotions monthly.</p>
+        <a href="/" class="btn-primary inline-block">Back to shop</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

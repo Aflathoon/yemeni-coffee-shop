@@ -290,3 +290,23 @@ def wholesale_price_for(wholesale_account, product,
     info["clamped"] = applied["floor_clamped"]
 
     return info
+
+
+def retail_price_for(product, cart_total=None, cart_qty=None):
+    """
+    Effective retail price for a product after any active retail campaigns.
+
+    Returns dict:
+      price, base_price, campaign_discount, campaign_labels, floor_clamped
+    """
+    base = float(product.price or 0)
+    from app.campaigns import apply_retail_campaigns
+    applied = apply_retail_campaigns(base, product, cart_total, cart_qty)
+    return {
+        "price": applied["final_price"],
+        "base_price": round(base, 2),
+        "campaign_discount": applied["campaign_discount"],
+        "campaign_labels": applied["labels"],
+        "campaigns": applied["campaigns"],
+        "floor_clamped": applied["floor_clamped"],
+    }

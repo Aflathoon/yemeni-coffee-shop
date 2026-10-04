@@ -85,6 +85,12 @@ def create_app():
             return f"{qty or 1} kg"
         return f"{qty or 1} g"
 
+    @app.template_filter("retail_price")
+    def retail_price_filter(product):
+        """Retail price dict after campaigns (safe for anonymous visitors)."""
+        from app.pricing import retail_price_for
+        return retail_price_for(product)
+
     @app.template_filter("active_campaigns_for")
     def active_campaigns_for_filter(product, account=None):
         """Return active campaigns that apply to a given product for the current partner."""
@@ -166,12 +172,21 @@ def create_app():
         except Exception:
             pass
 
+        # Active retail campaigns (for banner)
+        active_retail = []
+        try:
+            from app.campaigns import active_retail_campaigns
+            active_retail = active_retail_campaigns()
+        except Exception:
+            pass
+
         return {
             "languages": LANGUAGES,
             "current_lang": session.get("lang", "en"),
             "cart_count": count,
             "wholesale_discount": wd,
             "is_wholesale": wu,
+            "active_retail_campaigns": active_retail,
         }
 
     # ---------- Seed only when running the server ----------

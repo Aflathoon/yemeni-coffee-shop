@@ -284,3 +284,34 @@ def checkout():
 def order_confirmation(order_id):
     order = Order.query.get_or_404(order_id)
     return render_template("order_confirmation.html", order=order)
+
+
+# ---------- Retail offers page ----------
+
+@bp.route("/offers")
+def offers():
+    """Public list of active retail campaigns."""
+    from app.campaigns import active_retail_campaigns
+    from app.models import Product, CampaignProduct
+
+    campaigns = active_retail_campaigns()
+
+    # For each campaign, find a sample of in-scope products (up to 4)
+    samples = {}
+    for c in campaigns:
+        prods = []
+        if c.scope == "all":
+            prods = Product.query.filter_by(active=True).limit(4).all()
+        elif c.scope == "category":
+            cats = [x.lower() for x in c.get_scope_categories()]
+            prods = (Product.query
+                     .filter(Product.active == True)
+                     .filter(Product.category.in_(cats))
+                     .limit(4).all())
+        elif c.scope == "products":
+            ids = [cp.product_id for cp in CampaignProduct.query.filter_by(campaign_id=c.id).all()]
+            if ids:
+                prods = Product.query.filter(Product.id.in_(ids)).limit(4).all()
+        samples[c.id] = prods
+
+    return render_template("offers.html", campaigns=campaigns, samples=samples)

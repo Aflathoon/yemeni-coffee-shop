@@ -121,6 +121,95 @@ def campaigns_for(wholesale_account, product, cart_total=None, cart_qty=None):
     return matched
 
 
+# ---------- Retail ----------
+
+def retail_campaigns_for(product, cart_total=None, cart_qty=None):
+    """
+    Return live campaigns that apply to retail visitors for a given product.
+    Retail doesn't have tiers/partner targeting — channel is the only filter.
+    """
+    live = active_campaigns()
+    matched = []
+    for c in live:
+        if c.channel == "wholesale":
+            continue
+        if c.channel not in ("retail", "both"):
+            continue
+        if not _product_in_scope(c, product):
+            continue
+        if not _order_value_matches(c, cart_total, cart_qty):
+            continue
+        matched.append(c)
+    matched.sort(key=lambda c: c.starts_at, reverse=True)
+    return matched
+
+
+def apply_retail_campaigns(base_price, product, cart_total=None, cart_qty=None):
+    """
+    Apply campaigns to a retail price.
+    Returns dict similar to apply_campaigns() but no tier scaling.
+    """
+    from app.pricing import clamp_to_floor
+
+    matches = retail_campaigns_for(product, cart_total, cart_qty)
+    if not matches:
+        return {
+            "final_price": round(float(base_price), 2),
+            "campaign_discount": 0.0,
+            "campaigns": [],
+            "labels": [],
+            "floor_clamped": False,
+        }
+
+    override_c = next((c for c in matches if c.override_pricing), None)
+    running_price = float(base_price)
+    total_discount = 0.0
+    labels = []
+
+    if override_c:
+        # Retail override: percent/fixed directly
+        if override_c.discount_type == "percent":
+            amount = running_price * (override_c.discount_value or 0) / 100.0
+            running_price -= amount
+            total_discount += amount
+            labels.append(f"−{override_c.discount_value}% ({override_c.name})")
+        elif override_c.discount_type == "fixed":
+            amount = min(float(override_c.discount_value or 0), running_price)
+            running_price -= amount
+            total_discount += amount
+            labels.append(f"−${amount:.2f} ({override_c.name})")
+        matches = [override_c]
+    else:
+        for c in matches:
+            if c.discount_type == "percent":
+                amount = running_price * (c.discount_value or 0) / 100.0
+                running_price -= amount
+                total_discount += amount
+                labels.append(f"−{c.discount_value}% ({c.name})")
+            elif c.discount_type == "fixed":
+                amount = min(float(c.discount_value or 0), running_price)
+                running_price -= amount
+                total_discount += amount
+                labels.append(f"−${amount:.2f} ({c.name})")
+
+    final_price, clamped = clamp_to_floor(product, running_price)
+    actual_discount = round(float(base_price) - final_price, 2) if clamped else round(total_discount, 2)
+
+    return {
+        "final_price": round(final_price, 2),
+        "campaign_discount": actual_discount,
+        "campaigns": matches,
+        "labels": labels,
+        "floor_clamped": clamped,
+    }
+
+
+def active_retail_campaigns():
+    """All live retail-eligible campaigns (regardless of product)."""
+    live = active_campaigns()
+    return [c for c in live if c.channel in ("retail", "both")]
+
+
 def campaign_discount_for(campaign, account, base_price):
     """
     Compute the discount amount for a campaign applied to base_price.

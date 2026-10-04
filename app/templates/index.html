@@ -60,7 +60,13 @@
                 <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p|price_for) }}</p>
                 <p class="text-[10px] text-coffee-light line-through">${{ "%.2f"|format(p.price) }}</p>
                 {% else %}
+                {% set rp = p|retail_price %}
+                {% if rp.campaign_discount > 0 %}
+                <p class="font-semibold text-spice">${{ "%.2f"|format(rp.price) }}</p>
+                <p class="text-[10px] text-coffee-light line-through">${{ "%.2f"|format(p.price) }}</p>
+                {% else %}
                 <p class="font-semibold text-coffee-dark">${{ "%.2f"|format(p.price) }}</p>
+                {% endif %}
                 {% endif %}
                 <p class="text-[10px] text-coffee-light tracking-wider">{{ p|unit_label }}</p>
             </div>
