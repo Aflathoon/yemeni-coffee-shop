@@ -104,6 +104,9 @@
                 <span>📦 Products</span>
                 {% if stats and stats.products %}<span class="text-coffee-light text-xs">{{ stats.products }}</span>{% endif %}
             </a>
+            <a href="/admin/products/duplicates" class="sidebar-link {% if 'duplicates' in (request.endpoint or '') %}active{% endif %}">
+                <span>🧹 Duplicates</span>
+            </a>
             <a href="/admin/import/uploads" class="sidebar-link {% if request.endpoint == 'admin.import_uploads' %}active{% endif %}">
                 <span>⬆️ Import</span>
             </a>

@@ -2648,3 +2648,153 @@ def assistant_chat():
         return {"ok": False, "reply": f"Error: {r['error']}"}, 500
 
     return {"ok": True, "reply": r["content"].strip()}
+
+
+
+@bp.route("/products/bulk-delete", methods=["POST"])
+@admin_required
+def products_bulk_delete():
+    """Delete multiple products at once. Honors a `next` return URL."""
+    ids = request.form.getlist("product_ids")
+    next_url = request.form.get("next", "").strip()
+
+    # Safety: only allow redirects back into /admin
+    if not next_url.startswith("/admin"):
+        next_url = url_for("admin.products")
+
+    if not ids:
+        flash("No products selected.", "warning")
+        return redirect(next_url)
+
+    deleted = 0
+    deleted_names = []
+    errors = []
+    for pid in ids:
+        try:
+            pid = int(pid)
+        except (TypeError, ValueError):
+            continue
+        product = Product.query.get(pid)
+        if not product:
+            continue
+        name = product.name
+        try:
+            db.session.delete(product)
+            deleted += 1
+            deleted_names.append(name)
+        except Exception as e:
+            errors.append(f"#{pid}: {e}")
+
+    db.session.commit()
+
+    if deleted == 1:
+        msg = f"Deleted '{deleted_names[0]}'."
+    else:
+        msg = f"Deleted {deleted} product(s): {', '.join(deleted_names[:3])}" + ("…" if len(deleted_names) > 3 else "")
+    if errors:
+        msg += f"  Errors: {'; '.join(errors[:3])}"
+
+    flash(msg, "success" if deleted else "warning")
+    return redirect(next_url)
+
+
+# ---------- Duplicates finder ----------
+
+@bp.route("/products/duplicates")
+@admin_required
+def products_duplicates():
+    """Find products that share images or names."""
+    from collections import defaultdict
+
+    all_products = Product.query.order_by(Product.category, Product.name).all()
+
+    # Group by image
+    by_image = defaultdict(list)
+    for p in all_products:
+        if p.image:
+            by_image[p.image].append(p)
+
+    # Group by lowercase name
+    by_name = defaultdict(list)
+    for p in all_products:
+        if p.name:
+            by_name[p.name.strip().lower()].append(p)
+
+    # Only keep groups with 2+ products
+    image_dupes = {k: v for k, v in by_image.items() if len(v) > 1}
+    name_dupes = {k: v for k, v in by_name.items() if len(v) > 1}
+
+    # Also find orphan images in uploads/products/ that aren't linked to any product
+    import os
+    from flask import current_app
+    uploads_dir = os.path.join(current_app.static_folder, "uploads", "products")
+    linked_images = {p.image for p in all_products if p.image}
+    orphan_images = []
+    if os.path.isdir(uploads_dir):
+        for f in sorted(os.listdir(uploads_dir)):
+            url = f"/static/uploads/products/{f}"
+            if url not in linked_images and f.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif")):
+                path = os.path.join(uploads_dir, f)
+                orphan_images.append({
+                    "filename": f,
+                    "url": url,
+                    "size_kb": round(os.path.getsize(path) / 1024, 1),
+                })
+
+    # Also find products pointing at non-existent images
+    import pathlib
+    missing_images = []
+    for p in all_products:
+        if not p.image:
+            continue
+        if p.image.startswith("/static/"):
+            fs = pathlib.Path(current_app.static_folder).parent / p.image.lstrip("/")
+        else:
+            fs = pathlib.Path(current_app.static_folder) / "images" / p.image
+        # Check the file or its webp variant
+        exists = fs.exists() or fs.with_suffix(".webp").exists()
+        if not exists:
+            missing_images.append(p)
+
+    stats = compute_stats()
+    return render_template(
+        "admin/products_duplicates.html",
+        image_dupes=image_dupes,
+        name_dupes=name_dupes,
+        orphan_images=orphan_images,
+        missing_images=missing_images,
+        stats=stats,
+        total_products=len(all_products),
+    )
+
+
+@bp.route("/products/duplicates/cleanup-orphans", methods=["POST"])
+@admin_required
+def products_cleanup_orphans():
+    """Delete orphan image files (that no product references)."""
+    import os
+    from flask import current_app
+
+    uploads_dir = os.path.join(current_app.static_folder, "uploads", "products")
+    linked_images = {p.image for p in Product.query.all() if p.image}
+
+    removed = 0
+    freed_bytes = 0
+    if os.path.isdir(uploads_dir):
+        for f in os.listdir(uploads_dir):
+            url = f"/static/uploads/products/{f}"
+            if url in linked_images:
+                continue
+            if not f.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif")):
+                continue
+            path = os.path.join(uploads_dir, f)
+            try:
+                freed_bytes += os.path.getsize(path)
+                os.remove(path)
+                removed += 1
+            except Exception:
+                pass
+
+    mb = freed_bytes / 1024 / 1024
+    flash(f"Removed {removed} orphan image(s) — freed {mb:.1f} MB.", "success")
+    return redirect(url_for("admin.products_duplicates"))
