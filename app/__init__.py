@@ -85,6 +85,13 @@ def create_app():
             return f"{qty or 1} kg"
         return f"{qty or 1} g"
 
+    @app.template_filter("ws_price")
+    def ws_price_filter(product):
+        """Effective wholesale price dict for the current partner + product."""
+        from app.pricing import wholesale_price_for
+        from app.wholesale.session import current_wholesale
+        return wholesale_price_for(current_wholesale(), product)
+
     @app.template_filter("price_for")
     def price_for_filter(product):
         """Effective price for the current user (wholesale-aware)."""

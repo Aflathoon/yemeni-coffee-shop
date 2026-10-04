@@ -1,0 +1,105 @@
+{% extends "admin_base.html" %}
+{% block title %}Custom prices — {{ acct.company_name }}{% endblock %}
+{% block page_title %}Custom prices{% endblock %}
+{% block page_subtitle %}{{ acct.company_name }} · {{ acct.tier|capitalize }} tier{% endblock %}
+
+{% block content %}
+
+<div class="bg-cream border border-coffee-dark/10 rounded-lg p-4 mb-5 flex items-center justify-between flex-wrap gap-3">
+    <div class="text-sm">
+        <p class="text-coffee-dark">
+            <strong>{{ override_map|length }}</strong> custom price(s) set.
+            Products without a custom price use the <strong>{{ acct.tier }}</strong> tier discount.
+        </p>
+    </div>
+    <div class="flex gap-2">
+        <a href="{{ url_for('admin.wholesale_account_detail', acct_id=acct.id) }}"
+           class="text-[11px] tracking-widest uppercase border border-coffee-dark/20 px-3 py-2 rounded-sm hover:bg-parchment">
+            ← Account
+        </a>
+        {% if override_map %}
+        <form method="POST" action="{{ url_for('admin.wholesale_account_prices_clear', acct_id=acct.id) }}" onsubmit="return confirm('Clear all custom prices?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="text-[11px] tracking-widest uppercase border border-red-300 text-red-700 px-3 py-2 rounded-sm hover:bg-red-50">
+                Clear all
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{# Search box #}
+<form method="GET" class="mb-4 flex gap-2">
+    <input type="search" name="q" value="{{ request.args.get('q', '') }}" placeholder="Filter products by name…"
+           class="flex-1 border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm max-w-md">
+    <button class="bg-coffee-dark text-cream px-4 rounded-sm text-[11px] tracking-widest uppercase hover:bg-coffee">Search</button>
+</form>
+
+{# Table #}
+<div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden">
+    <table class="w-full text-[14px]">
+        <thead class="bg-cream text-[10px] tracking-widest uppercase text-coffee-light border-b border-coffee-dark/10">
+            <tr>
+                <th class="text-left px-3 py-3 w-14"></th>
+                <th class="text-left px-3 py-3">Product</th>
+                <th class="text-right px-3 py-3">List</th>
+                <th class="text-center px-3 py-3" colspan="3">Custom price</th>
+                <th class="text-right px-3 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% set q_filter = request.args.get('q', '').lower() %}
+        {% for p in products %}
+        {% if not q_filter or q_filter in p.name.lower() %}
+        {% set existing = override_map.get(p.id) %}
+        <tr class="border-b border-coffee-dark/5 {% if existing %}bg-gold/5{% endif %}">
+            <td class="px-3 py-2">
+                <img src="{{ p.image|imgurl }}" class="w-10 h-10 object-cover rounded bg-parchment" alt="">
+            </td>
+            <td class="px-3 py-2">
+                <p class="font-medium text-coffee-dark">{{ p.name }}</p>
+                <p class="text-[11px] text-coffee-light">{{ p.category }} · {{ p|unit_label }}</p>
+            </td>
+            <td class="px-3 py-2 text-right text-coffee-light">${{ "%.2f"|format(p.price) }}</td>
+            <td colspan="3" class="px-3 py-2">
+                <form method="POST" action="{{ url_for('admin.wholesale_account_price_set', acct_id=acct.id) }}"
+                      class="flex gap-2 items-center justify-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="product_id" value="{{ p.id }}">
+                    <input type="number" step="0.01" min="0" name="price"
+                           value="{{ '%.2f'|format(existing.price) if existing else '' }}"
+                           placeholder="—"
+                           class="w-24 border border-coffee-dark/20 rounded-sm px-2 py-1 text-right bg-cream text-sm">
+                    <input type="number" min="1" name="min_quantity"
+                           value="{{ existing.min_quantity if existing else 1 }}"
+                           placeholder="MOQ"
+                           title="Minimum order quantity"
+                           class="w-16 border border-coffee-dark/20 rounded-sm px-2 py-1 text-center bg-cream text-sm">
+                    <input type="text" name="notes"
+                           value="{{ existing.notes or '' if existing else '' }}"
+                           placeholder="notes"
+                           class="w-40 border border-coffee-dark/20 rounded-sm px-2 py-1 bg-cream text-sm">
+                    <button class="text-[10px] tracking-widest uppercase bg-coffee-dark text-cream px-3 py-1.5 rounded-sm hover:bg-coffee">
+                        {% if existing %}Update{% else %}Set{% endif %}
+                    </button>
+                </form>
+            </td>
+            <td class="px-3 py-2 text-right">
+                {% if existing %}
+                <span class="text-[10px] tracking-widest uppercase text-gold">Custom</span>
+                {% else %}
+                <span class="text-[10px] tracking-widest uppercase text-coffee-light">Tier default</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<p class="text-xs text-coffee-light italic mt-4">
+    Leave price blank to remove an override. Custom prices take precedence over the tier discount.
+</p>
+
+{% endblock %}

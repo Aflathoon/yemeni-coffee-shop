@@ -93,6 +93,55 @@
             </p>
         </div>
 
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-3">Blanket discount</h2>
+            <p class="text-xs text-coffee-light mb-3">
+                A single % off applied to every product. Overrides the tier. Per-product overrides still take precedence.
+            </p>
+            {% if acct.custom_discount_pct is not none %}
+            <p class="text-sm mb-3">
+                Current: <strong class="text-coffee-dark">{{ acct.custom_discount_pct }}% off everything</strong>
+            </p>
+            {% else %}
+            <p class="text-sm text-coffee-light mb-3 italic">
+                Not set — using {{ acct.tier }} tier ({{ get_discount_percent_for_template }}%)
+            </p>
+            {% endif %}
+            <form method="POST" action="{{ url_for('admin.wholesale_account_set_custom_discount', acct_id=acct.id) }}" class="space-y-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="flex gap-2">
+                    <input type="number" step="0.5" min="0" max="90" name="custom_discount_pct"
+                           value="{{ acct.custom_discount_pct if acct.custom_discount_pct is not none else '' }}"
+                           placeholder="e.g. 30"
+                           class="flex-1 border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+                    <span class="self-center text-sm text-coffee-light">% off</span>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="flex-1 bg-navy text-cream py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                        Save discount
+                    </button>
+                    {% if acct.custom_discount_pct is not none %}
+                    <button type="submit" formaction="{{ url_for('admin.wholesale_account_clear_custom_discount', acct_id=acct.id) }}"
+                            class="text-[11px] tracking-widest uppercase border border-coffee-dark/20 px-3 py-2 rounded-sm hover:bg-parchment"
+                            onclick="return confirm('Remove blanket discount?')">
+                        Clear
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white border border-coffee-dark/8 rounded-lg p-5">
+            <h2 class="font-display text-lg text-coffee-dark mb-3">Custom pricing</h2>
+            <p class="text-xs text-coffee-light mb-3">
+                Negotiated per-product rates. Takes precedence over tier discount.
+            </p>
+            <a href="{{ url_for('admin.wholesale_account_prices', acct_id=acct.id) }}"
+               class="block text-center bg-navy text-cream py-2 rounded-sm text-[11px] tracking-widest uppercase hover:bg-navy-light">
+                Manage custom prices →
+            </a>
+        </div>
+
         <div class="bg-white border border-coffee-dark/8 rounded-lg p-5 text-sm">
             <h2 class="font-display text-lg text-coffee-dark mb-3">Meta</h2>
             <p class="text-coffee-light">Signed up: <span class="text-coffee-dark">{{ acct.created_at.strftime("%b %d, %Y") }}</span></p>

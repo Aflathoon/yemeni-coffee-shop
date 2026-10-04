@@ -1,0 +1,110 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Catalog — Partner Portal{% endblock %}
+{% block page_title %}Product Catalog{% endblock %}
+{% block page_subtitle %}{{ priced|length }} product(s) — prices shown at your {{ acct.tier }} tier{% endblock %}
+
+{% block content %}
+
+{# ---------- Cart summary strip ---------- #}
+<div class="bg-navy text-cream rounded-lg p-4 mb-5 flex items-center justify-between flex-wrap gap-3">
+    <div>
+        <p class="text-[11px] tracking-widest uppercase text-gold">Your wholesale cart</p>
+        <p class="font-display text-2xl">{{ cart_count }} item(s)</p>
+    </div>
+    <a href="{{ url_for('wholesale.cart_view') }}"
+       class="btn-outline border-cream text-cream hover:bg-cream hover:text-navy">
+        View cart →
+    </a>
+</div>
+
+{# ---------- Filters ---------- #}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-4 mb-5">
+    <form method="GET" class="flex flex-wrap items-center gap-3">
+        <input type="search" name="q" value="{{ search }}" placeholder="Search products…"
+               class="flex-1 min-w-[200px] border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+        <select name="category" class="border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            <option value="">All categories</option>
+            {% for c, n in categories.items() %}
+            <option value="{{ c }}" {% if active_category == c %}selected{% endif %}>{{ c|capitalize }} ({{ n }})</option>
+            {% endfor %}
+        </select>
+        <select name="country" class="border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            <option value="">All origins</option>
+            {% for c, n in countries.items() %}
+            <option value="{{ c }}" {% if active_country == c %}selected{% endif %}>{{ c }} ({{ n }})</option>
+            {% endfor %}
+        </select>
+        <select name="sort" class="border border-coffee-dark/20 rounded-sm px-3 py-2 bg-cream text-sm">
+            {% for v, l in [('name','A→Z'),('price_asc','Price ↑'),('price_desc','Price ↓')] %}
+            <option value="{{ v }}" {% if active_sort == v %}selected{% endif %}>{{ l }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn-primary">Filter</button>
+        {% if search or active_category or active_country %}
+        <a href="{{ url_for('wholesale.catalog') }}" class="text-xs uppercase tracking-widest text-coffee-light hover:text-navy self-center">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+{# ---------- Product grid ---------- #}
+{% if priced %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {% for item in priced %}
+    {% set p = item.product %}
+    {% set info = item.price_info %}
+    <div class="bg-white border border-coffee-dark/8 rounded-lg overflow-hidden flex flex-col">
+        <a href="{{ url_for('wholesale.catalog_product', slug=p.slug) }}" class="block">
+            <div class="aspect-square bg-parchment relative">
+                <img src="{{ p.image|imgurl }}"
+                     onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                     alt="{{ p.name }}"
+                     class="w-full h-full object-cover"
+                     loading="lazy">
+                {% if info.source == 'override' %}
+                <span class="absolute top-2 left-2 bg-gold text-navy text-[9px] tracking-widest uppercase px-2 py-1 rounded-sm font-semibold">
+                    Custom rate
+                </span>
+                {% endif %}
+            </div>
+            <div class="p-4 pb-2">
+                <p class="text-[10px] tracking-widest uppercase text-spice mb-1">{{ p.category }}</p>
+                <h3 class="font-display text-lg text-navy leading-tight mb-1">{{ p.name }}</h3>
+                <p class="text-xs text-coffee-light line-clamp-2 min-h-[2.4em]">{{ p.short_desc or p.description[:70] }}</p>
+            </div>
+        </a>
+        <div class="mt-auto p-4 pt-2 border-t border-coffee-dark/8">
+            <div class="flex items-baseline justify-between mb-2">
+                <div>
+                    <p class="font-display text-xl text-navy">${{ "%.2f"|format(info.price) }}</p>
+                    <p class="text-[10px] text-coffee-light">
+                        List: <span class="line-through">${{ "%.2f"|format(info.list_price) }}</span>
+                        {% if info.discount_pct > 0 %} · −{{ info.discount_pct }}%{% endif %}
+                    </p>
+                    <p class="text-[10px] text-coffee-light tracking-wider mt-0.5">
+                        per {{ p|unit_label }}
+                        {% if info.min_quantity > 1 %} · MOQ {{ info.min_quantity }}{% endif %}
+                    </p>
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('wholesale.catalog_add', slug=p.slug) }}" class="flex gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="number" name="quantity" min="{{ info.min_quantity }}"
+                       value="{{ info.min_quantity }}"
+                       class="w-16 border border-coffee-dark/20 rounded-sm px-2 py-1.5 text-center text-sm bg-cream">
+                <button type="submit" class="flex-1 bg-navy text-cream py-2 rounded-sm text-[10px] tracking-widest uppercase hover:bg-navy-light">
+                    Add
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="font-display text-2xl text-navy mb-2">No products match these filters</p>
+    <p class="text-coffee-light text-sm mb-6">Try a different category, origin, or search term.</p>
+    <a href="{{ url_for('wholesale.catalog') }}" class="btn-primary inline-block">Reset filters</a>
+</div>
+{% endif %}
+
+{% endblock %}

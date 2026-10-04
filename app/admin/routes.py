@@ -1090,17 +1090,20 @@ def wholesale_account_detail(acct_id):
 def wholesale_account_set_status(acct_id):
     from datetime import datetime
     from app.models import WholesaleAccount
+
     acct = WholesaleAccount.query.get_or_404(acct_id)
-    new_status = request.form.get("status", "").strip()
+    new_status = (request.form.get("status") or "").strip().lower()
+
     if new_status not in ("pending", "approved", "rejected", "suspended"):
-        flash("Invalid status", "error")
+        flash(f"Invalid status: {new_status!r}", "error")
         return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
 
     acct.status = new_status
     if new_status == "approved" and not acct.approved_at:
         acct.approved_at = datetime.utcnow()
-        acct.approved_by = current_user.id
+        acct.approved_by = current_user.id if current_user and current_user.is_authenticated else None
     db.session.commit()
+
     flash(f"{acct.company_name} → {new_status}", "success")
     return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
 
@@ -1129,3 +1132,138 @@ def wholesale_account_set_notes(acct_id):
     db.session.commit()
     flash("Notes saved", "success")
     return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+
+
+# ---------- Wholesale price overrides ----------
+
+@bp.route("/wholesale-accounts/<int:acct_id>/prices")
+@admin_required
+def wholesale_account_prices(acct_id):
+    from app.models import WholesaleAccount, Product, WholesalePrice
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    overrides = WholesalePrice.query.filter_by(wholesale_id=acct.id).all()
+    override_map = {o.product_id: o for o in overrides}
+    products = Product.query.filter_by(active=True).order_by(Product.category, Product.name).all()
+    stats = compute_stats()
+    return render_template(
+        "admin/wholesale_account_prices.html",
+        acct=acct, products=products, override_map=override_map, stats=stats,
+    )
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>/prices/set", methods=["POST"])
+@admin_required
+def wholesale_account_price_set(acct_id):
+    from app.models import WholesaleAccount, Product, WholesalePrice
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    product_id = request.form.get("product_id", type=int)
+    if not product_id:
+        flash("Product required", "error")
+        return redirect(url_for("admin.wholesale_account_prices", acct_id=acct.id))
+
+    product = Product.query.get_or_404(product_id)
+    raw_price = request.form.get("price", "").strip()
+
+    if not raw_price:
+        # Empty = delete the override
+        existing = WholesalePrice.query.filter_by(wholesale_id=acct.id, product_id=product_id).first()
+        if existing:
+            db.session.delete(existing)
+            db.session.commit()
+            flash(f"Removed custom price for {product.name}", "success")
+        return redirect(url_for("admin.wholesale_account_prices", acct_id=acct.id))
+
+    try:
+        price = float(raw_price)
+        if price <= 0:
+            raise ValueError
+    except ValueError:
+        flash("Price must be a positive number", "error")
+        return redirect(url_for("admin.wholesale_account_prices", acct_id=acct.id))
+
+    try:
+        moq = int(request.form.get("min_quantity", "1") or 1)
+        if moq < 1:
+            moq = 1
+    except ValueError:
+        moq = 1
+
+    notes = request.form.get("notes", "").strip() or None
+
+    existing = WholesalePrice.query.filter_by(wholesale_id=acct.id, product_id=product_id).first()
+    if existing:
+        existing.price = price
+        existing.min_quantity = moq
+        existing.notes = notes
+    else:
+        db.session.add(WholesalePrice(
+            wholesale_id=acct.id, product_id=product_id,
+            price=price, min_quantity=moq, notes=notes,
+        ))
+    db.session.commit()
+    flash(f"Saved custom price for {product.name}", "success")
+    return redirect(url_for("admin.wholesale_account_prices", acct_id=acct.id))
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>/prices/clear", methods=["POST"])
+@admin_required
+def wholesale_account_prices_clear(acct_id):
+    from app.models import WholesaleAccount, WholesalePrice
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    n = WholesalePrice.query.filter_by(wholesale_id=acct.id).delete()
+    db.session.commit()
+    flash(f"Cleared {n} custom price(s) — reverting to {acct.tier} tier", "success")
+    return redirect(url_for("admin.wholesale_account_prices", acct_id=acct.id))
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>/custom-discount", methods=["POST"])
+@admin_required
+def wholesale_account_set_custom_discount(acct_id):
+    from app.models import WholesaleAccount
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    raw = request.form.get("custom_discount_pct", "").strip()
+    if not raw:
+        acct.custom_discount_pct = None
+        db.session.commit()
+        flash("Blanket discount cleared.", "success")
+        return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+    try:
+        pct = float(raw)
+        if pct < 0 or pct > 90:
+            raise ValueError
+    except ValueError:
+        flash("Discount must be between 0 and 90.", "error")
+        return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+    acct.custom_discount_pct = pct
+    db.session.commit()
+    flash(f"Blanket discount set to {pct}% off.", "success")
+    return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+
+
+@bp.route("/wholesale-accounts/<int:acct_id>/custom-discount/clear", methods=["POST"])
+@admin_required
+def wholesale_account_clear_custom_discount(acct_id):
+    from app.models import WholesaleAccount
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    acct.custom_discount_pct = None
+    db.session.commit()
+    flash("Blanket discount removed.", "success")
+    return redirect(url_for("admin.wholesale_account_detail", acct_id=acct.id))
+
+
+# ---------- Status fix verification ----------
+
+@bp.route("/wholesale-accounts/<int:acct_id>/debug-status")
+@admin_required
+def wholesale_account_debug_status(acct_id):
+    """TEMP route to confirm status updates persist."""
+    from app.models import WholesaleAccount
+    acct = WholesaleAccount.query.get_or_404(acct_id)
+    return {
+        "id": acct.id,
+        "company_name": acct.company_name,
+        "status": acct.status,
+        "tier": acct.tier,
+        "custom_discount_pct": acct.custom_discount_pct,
+        "approved_at": acct.approved_at.isoformat() if acct.approved_at else None,
+    }

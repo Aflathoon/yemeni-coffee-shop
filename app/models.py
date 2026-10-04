@@ -81,6 +81,7 @@ class WholesaleAccount(db.Model):
     # Application
     status = db.Column(db.String(20), default="pending", index=True)  # pending | approved | rejected | suspended
     tier = db.Column(db.String(20), default="standard")                # standard | bronze | silver | gold
+    custom_discount_pct = db.Column(db.Float)                          # optional: flat % off everything (overrides tier)
     notes = db.Column(db.Text)                                        # applicant's own notes
     admin_notes = db.Column(db.Text)                                  # internal
     applied_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -104,6 +105,24 @@ class WholesaleAccount(db.Model):
     @property
     def display_name(self):
         return self.company_name or self.email.split("@")[0]
+
+
+class WholesalePrice(db.Model):
+    """Per-partner price override. When present, takes precedence over tier discount."""
+    __tablename__ = "wholesale_price"
+
+    id = db.Column(db.Integer, primary_key=True)
+    wholesale_id = db.Column(db.Integer, db.ForeignKey("wholesale_account.id"), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False, index=True)
+    price = db.Column(db.Float, nullable=False)
+    min_quantity = db.Column(db.Integer, default=1)
+    notes = db.Column(db.String(300))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint("wholesale_id", "product_id", name="uq_wsprice"),)
+
+    product = db.relationship("Product")
 
 
 class Product(db.Model):

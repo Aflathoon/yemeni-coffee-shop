@@ -1,0 +1,12 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Cart — Partner Portal{% endblock %}
+{% block page_title %}Wholesale cart{% endblock %}
+{% block page_subtitle %}{{ items|length }} item(s){% endblock %}
+
+{% block content %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-12 text-center">
+    <p class="font-display text-2xl text-navy mb-3">Full cart &amp; checkout — coming soon</p>
+    <p class="text-coffee-light text-sm mb-6">This is being built in Patch 10.4.</p>
+    <a href="{{ url_for('wholesale.catalog') }}" class="btn-primary inline-block">← Back to catalog</a>
+</div>
+{% endblock %}
