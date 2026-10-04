@@ -1,13 +1,13 @@
 from flask import Flask, request, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_wtf import CSRFProtect
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 import sys
-from pathlib import Path
 import re
+from pathlib import Path
 
 load_dotenv()
 
@@ -40,10 +40,39 @@ def create_app():
     csrf.init_app(app)
     migrate.init_app(app, db)
 
-    # --- Jinja filters ---
+    # ---------- Jinja filters ----------
+
+    @app.template_filter("imgurl")
+    def imgurl_filter(value):
+        """Resolve an image field to a usable URL, preferring WebP if present."""
+        if not value:
+            return "/static/images/placeholder.jpg"
+        v = str(value)
+        if v.startswith("http"):
+            return v
+
+        # Bare filename → /static/images/<v>
+        if not v.startswith("/") and not v.startswith("static/"):
+            fs = Path(app.static_folder) / "images" / v
+            webp = fs.with_suffix(".webp")
+            if webp.exists():
+                return f"/static/images/{webp.name}"
+            return f"/static/images/{v}"
+
+        # /static/... path
+        if v.startswith("/static/"):
+            fs = Path(app.static_folder).parent / v.lstrip("/")
+        else:
+            fs = Path(app.static_folder).parent / v
+        webp = fs.with_suffix(".webp")
+        if webp.exists():
+            stem = v.rsplit(".", 1)[0]
+            return f"{stem}.webp"
+        return v
+
     @app.template_filter("unit_label")
     def unit_label_filter(product):
-        """Return a human label like '250 g', '1 kg', 'set of 4'."""
+        """Human label like '250 g', '1 kg', 'set of 4'."""
         unit = getattr(product, "unit", None) or "g"
         qty = getattr(product, "unit_quantity", None)
         if unit == "ea":
@@ -54,55 +83,19 @@ def create_app():
             return f"{qty} bag" if qty else "bag"
         if unit == "kg":
             return f"{qty or 1} kg"
-        # default grams
         return f"{qty or 1} g"
 
-    @app.template_filter("imgurl")
-    def imgurl_filter(value):
-        """Return a usable URL for an image field, preferring WebP if it exists.
-        - bare filename → /static/images/<name>
-        - /static/... paths pass through but swap .jpg/.jpeg/.png → .webp if a .webp exists
-        - http(s) URLs pass through unchanged
-        - empty → /static/images/placeholder.jpg
-        """
-        if not value:
-            return "/static/images/placeholder.jpg"
-        v = str(value)
+    @app.template_filter("price_for")
+    def price_for_filter(product):
+        """Effective price for the current user (wholesale-aware)."""
+        from app.pricing import price_for as _pf
+        return _pf(current_user, product)
 
-        # Resolve to a filesystem path for existence checks
-        def to_fs(url):
-            if url.startswith("/static/"):
-                return Path(app.static_folder).parent / url.lstrip("/")
-            if url.startswith("static/"):
-                return Path(app.static_folder).parent / url
-            return Path(app.static_folder) / "images" / url
+    # ---------- Blueprints ----------
 
-        from pathlib import Path as _P
-
-        if v.startswith("http"):
-            return v
-
-        # Bare filename → /static/images/<v>
-        if not v.startswith("/") and not v.startswith("static/"):
-            fs = Path(app.static_folder) / "images" / v
-            stem = fs.with_suffix("")
-            webp = stem.with_suffix(".webp")
-            if webp.exists():
-                return f"/static/images/{webp.name}"
-            return f"/static/images/{v}"
-
-        # /static/... path — check for WebP twin
-        fs = to_fs(v)
-        stem = fs.with_suffix("")
-        webp = stem.with_suffix(".webp")
-        if webp.exists():
-            url_stem = v.rsplit(".", 1)[0]
-            return f"{url_stem}.webp"
-        return v
-
-    # --- Blueprints ---
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
+
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
@@ -112,14 +105,14 @@ def create_app():
     from app.blog import bp as blog_bp
     app.register_blueprint(blog_bp)
 
-    # --- Language selection ---
+    # ---------- Language selection ----------
+
     @app.route("/set-language/<code>")
     def set_language(code):
         if code in LANGUAGES:
             session["lang"] = code
         return request.referrer or "/"
 
-    
     @app.context_processor
     def inject_globals():
         try:
@@ -127,12 +120,26 @@ def create_app():
             count = cart_count()
         except Exception:
             count = 0
+
+        wd = 0.0
+        wu = False
+        try:
+            from app.pricing import discount_for, is_wholesale_user
+            if current_user.is_authenticated:
+                wd = discount_for(current_user)
+                wu = is_wholesale_user(current_user)
+        except Exception:
+            pass
+
         return {
             "languages": LANGUAGES,
             "current_lang": session.get("lang", "en"),
             "cart_count": count,
+            "wholesale_discount": wd,
+            "is_wholesale": wu,
         }
-    # --- Seed only when the server actually starts ---
+
+    # ---------- Seed only when running the server ----------
     if _is_server_run():
         with app.app_context():
             db.create_all()
@@ -142,7 +149,6 @@ def create_app():
 
 
 def _is_server_run():
-    """True only for `python run.py` or `flask run` — skip on `flask db ...`."""
     argv = sys.argv
     if "db" in argv:
         return False
@@ -158,7 +164,6 @@ def _is_server_run():
 def _seed_products():
     from app.models import Product
     from app.seed_data import PRODUCTS
-
     if Product.query.count() > 0:
         return
 
@@ -178,11 +183,12 @@ def _seed_products():
             short_desc=p.get("short_desc"),
             price=p["price"],
             weight_grams=p.get("weight_grams", 100),
+            unit=p.get("unit", "g"),
+            unit_quantity=p.get("unit_quantity", 1),
             image=p["image"],
             featured=p.get("featured", False),
         )
-        db.session.add(product)   # <-- THIS was missing
+        db.session.add(product)
         inserted += 1
-
     db.session.commit()
     print(f"✅ Seeded {inserted} products")
