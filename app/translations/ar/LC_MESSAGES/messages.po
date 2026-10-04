@@ -397,7 +397,7 @@ msgstr ""
 
 #: app/templates/base.html:305
 msgid "SHOP"
-msgstr ""
+msgstr "المتجر"
 
 #: app/templates/base.html:315
 msgid "HELP"
