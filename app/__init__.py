@@ -18,6 +18,7 @@ csrf = CSRFProtect()
 migrate = Migrate()
 babel = Babel()
 
+# All languages the app knows about (used for translation catalogues)
 LANGUAGES = {
     "en": "English",
     "ar": "العربية",
@@ -27,7 +28,32 @@ LANGUAGES = {
     "ur": "اردو",
     "hi": "हिन्दी",
     "tr": "Türkçe",
+    "zh": "中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "fa": "فارسی",
 }
+
+# Languages shown in the top-nav dropdown. Hidden ones can be populated with
+# translations at their own pace, then flipped on by moving them here.
+LANG_VISIBLE = ["en", "ar", "fr", "de", "es", "ur", "hi", "tr"]
+
+# Right-to-left languages (for dir= and layout adjustments)
+LANG_RTL = {"ar", "ur", "fa"}
+
+# Fonts to load for non-Latin scripts (loaded on-demand by templates)
+LANG_FONTS = {
+    "ar": "Noto+Sans+Arabic:wght@400;600",
+    "ur": "Noto+Nastaliq+Urdu:wght@400;600",  # or Noto Sans Arabic
+    "fa": "Noto+Sans+Arabic:wght@400;600",
+    "hi": "Noto+Sans+Devanagari:wght@400;600",
+    "zh": "Noto+Sans+SC:wght@400;600",
+    "ja": "Noto+Sans+JP:wght@400;600",
+    "ko": "Noto+Sans+KR:wght@400;600",
+}
+
+# Visible languages as a dict — what templates iterate over
+VISIBLE_LANGUAGES = {k: LANGUAGES[k] for k in LANG_VISIBLE}
 
 
 def create_app():
@@ -159,9 +185,12 @@ def create_app():
 
     @app.route("/set-language/<code>")
     def set_language(code):
-        from flask import redirect
+        from flask import redirect, abort
+        # Allow any known language (even hidden ones), so admins can preview
         if code in LANGUAGES:
             session["lang"] = code
+        else:
+            abort(404)
 
         # Prefer explicit ?next=, then referrer, then home
         target = request.args.get("next", "").strip()
@@ -207,9 +236,16 @@ def create_app():
         except Exception:
             pass
 
+        current = session.get("lang", "en")
+        # Extra fonts needed for the current language
+        extra_font = LANG_FONTS.get(current)
+
         return {
-            "languages": LANGUAGES,
-            "current_lang": session.get("lang", "en"),
+            "languages": VISIBLE_LANGUAGES,      # dropdown uses this
+            "all_languages": LANGUAGES,          # admin can see hidden ones
+            "current_lang": current,
+            "is_rtl": current in LANG_RTL,
+            "extra_font": extra_font,
             "cart_count": count,
             "wholesale_discount": wd,
             "is_wholesale": wu,

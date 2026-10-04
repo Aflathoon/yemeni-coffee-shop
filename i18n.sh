@@ -11,7 +11,7 @@ set -e
 cd "$(dirname "$0")"
 source .venv/bin/activate 2>/dev/null || true
 
-LANGS="en ar fr de es ur hi tr"
+LANGS="en ar fr de es ur hi tr zh ja ko fa"
 
 case "${1:-all}" in
   extract)
