@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 import sys
+from pathlib import Path
 import re
 
 load_dotenv()
@@ -42,17 +43,46 @@ def create_app():
     # --- Jinja filters ---
     @app.template_filter("imgurl")
     def imgurl_filter(value):
-        """Return a usable URL for an image field.
-        - /static/uploads/... (uploaded) passes through
-        - bare filename maps to /static/images/<name>
-        - empty falls back to placeholder.jpg
+        """Return a usable URL for an image field, preferring WebP if it exists.
+        - bare filename → /static/images/<name>
+        - /static/... paths pass through but swap .jpg/.jpeg/.png → .webp if a .webp exists
+        - http(s) URLs pass through unchanged
+        - empty → /static/images/placeholder.jpg
         """
         if not value:
             return "/static/images/placeholder.jpg"
         v = str(value)
-        if v.startswith("/") or v.startswith("http"):
+
+        # Resolve to a filesystem path for existence checks
+        def to_fs(url):
+            if url.startswith("/static/"):
+                return Path(app.static_folder).parent / url.lstrip("/")
+            if url.startswith("static/"):
+                return Path(app.static_folder).parent / url
+            return Path(app.static_folder) / "images" / url
+
+        from pathlib import Path as _P
+
+        if v.startswith("http"):
             return v
-        return f"/static/images/{v}"
+
+        # Bare filename → /static/images/<v>
+        if not v.startswith("/") and not v.startswith("static/"):
+            fs = Path(app.static_folder) / "images" / v
+            stem = fs.with_suffix("")
+            webp = stem.with_suffix(".webp")
+            if webp.exists():
+                return f"/static/images/{webp.name}"
+            return f"/static/images/{v}"
+
+        # /static/... path — check for WebP twin
+        fs = to_fs(v)
+        stem = fs.with_suffix("")
+        webp = stem.with_suffix(".webp")
+        if webp.exists():
+            url_stem = v.rsplit(".", 1)[0]
+            return f"{url_stem}.webp"
+        return v
 
     # --- Blueprints ---
     from app.main import bp as main_bp
