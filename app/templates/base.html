@@ -115,7 +115,28 @@
                     </div>
                 </div>
 
-                <a href="/admin/login" class="nav-link hidden md:inline">Admin</a>
+                {% if current_user.is_authenticated %}
+                <div class="relative" id="account-menu">
+                    <button type="button" id="account-menu-trigger" class="nav-link flex items-center gap-1">
+                        {{ current_user.display_name[:16] }}{% if current_user.display_name|length > 16 %}…{% endif %} ▾
+                    </button>
+                    <div id="account-menu-panel"
+                         class="hidden absolute right-0 top-full mt-1 bg-cream border border-coffee-dark/10 shadow-lg py-2 min-w-[180px] z-50">
+                        <a href="{{ url_for('auth.account') }}" class="block px-4 py-2 text-sm hover:bg-parchment">My account</a>
+                        <a href="{{ url_for('auth.account_orders') }}" class="block px-4 py-2 text-sm hover:bg-parchment">My orders</a>
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin.dashboard') }}" class="block px-4 py-2 text-sm hover:bg-parchment border-t border-coffee-dark/10 mt-1 pt-2">Admin dashboard</a>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('auth.logout') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm hover:bg-parchment text-coffee-light hover:text-red-700">Sign out</button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="nav-link hidden md:inline">Sign in</a>
+                <a href="{{ url_for('auth.register') }}" class="hidden md:inline text-[10px] tracking-widest uppercase bg-coffee-dark text-cream px-3 py-2 rounded-sm hover:bg-coffee">Register</a>
+                {% endif %}
 
                 <a href="{{ url_for('main.cart_view') }}" class="nav-link relative flex items-center gap-1">
                     Cart
@@ -275,6 +296,35 @@
 </footer>
 
 <script>
+  // Account dropdown — click to open, click outside to close, Escape to close
+  (function() {
+    const trigger = document.getElementById('account-menu-trigger');
+    const panel = document.getElementById('account-menu-panel');
+    if (!trigger || !panel) return;
+
+    function close() { panel.classList.add('hidden'); }
+    function open()  { panel.classList.remove('hidden'); }
+    function toggle() { panel.classList.contains('hidden') ? open() : close(); }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggle();
+    });
+
+    // Click anywhere else → close
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && e.target !== trigger) close();
+    });
+
+    // Escape key → close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+
+    // Close on link click inside the panel (except form submit)
+    panel.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+  })();
+
   document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('hidden');
   });
