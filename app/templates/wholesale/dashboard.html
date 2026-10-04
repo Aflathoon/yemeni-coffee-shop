@@ -46,12 +46,17 @@
             </div>
             <div class="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center text-navy">🏷</div>
         </div>
-        <div class="text-xs">
+        <div class="text-xs space-y-1">
             {% if acct.is_approved %}
             {% if acct.custom_discount_pct %}
-            <span class="text-sage font-medium">Blanket discount · all products</span>
+            <p class="text-sage font-medium">Blanket rate · all products</p>
             {% else %}
-            <span class="text-sage font-medium">−{{ discount }}% off list price</span>
+            <p class="text-sage font-medium">−{{ discount }}% off list price</p>
+            {% endif %}
+            {% if active_campaign_count %}
+            <p class="text-spice font-medium">
+                + {{ active_campaign_count }} active promotion{{ 's' if active_campaign_count != 1 else '' }}
+            </p>
             {% endif %}
             {% else %}
             <span class="text-coffee-light">Awaiting approval</span>

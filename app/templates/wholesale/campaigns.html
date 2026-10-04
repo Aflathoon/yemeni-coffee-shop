@@ -1,0 +1,154 @@
+{% extends "wholesale/base.html" %}
+{% block title %}Campaigns — Partner Portal{% endblock %}
+{% block page_title %}Promotions{% endblock %}
+{% block page_subtitle %}{{ live|length }} active · {{ upcoming|length }} upcoming{% endblock %}
+
+{% block content %}
+
+{% if not live and not upcoming %}
+<div class="bg-white border border-coffee-dark/8 rounded-lg p-16 text-center">
+    <p class="text-4xl mb-3">🎯</p>
+    <p class="font-display text-2xl text-navy mb-2">No active promotions</p>
+    <p class="text-coffee-light text-sm max-w-md mx-auto">
+        You'll see exclusive offers here as soon as they launch. New campaigns typically run monthly.
+    </p>
+</div>
+{% endif %}
+
+{# ---------- Live campaigns ---------- #}
+{% if live %}
+<section class="mb-8">
+    <h2 class="font-display text-2xl text-navy mb-4 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sage animate-pulse"></span>
+        Active now ({{ live|length }})
+    </h2>
+    <div class="space-y-3">
+        {% for c in live %}
+        {% set sample = live_samples.get(c.id) %}
+        <div class="bg-white border border-sage/40 rounded-lg p-5">
+            <div class="flex justify-between items-start gap-4 flex-wrap">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h3 class="font-display text-xl text-navy">{{ c.name }}</h3>
+                        <span class="text-[10px] tracking-widest uppercase bg-sage/20 text-sage px-2 py-1 rounded">
+                            Live
+                        </span>
+                    </div>
+                    {% if c.public_description %}
+                    <p class="text-sm text-coffee-dark/80 leading-relaxed mb-3">{{ c.public_description }}</p>
+                    {% endif %}
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Discount</p>
+                            <p class="text-coffee-dark font-medium">
+                                {% if c.discount_type == 'percent' %}−{{ c.discount_value }}%
+                                {% elif c.discount_type == 'fixed' %}−${{ "%.2f"|format(c.discount_value) }}
+                                {% else %}Free shipping{% endif %}
+                            </p>
+                            {% set scaling = c.get_tier_scaling() %}
+                            {% if scaling and scaling.get(acct.tier) %}
+                            <p class="text-[11px] text-sage mt-0.5">Your tier: −{{ scaling.get(acct.tier) }}%</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Applies to</p>
+                            <p class="text-coffee-dark font-medium">
+                                {% if c.scope == 'all' %}All products
+                                {% elif c.scope == 'category' %}{{ c.get_scope_categories()|join(', ')|capitalize }}
+                                {% else %}Selected products{% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Ends in</p>
+                            <p class="text-coffee-dark font-medium">{{ days_left(c) }} day{{ 's' if days_left(c) != 1 else '' }}</p>
+                            <p class="text-[11px] text-coffee-light">{{ c.ends_at.strftime("%b %d, %Y") }}</p>
+                        </div>
+                        {% if c.min_order_value %}
+                        <div>
+                            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Min. order</p>
+                            <p class="text-coffee-dark font-medium">${{ "%.0f"|format(c.min_order_value) }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if sample %}
+                    <div class="mt-4 pt-4 border-t border-coffee-dark/10">
+                        <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-2">Example</p>
+                        <a href="{{ url_for('wholesale.catalog_product', slug=sample.slug) }}"
+                           class="flex items-center gap-3 group">
+                            <img src="{{ sample.image|imgurl }}"
+                                 onerror="this.onerror=null;this.src='/static/images/placeholder.jpg';"
+                                 alt=""
+                                 class="w-12 h-12 rounded object-cover bg-parchment">
+                            <div class="flex-1">
+                                <p class="text-sm text-navy group-hover:text-spice font-medium">{{ sample.name }}</p>
+                                <p class="text-[11px] text-coffee-light">
+                                    See your price with this promotion →
+                                </p>
+                            </div>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{# ---------- Upcoming campaigns ---------- #}
+{% if upcoming %}
+<section>
+    <h2 class="font-display text-2xl text-navy mb-4 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-gold"></span>
+        Coming soon ({{ upcoming|length }})
+    </h2>
+    <div class="space-y-3">
+        {% for c in upcoming %}
+        {% set sample = upcoming_samples.get(c.id) %}
+        <div class="bg-cream border border-coffee-dark/10 rounded-lg p-5">
+            <div class="flex justify-between items-start gap-4 flex-wrap">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h3 class="font-display text-xl text-navy">{{ c.name }}</h3>
+                        <span class="text-[10px] tracking-widest uppercase bg-gold/20 text-coffee-dark px-2 py-1 rounded">
+                            Starts {{ c.starts_at.strftime("%b %d") }}
+                        </span>
+                    </div>
+                    {% if c.public_description %}
+                    <p class="text-sm text-coffee-dark/80 leading-relaxed mb-3">{{ c.public_description }}</p>
+                    {% endif %}
+                    <div class="flex flex-wrap gap-4 text-sm">
+                        <div>
+                            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Discount</p>
+                            <p class="text-coffee-dark font-medium">
+                                {% if c.discount_type == 'percent' %}−{{ c.discount_value }}%
+                                {% elif c.discount_type == 'fixed' %}−${{ "%.2f"|format(c.discount_value) }}
+                                {% else %}Free shipping{% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] tracking-widest uppercase text-coffee-light mb-0.5">Runs</p>
+                            <p class="text-coffee-dark font-medium">{{ c.starts_at.strftime("%b %d") }} → {{ c.ends_at.strftime("%b %d") }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{# ---------- Footer tip ---------- #}
+<div class="mt-10 pt-6 border-t border-coffee-dark/10 text-center">
+    <p class="text-xs text-coffee-light">
+        Discounts stack on top of your
+        {% if acct.custom_discount_pct %}{{ acct.custom_discount_pct }}% blanket rate{% else %}{{ acct.tier }} tier pricing{% endif %}.
+        Active promotions apply automatically at cart and checkout.
+    </p>
+</div>
+
+{% endblock %}

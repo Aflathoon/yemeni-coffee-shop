@@ -26,6 +26,20 @@ def dashboard():
         from app.pricing import get_discount_percent
         discount = get_discount_percent(acct.tier)
 
+    # Count active campaigns that apply to this partner
+    active_campaign_count = 0
+    try:
+        from app.models import Product
+        from app.campaigns import campaigns_for
+        seen = set()
+        # Sample the first 20 products to see which campaigns match
+        for prod in Product.query.filter_by(active=True).limit(20).all():
+            for c in campaigns_for(acct, prod):
+                seen.add(c.id)
+        active_campaign_count = len(seen)
+    except Exception:
+        pass
+
     return render_template(
         "wholesale/dashboard.html",
         acct=acct,
@@ -33,6 +47,7 @@ def dashboard():
         total_spend=total_spend,
         recent_orders=recent_orders,
         discount=discount,
+        active_campaign_count=active_campaign_count,
     )
 
 
@@ -156,3 +171,75 @@ def account():
         return redirect(url_for("wholesale.account"))
 
     return render_template("wholesale/account.html", acct=acct)
+
+
+# ---------- Partner-facing campaigns ----------
+
+@bp.route("/campaigns")
+@wholesale_required
+def campaigns():
+    """List active + upcoming campaigns that apply to this partner."""
+    from datetime import datetime, timedelta
+    from app.models import Campaign, Product, Order
+    from app.campaigns import campaigns_for
+
+    acct = current_wholesale()
+
+    # Current campaign window: published, not expired
+    now = datetime.utcnow()
+
+    # We can only know if a campaign applies to a partner by evaluating
+    # against their products. Since campaigns have scope filters, we look
+    # at the whole active catalog and collect distinct campaigns.
+    products = Product.query.filter_by(active=True).all()
+    seen_ids = set()
+    live_list = []
+    upcoming_list = []
+
+    for c in Campaign.query.filter_by(published=True).order_by(Campaign.starts_at.desc()).all():
+        if c.id in seen_ids:
+            continue
+        # Does it apply to this partner at all? Test against at least one in-scope product
+        applies = False
+        for p in products:
+            if c in campaigns_for(acct, p):
+                applies = True
+                break
+        if not applies:
+            continue
+        seen_ids.add(c.id)
+        if c.is_live():
+            live_list.append(c)
+        elif c.is_upcoming():
+            upcoming_list.append(c)
+
+    # Sample product for each live campaign (for showing "savings on..." hint)
+    def sample_product(c):
+        for p in products:
+            if c.scope == "all":
+                return p
+            if c.scope == "category" and (p.category or "").lower() in [x.lower() for x in c.get_scope_categories()]:
+                return p
+            if c.scope == "products":
+                from app.models import CampaignProduct
+                if CampaignProduct.query.filter_by(campaign_id=c.id, product_id=p.id).first():
+                    return p
+        return None
+
+    live_samples = {c.id: sample_product(c) for c in live_list}
+    upcoming_samples = {c.id: sample_product(c) for c in upcoming_list}
+
+    # Days remaining for each live campaign
+    def days_left(c):
+        return max(0, (c.ends_at - now).days)
+
+    return render_template(
+        "wholesale/campaigns.html",
+        acct=acct,
+        live=live_list,
+        upcoming=upcoming_list,
+        live_samples=live_samples,
+        upcoming_samples=upcoming_samples,
+        days_left=days_left,
+        now=now,
+    )

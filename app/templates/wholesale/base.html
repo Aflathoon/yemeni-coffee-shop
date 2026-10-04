@@ -116,6 +116,10 @@
                class="sidebar-link {% if request.endpoint == 'wholesale.catalog' %}active{% endif %}">
                 <span>📚 Catalog</span>
             </a>
+            <a href="{{ url_for('wholesale.campaigns') }}"
+               class="sidebar-link {% if request.endpoint == 'wholesale.campaigns' %}active{% endif %}">
+                <span>🎯 Promotions</span>
+            </a>
             <a href="{{ url_for('wholesale.orders') }}"
                class="sidebar-link {% if request.endpoint == 'wholesale.orders' %}active{% endif %}">
                 <span>📦 Orders</span>
